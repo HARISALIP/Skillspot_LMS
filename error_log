@@ -1,0 +1,22 @@
+[30-Apr-2026 02:16:38 UTC] PHP Parse error:  syntax error, unexpected token "=", expecting end of file in /tmp/seed_live.php on line 3
+[30-Apr-2026 05:35:37 UTC] PHP Fatal error:  Uncaught Error: Call to undefined function env() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown in Command line code on line 1
+[19-May-2026 11:36:11 UTC] PHP Warning:  require(/home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/artisan on line 10
+[19-May-2026 11:36:11 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php85/root/usr/share/pear') in /home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/artisan:10
+Stack trace:
+#0 {main}
+  thrown in /home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/artisan on line 10
+[19-May-2026 11:36:16 UTC] PHP Warning:  require(/home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/vendor/autoload.php): Failed to open stream: No such file or directory in /home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/artisan on line 10
+[19-May-2026 11:36:16 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php85/root/usr/share/pear') in /home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/artisan:10
+Stack trace:
+#0 {main}
+  thrown in /home/server1/hsweb/itforge/subdomains/test.itforge.in/public_html/artisan on line 10
+[19-May-2026 11:36:17 UTC] PHP Warning:  require(vendor/autoload.php): Failed to open stream: No such file or directory in Command line code on line 1
+[19-May-2026 11:36:17 UTC] PHP Fatal error:  Uncaught Error: Failed opening required 'vendor/autoload.php' (include_path='.:/opt/cpanel/ea-php85/root/usr/share/pear') in Command line code:1
+Stack trace:
+#0 {main}
+  thrown in Command line code on line 1
+[19-May-2026 11:36:22 UTC] PHP Deprecated:  Case statements followed by a semicolon (;) are deprecated, use a colon (:) instead in phar:///usr/local/bin/composer/vendor/react/promise/src/functions.php on line 300
+[19-May-2026 12:31:16 UTC] PHP Parse error:  syntax error, unexpected token ",", expecting variable in app/Http/Controllers/Vendor/PortalController.php on line 379
