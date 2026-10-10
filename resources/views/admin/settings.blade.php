@@ -7,24 +7,24 @@
 
 @php
 $tabs = [
-  'branding' => ['icon'=>'🎨','label'=>'Branding & Domain'],
-  'mail'     => ['icon'=>'📧','label'=>'Email / SMTP'],
-  'storage'  => ['icon'=>'☁️','label'=>'Storage (R2)'],
-  'payment'  => ['icon'=>'💳','label'=>'Payments'],
-  'license'  => ['icon'=>'🔑','label'=>'License'],
-  'security' => ['icon'=>'🔒','label'=>'Security & OTP'],
+  'branding' => ['fa'=>'fa-solid fa-palette',           'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'Branding & Domain'],
+  'mail'     => ['fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP'],
+  'storage'  => ['fa'=>'fa-solid fa-cloud',              'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Storage (R2)'],
+  'payment'  => ['fa'=>'fa-solid fa-credit-card',        'color'=>'text-emerald-600','bg'=>'bg-emerald-100','label'=>'Payments'],
+  'license'  => ['fa'=>'fa-solid fa-key',                'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'License'],
+  'security' => ['fa'=>'fa-solid fa-shield-halved',      'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Security & OTP'],
 ];
 @endphp
 
 @if(session('success'))
 <div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm">
-  <span class="text-xl flex-shrink-0">✅</span> {{ session('success') }}
+  <i class="fa-solid fa-circle-check text-green-600 text-lg flex-shrink-0"></i> {{ session('success') }}
   <button onclick="this.parentElement.remove()" class="ml-auto text-green-400 hover:text-green-600 text-lg leading-none">×</button>
 </div>
 @endif
 @if(session('error'))
 <div class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm">
-  <span class="text-xl flex-shrink-0">❌</span> {{ session('error') }}
+  <i class="fa-solid fa-circle-xmark text-red-600 text-lg flex-shrink-0"></i> {{ session('error') }}
   <button onclick="this.parentElement.remove()" class="ml-auto text-red-400 hover:text-red-600 text-lg leading-none">×</button>
 </div>
 @endif
@@ -36,9 +36,9 @@ $tabs = [
     <div class="lg:hidden flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1">
       @foreach($tabs as $key => $tab)
       <a href="{{ route('admin.settings', ['tab' => $key]) }}"
-         class="snap-start flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition
+         class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition
                 {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-lg shadow-brand-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-brand-300 hover:text-brand-600' }}">
-        {{ $tab['icon'] }} {{ $tab['label'] }}
+        <i class="{{ $tab['fa'] }}"></i> {{ $tab['label'] }}
       </a>
       @endforeach
     </div>
@@ -51,7 +51,9 @@ $tabs = [
         <a href="{{ route('admin.settings', ['tab' => $key]) }}"
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition font-medium
                   {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-          <span class="text-base">{{ $tab['icon'] }}</span>
+          <span class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all {{ $activeTab === $key ? 'bg-white/20 text-white' : $tab['bg'] . ' ' . $tab['color'] }}">
+            <i class="{{ $tab['fa'] }} text-xs"></i>
+          </span>
           <span>{{ $tab['label'] }}</span>
           @if($activeTab === $key)
           <svg class="w-4 h-4 ml-auto opacity-60" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
@@ -68,7 +70,9 @@ $tabs = [
 
       <div class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div class="flex items-center gap-3">
-          <div class="w-11 h-11 bg-gradient-to-br from-brand-500 to-accent-500 rounded-xl flex items-center justify-center text-2xl shadow-sm">{{ $tabs[$activeTab]['icon'] }}</div>
+          <div class="w-11 h-11 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white text-lg shadow-md shadow-brand-500/20">
+            <i class="{{ $tabs[$activeTab]['fa'] }}"></i>
+          </div>
           <div>
             <h2 class="text-base font-black text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
             <p class="text-xs text-gray-400 mt-0.5">

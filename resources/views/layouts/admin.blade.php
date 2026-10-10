@@ -6,6 +6,7 @@
   <title>@yield('title', 'Admin — Skillspot.in LMS')</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -68,19 +69,19 @@
       @php
         $isTeacherOnly = auth()->user()->hasRole('teacher') && !auth()->user()->hasRole(['admin','super-admin']);
         $navItems = [
-          ['icon'=>'📊','label'=>'Dashboard',   'route'=>'admin.dashboard',   'href'=>route('admin.dashboard'),  'teacherOk'=>true],
-          ['icon'=>'🏪','label'=>'Vendors',     'route'=>'admin.vendors',     'href'=>route('admin.vendors'),    'teacherOk'=>false],
-          ['icon'=>'👥','label'=>'Users',       'route'=>'admin.users',       'href'=>route('admin.users'),      'teacherOk'=>false],
-          ['icon'=>'📚','label'=>'Courses',     'route'=>'admin.courses',     'href'=>route('admin.courses'),    'teacherOk'=>true],
-          ['icon'=>'🎓','label'=>'Enrollments', 'route'=>'admin.enrollments', 'href'=>route('admin.enrollments'),'teacherOk'=>true],
-          ['icon'=>'📡','label'=>'Live Classes','route'=>'admin.live',        'href'=>route('admin.live'),       'teacherOk'=>true],
-          ['icon'=>'📦','label'=>'Batches',     'route'=>'admin.batches',     'href'=>route('admin.batches'),    'teacherOk'=>true],
-          ['icon'=>'💳','label'=>'Payments',    'route'=>'admin.payments',    'href'=>route('admin.payments'),   'teacherOk'=>false],
-          ['icon'=>'📜','label'=>'Certificates','route'=>'admin.certs',       'href'=>route('admin.certs'),      'teacherOk'=>true],
-          ['icon'=>'🗂️','label'=>'Media', 'route'=>'admin.media',       'href'=>route('admin.media'),      'teacherOk'=>true],
-          ['icon'=>'🎭','label'=>'Roles',       'route'=>'admin.roles',       'href'=>route('admin.roles'),      'teacherOk'=>false],
-          ['icon'=>'⚙️','label'=>'Settings',    'route'=>'admin.settings',    'href'=>route('admin.settings'),   'teacherOk'=>false],
-          ['icon'=>'👤','label'=>'My Profile',  'route'=>'admin.profile',     'href'=>route('admin.profile'),    'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-chart-pie',         'color'=>'text-blue-500',    'label'=>'Dashboard',   'route'=>'admin.dashboard',   'href'=>route('admin.dashboard'),  'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-store',             'color'=>'text-purple-500',  'label'=>'Vendors',     'route'=>'admin.vendors',     'href'=>route('admin.vendors'),    'teacherOk'=>false],
+          ['fa'=>'fa-solid fa-users',             'color'=>'text-emerald-500', 'label'=>'Users',       'route'=>'admin.users',       'href'=>route('admin.users'),      'teacherOk'=>false],
+          ['fa'=>'fa-solid fa-book-open',         'color'=>'text-indigo-500',  'label'=>'Courses',     'route'=>'admin.courses',     'href'=>route('admin.courses'),    'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-user-graduate',     'color'=>'text-amber-500',   'label'=>'Enrollments', 'route'=>'admin.enrollments', 'href'=>route('admin.enrollments'),'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-video',             'color'=>'text-rose-500',    'label'=>'Live Classes','route'=>'admin.live',        'href'=>route('admin.live'),       'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-cubes',             'color'=>'text-cyan-500',    'label'=>'Batches',     'route'=>'admin.batches',     'href'=>route('admin.batches'),    'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-credit-card',       'color'=>'text-emerald-600', 'label'=>'Payments',    'route'=>'admin.payments',    'href'=>route('admin.payments'),   'teacherOk'=>false],
+          ['fa'=>'fa-solid fa-certificate',       'color'=>'text-amber-600',   'label'=>'Certificates','route'=>'admin.certs',       'href'=>route('admin.certs'),      'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-photo-film',        'color'=>'text-teal-500',    'label'=>'Media',       'route'=>'admin.media',       'href'=>route('admin.media'),      'teacherOk'=>true],
+          ['fa'=>'fa-solid fa-shield-halved',     'color'=>'text-violet-500',  'label'=>'Roles',       'route'=>'admin.roles',       'href'=>route('admin.roles'),      'teacherOk'=>false],
+          ['fa'=>'fa-solid fa-sliders',           'color'=>'text-slate-500',   'label'=>'Settings',    'route'=>'admin.settings',    'href'=>route('admin.settings'),   'teacherOk'=>false],
+          ['fa'=>'fa-solid fa-circle-user',       'color'=>'text-blue-600',    'label'=>'My Profile',  'route'=>'admin.profile',     'href'=>route('admin.profile'),    'teacherOk'=>true],
         ];
       @endphp
 
@@ -95,7 +96,9 @@
           <button onclick="toggleCoursesMenu()"
                   class="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full transition nav-label
                          {{ $courseOpen ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-            <span class="nav-icon text-lg flex-shrink-0">📚</span>
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-50 text-indigo-500">
+              <i class="fa-solid fa-book-open text-sm"></i>
+            </span>
             <span class="nav-label text-sm font-medium flex-1 text-left">Courses</span>
             <svg id="coursesArrow" class="nav-label w-4 h-4 transition-transform {{ $courseOpen ? 'rotate-180' : '' }}"
                  fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -104,16 +107,16 @@
           </button>
           <div id="coursesSubmenu" class="{{ $courseOpen ? '' : 'hidden' }} nav-label ml-4 mt-0.5 space-y-0.5 border-l-2 border-brand-100 pl-3">
             @foreach([
-              ['📋','All Courses',  route('admin.courses'),           'admin.courses'],
-              ['➕','New Course',   route('admin.courses.create'),    'admin.courses.create'],
-              ['🏷️','Categories',  route('admin.courses.categories'),'admin.courses.categories*'],
-              ['📊','Levels',       route('admin.courses.levels'),    'admin.courses.levels*'],
-              ['🌐','Languages',    route('admin.courses.languages'), 'admin.courses.languages*'],
-            ] as [$icon,$lbl,$href,$rt])
+              ['fa-solid fa-list-check','All Courses',  route('admin.courses'),           'admin.courses'],
+              ['fa-solid fa-plus','New Course',   route('admin.courses.create'),    'admin.courses.create'],
+              ['fa-solid fa-tags','Categories',  route('admin.courses.categories'),'admin.courses.categories*'],
+              ['fa-solid fa-signal','Levels',       route('admin.courses.levels'),    'admin.courses.levels*'],
+              ['fa-solid fa-globe','Languages',    route('admin.courses.languages'), 'admin.courses.languages*'],
+            ] as [$faIcon,$lbl,$href,$rt])
             <a href="{{ $href }}"
                class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition
                       {{ request()->routeIs($rt) ? 'bg-brand-100 text-brand-700 font-semibold' : 'text-gray-600 hover:bg-gray-100' }}">
-              <span>{{ $icon }}</span> {{ $lbl }}
+              <i class="{{ $faIcon }} text-xs opacity-75"></i> {{ $lbl }}
             </a>
             @endforeach
           </div>
@@ -121,7 +124,9 @@
         @else
         <a href="{{ $item['href'] }}"
            class="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 transition group {{ request()->routeIs($item['route']) ? 'active-nav' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-          <span class="nav-icon text-lg flex-shrink-0">{{ $item['icon'] }}</span>
+          <span class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all {{ request()->routeIs($item['route']) ? 'bg-brand-600 text-white shadow-sm shadow-brand-500/30' : 'bg-slate-100/80 ' . $item['color'] . ' group-hover:bg-white group-hover:shadow-sm' }}">
+            <i class="{{ $item['fa'] }} text-sm"></i>
+          </span>
           <span class="nav-label text-sm font-medium">{{ $item['label'] }}</span>
         </a>
         @endif
@@ -132,14 +137,18 @@
     <div class="px-3 py-4 border-t border-gray-100 space-y-1">
       @if(auth()->user()->hasRole('teacher'))
       <a href="{{ route('vendor.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition">
-        <span class="text-lg flex-shrink-0">🏪</span>
+        <span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+          <i class="fa-solid fa-building text-sm"></i>
+        </span>
         <span class="nav-label text-sm font-medium">Vendor Panel</span>
       </a>
       @endif
       <form method="POST" action="/logout">
         @csrf
         <button type="submit" class="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-gray-600 hover:bg-red-50 hover:text-red-600 transition">
-          <span class="text-lg flex-shrink-0">🚪</span>
+          <span class="w-7 h-7 rounded-lg bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i>
+          </span>
           <span class="nav-label text-sm font-medium">Logout</span>
         </button>
       </form>
