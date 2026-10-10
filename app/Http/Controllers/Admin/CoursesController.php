@@ -92,6 +92,7 @@ class CoursesController extends Controller
     public function edit(Course $course)
     {
         $course->load('sections.lessons','allowedUsers');
+        $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
         return view('admin.courses.form', [
             'course'     => $course,
             'vendors'    => $vendors,
