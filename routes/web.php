@@ -373,10 +373,16 @@ Route::prefix('v/{slug}')->name('vendor.portal.')->group(function () {
 // ── System Accounts Seeder Helper Route ────────────────────────────────────
 Route::get('/seed-system-accounts', function () {
     try {
+        // Run Database Seeder
         (new \Database\Seeders\DatabaseSeeder())->run();
+
+        // Clear Spatie Permission & Laravel Cache
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        try { \Illuminate\Support\Facades\Artisan::call('cache:clear'); } catch (\Throwable $t) {}
+
         return response()->json([
             'status' => 'success',
-            'message' => 'System accounts (Super Admin, Teacher, Student) and all permissions seeded successfully! ✅',
+            'message' => 'System accounts (Super Admin, Teacher, Student), Spatie roles & permissions seeded successfully! ✅',
             'accounts' => [
                 'super_admin' => [
                     'name'  => 'Skillspot Super Admin',
@@ -395,10 +401,12 @@ Route::get('/seed-system-accounts', function () {
                 ],
             ]
         ]);
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         return response()->json([
             'status'  => 'error',
-            'message' => $e->getMessage()
+            'message' => $e->getMessage(),
+            'file'    => $e->getFile(),
+            'line'    => $e->getLine(),
         ], 500);
     }
 });
