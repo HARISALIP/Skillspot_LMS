@@ -13,45 +13,45 @@
         extend: {
           fontFamily: { sans: ['Inter','sans-serif'] },
           colors: {
-            brand: { 50:'#eff6ff',100:'#dbeafe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',900:'#1e3a8a' },
-            accent: { 100:'#ede9fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',900:'#4c1d95' }
+            brand:  { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' },
+            accent: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',900:'#4c1d95' }
           }
         }
       }
     }
   </script>
   <style>
-    .gradient-bg { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #312e81 100%); }
-    .blob1 { position:fixed; width:400px; height:400px; background:#2563eb22; border-radius:50%; filter:blur(80px); top:-100px; right:-100px; pointer-events:none; }
-    .blob2 { position:fixed; width:300px; height:300px; background:#7c3aed22; border-radius:50%; filter:blur(80px); bottom:-80px; left:-80px; pointer-events:none; }
+    .gradient-bg { background: linear-gradient(135deg, #f8fafc 0%, #edf4ff 50%, #f5f3ff 100%); }
+    .blob1 { position:fixed; width:400px; height:400px; background:#2563eb12; border-radius:50%; filter:blur(80px); top:-100px; right:-100px; pointer-events:none; }
+    .blob2 { position:fixed; width:300px; height:300px; background:#7c3aed12; border-radius:50%; filter:blur(80px); bottom:-80px; left:-80px; pointer-events:none; }
   </style>
   @stack('styles')
 </head>
-<body class="font-sans gradient-bg min-h-screen flex flex-col">
+<body class="font-sans gradient-bg min-h-screen flex flex-col antialiased text-slate-800">
   <div class="blob1"></div>
   <div class="blob2"></div>
 
   <!-- Top bar -->
   <div class="relative z-10 flex items-center justify-between px-5 py-4 md:px-10">
     <a href="/" class="flex items-center gap-2.5">
-      <div class="w-9 h-9 bg-gradient-to-br from-brand-400 to-accent-500 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">I</div>
-      <span class="text-white font-bold text-xl">Skillspot.in <span class="text-brand-400">LMS</span></span>
+      <div class="w-9 h-9 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-500/20">S</div>
+      <span class="text-slate-900 font-bold text-xl">Skillspot.in <span class="text-brand-600 font-extrabold">LMS</span></span>
     </a>
-    <div class="text-sm">@yield('top-link')</div>
+    <div class="text-sm font-medium">@yield('top-link')</div>
   </div>
 
   <!-- Main -->
-  <div class="relative z-10 flex-1 flex items-center justify-center px-4 py-6 md:py-10">
-    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+  <div class="relative z-10 flex-1 flex items-center justify-center px-4 py-6 md:py-8">
+    <div class="w-full max-w-[420px] bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 overflow-hidden">
       @yield('content')
     </div>
   </div>
 
   <!-- Footer -->
-  <div class="relative z-10 text-center text-gray-500 text-xs py-5">
+  <div class="relative z-10 text-center text-slate-400 text-xs py-4">
     © {{ date('Y') }} Skillspot.in LMS &nbsp;·&nbsp;
-    <a href="#" class="hover:text-white transition">Privacy</a> &nbsp;·&nbsp;
-    <a href="#" class="hover:text-white transition">Terms</a>
+    <a href="/privacy" class="hover:text-brand-600 transition">Privacy</a> &nbsp;·&nbsp;
+    <a href="/terms" class="hover:text-brand-600 transition">Terms</a>
   </div>
 
   @stack('scripts')

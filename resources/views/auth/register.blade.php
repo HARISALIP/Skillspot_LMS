@@ -2,8 +2,8 @@
 @section('title', 'Join Skillspot.in')
 
 @section('top-link')
-  <a href="/login" class="text-gray-300 hover:text-white transition text-sm">
-    Have an account? <span class="text-brand-400 font-semibold">Sign in →</span>
+  <a href="/login" class="text-slate-600 hover:text-brand-600 transition text-sm">
+    Have an account? <span class="text-brand-600 font-bold">Sign in →</span>
   </a>
 @endsection
 
@@ -46,21 +46,21 @@
 @endphp
 
 <!-- Header -->
-<div class="bg-gradient-to-r from-brand-600 to-accent-600 px-7 py-7 text-center">
+<div class="bg-gradient-to-r from-brand-600 to-accent-600 px-6 py-5 text-center">
   @if($otpPending)
-    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl mx-auto mb-2 backdrop-blur-sm shadow-sm">
       {{ $otpType === 'phone' ? '📱' : '📧' }}
     </div>
-    <h1 class="text-xl font-black text-white">Verify Your {{ $otpType === 'phone' ? 'Phone' : 'Email' }}</h1>
-    <p class="text-blue-200 text-sm mt-1">Enter the 6-digit code we sent</p>
+    <h1 class="text-lg font-black text-white">Verify Your {{ $otpType === 'phone' ? 'Phone' : 'Email' }}</h1>
+    <p class="text-blue-100 text-xs mt-0.5">Enter the 6-digit code we sent</p>
   @else
-    <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3">🚀</div>
-    <h1 class="text-2xl font-black text-white">Join Skillspot.in Academy</h1>
-    <p class="text-blue-200 text-sm mt-1">Create your free student account</p>
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2 backdrop-blur-sm shadow-sm">🚀</div>
+    <h1 class="text-xl font-black text-white">Join Skillspot.in Academy</h1>
+    <p class="text-blue-100 text-xs mt-0.5">Create your free student account</p>
   @endif
 </div>
 
-<div class="px-7 py-8">
+<div class="px-6 py-6">
 
   {{-- Alerts --}}
   @if($errors->any())
