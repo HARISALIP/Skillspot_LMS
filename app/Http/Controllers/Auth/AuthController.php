@@ -101,85 +101,93 @@ class AuthController extends Controller
     // ── Show Register ──────────────────────────────────────────────────
     public function showRegister()
     {
-        // Block if maintenance mode
-        if (Setting::get('maintenance_mode', '0') === '1') {
-            return view('auth.maintenance');
+        try {
+            // Block if maintenance mode
+            if (Setting::get('maintenance_mode', '0') === '1') {
+                return view('auth.maintenance');
+            }
+            // Block if registration disabled
+            if (Setting::get('allow_registration', '1') === '0') {
+                return view('auth.registration-closed');
+            }
+            return view('auth.register');
+        } catch (\Throwable $e) {
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Register Page Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
         }
-        // Block if registration disabled
-        if (Setting::get('allow_registration', '1') === '0') {
-            return view('auth.registration-closed');
-        }
-        return view('auth.register');
     }
 
     // ── Process Register ───────────────────────────────────────────────
     public function register(Request $request)
     {
-        if (Setting::get('maintenance_mode', '0') === '1') {
-            return redirect('/')->with('error', 'Platform is under maintenance. Please try again later.');
-        }
-        if (Setting::get('allow_registration', '1') === '0') {
-            return redirect('/')->with('error', 'Registration is currently closed.');
-        }
-        // Human verification
-        $hv = HumanVerifier::verify($request, 'register');
-        if (!$hv['pass']) {
-            return back()->withErrors(['_hv' => $hv['reason']])->withInput();
-        }
-
-        $request->validate([
-            'name'         => ['required', 'string', 'max:255'],
-            'email'        => ['required', 'email', 'unique:users,email'],
-            'phone'        => ['nullable', 'string', 'max:20', 'unique:users,phone'],
-            'country'      => ['nullable', 'string', 'max:5'],
-            'country_name' => ['nullable', 'string', 'max:100'],
-            'password'     => ['required', 'confirmed', Password::min(8)],
-            'terms'        => ['accepted'],
-        ]);
-
-        // Store pending registration in session
-        $pending = [
-            'name'         => $request->name,
-            'email'        => $request->email,
-            'phone'        => $request->phone,
-            'country'      => $request->input('country', 'IN'),
-            'country_name' => $request->input('country_name', 'India'),
-            'password'     => Hash::make($request->password),
-        ];
-
-        // ── Check Phone OTP (India only — IN country code) ────────────
-        $isIndia = $request->input('country', 'IN') === 'IN';
-        if ($this->phoneOtpRequired() && !empty($request->phone) && $isIndia) {
-            $phone  = SmsOtpService::normalizePhone($request->phone);
-            $result = (new SmsOtpService())->sendOtp($phone, 'register');
-
-            if (!$result['success']) {
-                return back()
-                    ->withInput()
-                    ->with('error', 'Could not send SMS OTP: ' . $result['message']);
+        try {
+            if (Setting::get('maintenance_mode', '0') === '1') {
+                return redirect('/')->with('error', 'Platform is under maintenance. Please try again later.');
+            }
+            if (Setting::get('allow_registration', '1') === '0') {
+                return redirect('/')->with('error', 'Registration is currently closed.');
+            }
+            // Human verification
+            $hv = HumanVerifier::verify($request, 'register');
+            if (!$hv['pass']) {
+                return back()->withErrors(['_hv' => $hv['reason']])->withInput();
             }
 
-            $request->session()->put('pending_registration', $pending);
-            return back()
-                ->withInput()
-                ->with('otp_pending', true)
-                ->with('otp_type', 'phone')
-                ->with('otp_identifier', $phone);
-        }
+            $request->validate([
+                'name'         => ['required', 'string', 'max:255'],
+                'email'        => ['required', 'email', 'unique:users,email'],
+                'phone'        => ['nullable', 'string', 'max:20', 'unique:users,phone'],
+                'country'      => ['nullable', 'string', 'max:5'],
+                'country_name' => ['nullable', 'string', 'max:100'],
+                'password'     => ['required', 'confirmed', Password::min(8)],
+                'terms'        => ['accepted'],
+            ]);
 
-        // ── Check Email OTP ────────────────────────────────────────────
-        if ($this->emailOtpRequired()) {
-            $request->session()->put('pending_registration', $pending);
-            $this->sendEmailOtp($request->email, 'register');
-            return back()
-                ->withInput()
-                ->with('otp_pending', true)
-                ->with('otp_type', 'email')
-                ->with('otp_identifier', $request->email);
-        }
+            // Store pending registration in session
+            $pending = [
+                'name'         => $request->name,
+                'email'        => $request->email,
+                'phone'        => $request->phone,
+                'country'      => $request->input('country', 'IN'),
+                'country_name' => $request->input('country_name', 'India'),
+                'password'     => Hash::make($request->password),
+            ];
 
-        // ── No OTP — register directly ─────────────────────────────────
-        return $this->createUser($pending);
+            // ── Check Phone OTP (India only — IN country code) ────────────
+            $isIndia = $request->input('country', 'IN') === 'IN';
+            if ($this->phoneOtpRequired() && !empty($request->phone) && $isIndia) {
+                $phone  = SmsOtpService::normalizePhone($request->phone);
+                $result = (new SmsOtpService())->sendOtp($phone, 'register');
+
+                if (!$result['success']) {
+                    return back()
+                        ->withInput()
+                        ->with('error', 'Could not send SMS OTP: ' . $result['message']);
+                }
+
+                $request->session()->put('pending_registration', $pending);
+                return back()
+                    ->withInput()
+                    ->with('otp_pending', true)
+                    ->with('otp_type', 'phone')
+                    ->with('otp_identifier', $phone);
+            }
+
+            // ── Check Email OTP ────────────────────────────────────────────
+            if ($this->emailOtpRequired()) {
+                $request->session()->put('pending_registration', $pending);
+                $this->sendEmailOtp($request->email, 'register');
+                return back()
+                    ->withInput()
+                    ->with('otp_pending', true)
+                    ->with('otp_type', 'email')
+                    ->with('otp_identifier', $request->email);
+            }
+
+            // ── No OTP — register directly ─────────────────────────────────
+            return $this->createUser($pending);
+        } catch (\Throwable $e) {
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Register Process Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
+        }
     }
 
     // ── Verify OTP (email or phone) ────────────────────────────────────

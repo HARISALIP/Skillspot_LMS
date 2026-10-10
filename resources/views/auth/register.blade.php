@@ -48,13 +48,15 @@
 <!-- Header -->
 <div class="bg-gradient-to-r from-brand-600 to-accent-600 px-6 py-5 text-center">
   @if($otpPending)
-    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-xl mx-auto mb-2 backdrop-blur-sm shadow-sm">
-      {{ $otpType === 'phone' ? '📱' : '📧' }}
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white text-lg mx-auto mb-2 backdrop-blur-sm shadow-sm">
+      <i class="fa-solid {{ $otpType === 'phone' ? 'fa-mobile-screen' : 'fa-envelope' }}"></i>
     </div>
     <h1 class="text-lg font-black text-white">Verify Your {{ $otpType === 'phone' ? 'Phone' : 'Email' }}</h1>
     <p class="text-blue-100 text-xs mt-0.5">Enter the 6-digit code we sent</p>
   @else
-    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-2xl mx-auto mb-2 backdrop-blur-sm shadow-sm">🚀</div>
+    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white text-lg mx-auto mb-2 backdrop-blur-sm shadow-sm">
+      <i class="fa-solid fa-rocket"></i>
+    </div>
     <h1 class="text-xl font-black text-white">Join Skillspot.in Academy</h1>
     <p class="text-blue-100 text-xs mt-0.5">Create your free student account</p>
   @endif
@@ -64,25 +66,29 @@
 
   {{-- Alerts --}}
   @if($errors->any())
-  <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">
+  <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-2.5 text-xs mb-4">
     @foreach($errors->all() as $e)<div class="flex items-center gap-1.5">• {{ $e }}</div>@endforeach
   </div>
   @endif
   @if(session('success'))
-  <div class="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm mb-4 flex items-center gap-2">✅ {{ session('success') }}</div>
+  <div class="bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-2.5 text-xs mb-4 flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-green-600"></i> {{ session('success') }}
+  </div>
   @endif
   @if(session('error'))
-  <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4 flex items-center gap-2">❌ {{ session('error') }}</div>
+  <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-2.5 text-xs mb-4 flex items-center gap-2">
+    <i class="fa-solid fa-circle-xmark text-red-600"></i> {{ session('error') }}
+  </div>
   @endif
 
   {{-- ══ OTP STEP ══ --}}
   @if($otpPending)
 
-  <div class="bg-brand-50 border border-brand-200 rounded-2xl p-4 mb-6 text-sm text-brand-700 flex items-start gap-3">
-    <span class="text-xl flex-shrink-0">{{ $otpType === 'phone' ? '📱' : '📧' }}</span>
+  <div class="bg-brand-50 border border-brand-200 rounded-2xl p-4 mb-6 text-xs text-brand-700 flex items-start gap-3">
+    <span class="text-base flex-shrink-0"><i class="fa-solid {{ $otpType === 'phone' ? 'fa-mobile-screen' : 'fa-envelope' }}"></i></span>
     <div>
       A 6-digit code was sent to
-      <strong>{{ $otpType === 'phone' ? '' : '' }}{{ $otpIdentifier }}</strong>.
+      <strong>{{ $otpIdentifier }}</strong>.
       Valid for <strong>10 minutes</strong>.
     </div>
   </div>
@@ -93,29 +99,29 @@
     <input type="hidden" name="type"       value="{{ $otpType }}">
     <input type="hidden" name="otp"        id="otpValue">
 
-    <label class="block text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide text-center">Enter 6-Digit Code</label>
+    <label class="block text-xs font-semibold text-slate-500 mb-3 uppercase tracking-wide text-center">Enter 6-Digit Code</label>
 
     <div class="flex gap-2 justify-center mb-6">
       @for($i = 0; $i < 6; $i++)
       <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" data-idx="{{ $i }}"
-             class="otp-box w-11 h-12 sm:w-12 sm:h-14 text-center text-2xl font-black border-2 border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-brand-500 transition">
+             class="otp-box w-10 h-11 sm:w-11 sm:h-12 text-center text-xl font-black border-2 border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:border-brand-500 transition">
       @endfor
     </div>
 
     <button type="submit" id="otpBtn"
-            class="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 active:scale-[0.98] text-white font-black py-4 rounded-2xl transition shadow-lg text-sm flex items-center justify-center gap-2">
+            class="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl transition shadow-md text-sm flex items-center justify-center gap-2">
       <span id="otpBtnText">Verify & Continue →</span>
       <span id="otpSpinner" class="hidden"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg></span>
     </button>
   </form>
 
   <div class="text-center mt-5 flex flex-col items-center gap-2">
-    <span class="text-xs text-gray-400">Didn't receive the code?</span>
+    <span class="text-xs text-slate-400">Didn't receive the code?</span>
     <form method="POST" action="{{ route('register.resend-otp') }}" class="inline">
       @csrf
-      <button type="submit" class="text-sm text-brand-600 font-bold hover:text-brand-700 hover:underline transition">🔄 Resend OTP</button>
+      <button type="submit" class="text-xs text-brand-600 font-bold hover:text-brand-700 hover:underline transition"><i class="fa-solid fa-rotate-right"></i> Resend OTP</button>
     </form>
-    <a href="/register" class="text-xs text-gray-400 hover:text-gray-600 transition">← Back to registration</a>
+    <a href="/register" class="text-xs text-slate-400 hover:text-slate-600 transition">← Back to registration</a>
   </div>
 
   {{-- ══ REGISTER FORM ══ --}}
@@ -125,34 +131,34 @@
     @csrf
 
     {{-- Name --}}
-    <div class="mb-4">
-      <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name</label>
+    <div class="mb-3.5">
+      <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Full Name</label>
       <div class="relative">
-        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">👤</span>
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"><i class="fa-solid fa-user"></i></span>
         <input type="text" name="name" value="{{ old('name') }}" required autocomplete="name"
                placeholder="Your full name"
-               class="w-full pl-10 pr-4 py-3.5 rounded-xl border {{ $errors->has('name') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+               class="w-full pl-9 pr-4 py-2.5 rounded-xl border {{ $errors->has('name') ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white' }} text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
       </div>
     </div>
 
     {{-- Email --}}
-    <div class="mb-4">
-      <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Email Address</label>
+    <div class="mb-3.5">
+      <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Email Address</label>
       <div class="relative">
-        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">📧</span>
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"><i class="fa-solid fa-envelope"></i></span>
         <input type="email" name="email" value="{{ old('email') }}" required autocomplete="email"
                placeholder="you@example.com"
-               class="w-full pl-10 pr-4 py-3.5 rounded-xl border {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+               class="w-full pl-9 pr-4 py-2.5 rounded-xl border {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white' }} text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
       </div>
     </div>
 
     {{-- Country selector --}}
-    <div class="mb-4">
-      <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Country</label>
+    <div class="mb-3.5">
+      <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Country</label>
       <div class="relative">
-        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-lg pointer-events-none" id="flagEmoji">🇮🇳</span>
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-base pointer-events-none" id="flagEmoji">🇮🇳</span>
         <select name="country" id="countrySelect" onchange="onCountryChange(this)"
-                class="w-full pl-10 pr-8 py-3.5 rounded-xl border {{ $errors->has('country') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition appearance-none cursor-pointer">
+                class="w-full pl-9 pr-8 py-2.5 rounded-xl border {{ $errors->has('country') ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white' }} text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition appearance-none cursor-pointer">
           @foreach($countries as $code => $info)
           <option value="{{ $code }}"
                   data-dial="{{ $info['dial'] }}"
@@ -163,32 +169,32 @@
           </option>
           @endforeach
         </select>
-        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▾</span>
+        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"><i class="fa-solid fa-chevron-down"></i></span>
       </div>
     </div>
 
     {{-- Phone --}}
-    <div class="mb-4">
-      <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+    <div class="mb-3.5">
+      <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
         Phone Number
         <span id="phoneOtpNote" class="text-brand-600 font-bold normal-case ml-1 {{ ($smsEnabled && $selectedCountry === 'IN') ? '' : 'hidden' }}">— SMS OTP required</span>
       </label>
       <div class="flex gap-2">
         {{-- Dial code badge --}}
-        <div id="dialBadge" class="flex-shrink-0 flex items-center justify-center px-3 py-3.5 rounded-xl border border-gray-200 bg-gray-100 text-gray-700 text-sm font-mono font-semibold min-w-[64px] text-center">
+        <div id="dialBadge" class="flex-shrink-0 flex items-center justify-center px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-700 text-sm font-mono font-semibold min-w-[60px] text-center">
           +91
         </div>
         <input type="tel" name="phone" id="phoneInput" value="{{ old('phone') }}" autocomplete="tel"
                placeholder="9876543210"
-               class="flex-1 px-4 py-3.5 rounded-xl border {{ $errors->has('phone') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+               class="flex-1 px-4 py-2.5 rounded-xl border {{ $errors->has('phone') ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50 focus:bg-white' }} text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
       </div>
       {{-- India OTP note --}}
-      <div id="indiaOtpInfo" class="{{ ($smsEnabled && $selectedCountry === 'IN') ? '' : 'hidden' }} mt-2 flex items-center gap-1.5 text-xs text-brand-600">
-        <span>📱</span> Indian numbers receive an SMS OTP for verification
+      <div id="indiaOtpInfo" class="{{ ($smsEnabled && $selectedCountry === 'IN') ? '' : 'hidden' }} mt-1.5 flex items-center gap-1.5 text-xs text-brand-600">
+        <i class="fa-solid fa-mobile-screen"></i> Indian numbers receive an SMS OTP for verification
       </div>
       {{-- Non-India note --}}
-      <div id="otherCountryInfo" class="{{ ($smsEnabled && $selectedCountry !== 'IN') ? '' : 'hidden' }} mt-2 flex items-center gap-1.5 text-xs text-gray-400">
-        <span>ℹ️</span> Phone OTP not required for your region
+      <div id="otherCountryInfo" class="{{ ($smsEnabled && $selectedCountry !== 'IN') ? '' : 'hidden' }} mt-1.5 flex items-center gap-1.5 text-xs text-slate-400">
+        <i class="fa-solid fa-circle-info"></i> Phone OTP not required for your region
       </div>
     </div>
 
@@ -196,30 +202,30 @@
     <input type="hidden" name="country_name" id="countryName" value="{{ $countries[$selectedCountry]['name'] ?? 'India' }}">
 
     {{-- Password --}}
-    <div class="mb-4">
-      <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Password</label>
+    <div class="mb-3.5">
+      <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Password</label>
       <div class="relative">
-        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔑</span>
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"><i class="fa-solid fa-key"></i></span>
         <input type="password" name="password" id="pwd1" required autocomplete="new-password"
                placeholder="Min. 8 characters" oninput="checkStrength(this.value)"
-               class="w-full pl-10 pr-12 py-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
-        <button type="button" onclick="togglePwd('pwd1',this)" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition focus:outline-none">👁</button>
+               class="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+        <button type="button" onclick="togglePwd('pwd1',this)" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition focus:outline-none text-xs"><i class="fa-solid fa-eye"></i></button>
       </div>
-      <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div class="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div id="strengthBar" class="h-full rounded-full transition-all duration-300 w-0"></div>
       </div>
-      <div id="strengthText" class="text-xs text-gray-400 mt-1 h-4"></div>
+      <div id="strengthText" class="text-xs text-slate-400 mt-1 h-4"></div>
     </div>
 
     {{-- Confirm Password --}}
-    <div class="mb-5">
-      <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Confirm Password</label>
+    <div class="mb-4">
+      <label class="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Confirm Password</label>
       <div class="relative">
-        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔒</span>
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"><i class="fa-solid fa-lock"></i></span>
         <input type="password" name="password_confirmation" id="pwd2" required
                placeholder="Re-enter password"
-               class="w-full pl-10 pr-12 py-3.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
-        <button type="button" onclick="togglePwd('pwd2',this)" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition focus:outline-none">👁</button>
+               class="w-full pl-9 pr-10 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+        <button type="button" onclick="togglePwd('pwd2',this)" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition focus:outline-none text-xs"><i class="fa-solid fa-eye"></i></button>
       </div>
     </div>
 
@@ -229,9 +235,9 @@
     </div>
 
     {{-- Terms --}}
-    <label class="flex items-start gap-3 mb-6 cursor-pointer select-none">
-      <input type="checkbox" name="terms" required class="w-4 h-4 mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 flex-shrink-0">
-      <span class="text-sm text-gray-600 leading-relaxed">
+    <label class="flex items-start gap-2.5 mb-5 cursor-pointer select-none">
+      <input type="checkbox" name="terms" required class="w-4 h-4 mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500 flex-shrink-0">
+      <span class="text-xs text-slate-600 leading-relaxed">
         I agree to the <a href="/terms" class="text-brand-600 font-semibold hover:underline">Terms</a> and
         <a href="/privacy" class="text-brand-600 font-semibold hover:underline">Privacy Policy</a>
       </span>
@@ -239,7 +245,7 @@
 
     {{-- Submit --}}
     <button type="submit" id="regBtn"
-            class="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 active:scale-[0.98] text-white font-black py-4 rounded-2xl transition-all shadow-lg shadow-brand-200 text-sm flex items-center justify-center gap-2">
+            class="w-full bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 active:scale-[0.98] text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-brand-600/20 text-sm flex items-center justify-center gap-2">
       <span id="regBtnText">Create My Account →</span>
       <span id="regSpinner" class="hidden">
         <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -250,12 +256,12 @@
     </button>
   </form>
 
-  <div class="flex items-center gap-3 my-5">
-    <div class="flex-1 h-px bg-gray-100"></div>
-    <span class="text-xs text-gray-400">OR</span>
-    <div class="flex-1 h-px bg-gray-100"></div>
+  <div class="flex items-center gap-3 my-4">
+    <div class="flex-1 h-px bg-slate-200"></div>
+    <span class="text-[11px] text-slate-400 font-medium">OR</span>
+    <div class="flex-1 h-px bg-slate-200"></div>
   </div>
-  <p class="text-center text-sm text-gray-500">
+  <p class="text-center text-xs text-slate-500">
     Already have an account?
     <a href="/login" class="text-brand-600 hover:text-brand-700 font-bold transition">Sign in →</a>
   </p>
