@@ -36,23 +36,23 @@
   <div class="blob2"></div>
 
   <!-- Top bar -->
-  <div class="relative z-10 flex items-center justify-between px-5 py-4 md:px-10">
+  <div class="relative z-10 flex items-center justify-between px-5 py-3 md:px-10">
     <a href="/" class="flex items-center gap-2.5">
-      <div class="w-9 h-9 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-500/20">S</div>
-      <span class="text-slate-900 font-bold text-xl">Skillspot.in <span class="text-brand-600 font-extrabold">LMS</span></span>
+      <div class="w-8 h-8 md:w-9 md:h-9 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white font-black text-base md:text-lg shadow-md shadow-brand-500/20">S</div>
+      <span class="text-slate-900 font-bold text-lg md:text-xl">Skillspot.in <span class="text-brand-600 font-extrabold">LMS</span></span>
     </a>
-    <div class="text-sm font-medium">@yield('top-link')</div>
+    <div class="text-xs md:text-sm font-medium">@yield('top-link')</div>
   </div>
 
   <!-- Main -->
-  <div class="relative z-10 flex-1 flex items-center justify-center px-4 py-6 md:py-8">
+  <div class="relative z-10 flex-1 flex items-center justify-center px-4 py-2 md:py-4">
     <div class="w-full @yield('container-class', 'max-w-[420px]') bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 overflow-hidden transition-all duration-300">
       @yield('content')
     </div>
   </div>
 
   <!-- Footer -->
-  <div class="relative z-10 text-center text-slate-400 text-xs py-4">
+  <div class="relative z-10 text-center text-slate-400 text-xs py-2 md:py-3">
     © {{ date('Y') }} Skillspot.in LMS &nbsp;·&nbsp;
     <a href="/privacy" class="hover:text-brand-600 transition">Privacy</a> &nbsp;·&nbsp;
     <a href="/terms" class="hover:text-brand-600 transition">Terms</a>
