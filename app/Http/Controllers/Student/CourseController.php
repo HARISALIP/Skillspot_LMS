@@ -223,7 +223,7 @@ class CourseController extends Controller
     public function getLesson(Course $course, Lesson $lesson)
     {
         $user = Auth::user();
-        if (!CourseService::hasAccess($user, $course)) {
+        if ($lesson->section?->course_id !== $course->id || !CourseService::hasAccess($user, $course)) {
             return response()->json(['error'=>'Access denied.'], 403);
         }
 
@@ -243,6 +243,17 @@ class CourseController extends Controller
             ->where('user_id',$user->id)->where('lesson_id',$lesson->id)
             ->first();
 
+        $quizData = null;
+        if ($lesson->type === 'quiz' && $quiz = $lesson->quiz()->with('questions')->first()) {
+            $quizData = [
+                'title' => $quiz->title,
+                'pass_score' => $quiz->pass_score,
+                'questions' => $quiz->questions->sortBy('order')->map(fn($q) => [
+                    'id' => $q->id, 'question' => $q->question, 'options' => $q->options,
+                ])->values(),
+            ];
+        }
+
         return response()->json([
             'id'           => $lesson->id,
             'title'        => $lesson->title,
@@ -254,6 +265,7 @@ class CourseController extends Controller
             'is_preview'   => $lesson->is_preview,
             'progress'     => $progress?->progress ?? 0,
             'completed'    => (bool)($progress?->completed ?? false),
+            'quiz'         => $quizData,
             'live_platform'=> $lesson->live_platform,
             'live_url'     => $lesson->live_url,
             'live_scheduled_at' => $lesson->live_scheduled_at?->toIso8601String(),
@@ -265,6 +277,8 @@ class CourseController extends Controller
     // ── Save lesson progress ───────────────────────────────────────────
     public function saveProgress(Request $request, Course $course, Lesson $lesson)
     {
+        abort_unless($lesson->section?->course_id === $course->id && CourseService::hasAccess(Auth::user(), $course), 403);
+        abort_if($lesson->type === 'quiz', 422, 'Pass the quiz to complete this lesson.');
         $request->validate([
             'progress'        => 'required|numeric|min:0|max:100',
             'watched_seconds' => 'nullable|integer|min:0',
@@ -286,6 +300,39 @@ class CourseController extends Controller
                 'number' => $result['certificate']->certificate_number,
                 'issued' => $result['certificate']->issued_at?->format('d M Y'),
             ] : null,
+        ]);
+    }
+
+    public function submitQuiz(Request $request, Course $course, Lesson $lesson)
+    {
+        $user = Auth::user();
+        abort_unless($lesson->section?->course_id === $course->id && CourseService::hasAccess($user, $course), 403);
+        abort_unless($lesson->type === 'quiz', 404);
+        $data = $request->validate([
+            'answers' => 'required|array',
+            'answers.*' => 'required|integer|between:0,3',
+        ]);
+        $quiz = $lesson->quiz()->with('questions')->firstOrFail();
+        $questions = $quiz->questions;
+        abort_unless($questions->isNotEmpty() && $questions->every(fn($q) => array_key_exists($q->id, $data['answers'])), 422, 'Answer every question.');
+
+        $correct = $questions->filter(fn($q) => (string)$data['answers'][$q->id] === $q->correct_answer)->count();
+        $score = (int) round($correct / $questions->count() * 100);
+        $passed = $score >= $quiz->pass_score;
+        DB::table('quiz_attempts')->insert([
+            'user_id' => $user->id, 'quiz_id' => $quiz->id,
+            'score' => $score, 'passed' => $passed,
+            'answers' => json_encode($data['answers']),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $result = $passed ? CourseService::updateLessonProgress($user, $lesson, 100) : null;
+
+        return response()->json([
+            'score' => $score,
+            'passed' => $passed,
+            'pass_score' => $quiz->pass_score,
+            'course_progress' => $result['progress'] ?? Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->value('progress') ?? 0,
+            'certificate' => $result['certificate']?->certificate_number ?? null,
         ]);
     }
 }

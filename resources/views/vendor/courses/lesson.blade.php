@@ -71,6 +71,8 @@
           </div>
         </div>
 
+        @include('shared.lesson-quiz-fields')
+
         {{-- ── VIDEO SECTION (secure) ── --}}
         <div id="fieldVideoUrl" class="{{ in_array(old('type',$lesson->type ?? 'video'),['video','live']) ? '' : 'hidden' }}">
           <input type="hidden" name="video_storage" id="videoStorageInput"
@@ -717,6 +719,7 @@ function onTypeChange(type) {
   document.getElementById('fieldVideoUrl').classList.toggle('hidden', type !== 'video');
   document.getElementById('fieldLive').classList.toggle('hidden',     type !== 'live');
   document.getElementById('fieldContent').classList.toggle('hidden',  !['text','pdf'].includes(type));
+  document.getElementById('fieldQuiz').classList.toggle('hidden', type !== 'quiz');
   if (type === 'text') {
     setTimeout(initQuill, 100); // slight delay for DOM visibility
   }

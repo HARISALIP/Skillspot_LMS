@@ -39,6 +39,7 @@ Route::middleware(['auth','portal.access'])->group(function () {
     Route::get('/learn/{course}',                           [StudentCourse::class,'learn'])->name('student.learn');
     Route::get('/learn/{course}/lesson/{lesson}',           [StudentCourse::class,'getLesson'])->name('student.get-lesson');
     Route::post('/learn/{course}/lesson/{lesson}/progress', [StudentCourse::class,'saveProgress'])->name('student.save-progress');
+    Route::post('/learn/{course}/lesson/{lesson}/quiz', [StudentCourse::class,'submitQuiz'])->name('student.submit-quiz');
 });
 // ── Razorpay Webhook (NO csrf — verified via signature) ────────────────────
 Route::post('/webhook/razorpay', [PaymentController::class, 'webhook'])
