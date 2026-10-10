@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
 
 class EnrollmentsController extends Controller
@@ -16,6 +17,9 @@ class EnrollmentsController extends Controller
     {
         $query = Enrollment::with(['user','course'])
             ->latest();
+
+        $hasAccessType = Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'access_type');
+        $hasExpiresAt = Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'expires_at');
 
         if ($s = $request->search) {
             $query->whereHas('user', fn($q) =>
@@ -27,17 +31,17 @@ class EnrollmentsController extends Controller
         }
         if ($request->course_id)    $query->where('course_id',   $request->course_id);
         if ($request->status)       $query->where('status',      $request->status);
-        if ($request->access_type)  $query->where('access_type', $request->access_type);
-        if ($request->expiry === 'expired')  $query->where('expires_at','<', now());
-        if ($request->expiry === 'expiring') $query->whereBetween('expires_at',[now(), now()->addDays(7)]);
+        if ($request->access_type && $hasAccessType)  $query->where('access_type', $request->access_type);
+        if ($request->expiry === 'expired' && $hasExpiresAt)  $query->where('expires_at','<', now());
+        if ($request->expiry === 'expiring' && $hasExpiresAt) $query->whereBetween('expires_at',[now(), now()->addDays(7)]);
 
         $enrollments = $query->paginate(20);
         $courses     = Course::where('is_published',1)->orderBy('title')->get(['id','title']);
         $stats = [
             'total'    => Enrollment::count(),
             'active'   => Enrollment::where('status','active')->count(),
-            'expired'  => Enrollment::where('expires_at','<',now())->whereNotNull('expires_at')->count(),
-            'expiring' => Enrollment::whereBetween('expires_at',[now(),now()->addDays(7)])->count(),
+            'expired'  => $hasExpiresAt ? Enrollment::where('expires_at','<',now())->whereNotNull('expires_at')->count() : 0,
+            'expiring' => $hasExpiresAt ? Enrollment::whereBetween('expires_at',[now(),now()->addDays(7)])->count() : 0,
         ];
 
         return view('admin.enrollments.index', compact('enrollments','courses','stats'));
