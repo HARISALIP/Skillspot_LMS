@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ── 4. Create / Update Super Admin Account ──────────────────────────
-        $superAdminPassword = env('SUPER_ADMIN_PASSWORD') ?: 'SkillspotAuth2026';
+        $superAdminPassword = env('SUPER_ADMIN_PASSWORD') ?: 'SkillSpot#2026@Secure';
         $superAdmin = User::updateOrCreate(
             ['email' => 'skillspot.in@gmail.com'],
             [
@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
         $superAdmin->syncRoles(['super-admin', 'admin']);
 
         // ── 5. Create / Update Teacher Account ──────────────────────────────
-        $teacherPassword = env('TEACHER_PASSWORD') ?: 'SkillspotAuth2026';
+        $teacherPassword = env('TEACHER_PASSWORD') ?: 'Teacher#2026@Skillspot';
         $teacher = User::updateOrCreate(
             ['email' => 'teacher@skillspot.in'],
             [
@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
         $teacher->syncRoles(['teacher', 'admin']);
 
         // ── 6. Create / Update Student Account ──────────────────────────────
-        $studentPassword = env('STUDENT_PASSWORD') ?: 'SkillspotAuth2026';
+        $studentPassword = env('STUDENT_PASSWORD') ?: 'Student#2026@Skillspot';
         $student = User::updateOrCreate(
             ['email' => 'student@skillspot.in'],
             [
@@ -88,5 +88,13 @@ class DatabaseSeeder extends Seeder
             ]
         );
         $student->syncRoles(['student']);
+
+        // ── 7. Re-hash any legacy / plain text passwords in users table ──────
+        User::all()->each(function ($u) {
+            if ($u->password && !str_starts_with($u->password, '$2y$') && !str_starts_with($u->password, '$2b$') && !str_starts_with($u->password, '$2a$')) {
+                $u->password = Hash::make($u->password);
+                $u->save();
+            }
+        });
     }
 }

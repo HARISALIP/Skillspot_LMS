@@ -60,6 +60,18 @@ class AuthController extends Controller
                 if (strlen($value) === 12 && str_starts_with($value, '91')) {
                     $value = substr($value, 2);
                 }
+            // Auto-repair plain-text or legacy passwords in database
+            $candidate = User::where($field, $value)->first();
+            if ($candidate && !empty($candidate->password)) {
+                if (!str_starts_with($candidate->password, '$2y$') && !str_starts_with($candidate->password, '$2b$') && !str_starts_with($candidate->password, '$2a$')) {
+                    if ($candidate->password === $password) {
+                        $candidate->password = Hash::make($password);
+                        $candidate->save();
+                    } else {
+                        $candidate->password = Hash::make($candidate->password);
+                        $candidate->save();
+                    }
+                }
             }
 
             if (Auth::attempt([$field => $value, 'password' => $password], true)) {
