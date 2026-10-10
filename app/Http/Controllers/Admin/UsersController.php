@@ -122,14 +122,30 @@ class UsersController extends Controller
     // ── Edit form ──────────────────────────────────────────────────────
     public function edit(User $user)
     {
-        $user->load('roles','vendorAccess','assignedCourses');
+        $relations = ['roles'];
+        if (\Illuminate\Support\Facades\Schema::hasTable('student_vendor_access')) {
+            $relations[] = 'vendorAccess';
+        }
+        if (\Illuminate\Support\Facades\Schema::hasTable('course_allowed_users')) {
+            $relations[] = 'assignedCourses';
+        }
+        $user->load($relations);
+
         $countries  = $this->countries;
-        $allVendors = \App\Models\Vendor::orderBy('brand_name')->get(['id','brand_name','slug','status','primary_color']);
-        // For teacher: all vendors + Skillspot Courses (vendor_id null)
-        $allVendorsFull  = $allVendors;
-        $SkillspotCourses  = \App\Models\Course::whereNull('vendor_id')->orderBy('title')->get(['id','title','category']);
-        $teacherVendors  = \Illuminate\Support\Facades\DB::table('vendor_teachers')
-            ->where('user_id', $user->id)->pluck('vendor_id')->toArray();
+        $allVendors = \Illuminate\Support\Facades\Schema::hasTable('vendors')
+            ? \App\Models\Vendor::orderBy('brand_name')->get(['id','brand_name','slug','status','primary_color'])
+            : collect([]);
+
+        $allVendorsFull   = $allVendors;
+        $SkillspotCourses = \Illuminate\Support\Facades\Schema::hasTable('courses')
+            ? \App\Models\Course::whereNull('vendor_id')->orderBy('title')->get(['id','title','category'])
+            : collect([]);
+
+        $teacherVendors   = \Illuminate\Support\Facades\Schema::hasTable('vendor_teachers')
+            ? \Illuminate\Support\Facades\DB::table('vendor_teachers')
+                ->where('user_id', $user->id)->pluck('vendor_id')->toArray()
+            : [];
+
         return view('admin.users.form', compact('user','countries','allVendors','allVendorsFull','SkillspotCourses','teacherVendors'));
     }
 
