@@ -205,12 +205,6 @@ Route::prefix('dashboard')->name('student.')->middleware(['auth','portal.access'
     Route::get('/live',             fn() => view('student.live'))->name('live');
     Route::get('/saved',            fn() => view('student.saved'))->name('saved');
 });
-// ── Course detail & learning ───────────────────────────────────────────────
-Route::middleware('auth')->group(function () {
-    Route::get('/course/{slug}',           fn() => redirect()->route('student.browse'))->name('student.course-detail');
-    Route::get('/learn/{course}',          fn() => redirect()->route('student.courses'))->name('student.learn');
-});
-
 // ── Public pages ───────────────────────────────────────────────────────────
 Route::get('/about',    fn() => view('landing.about'))->name('about');
 Route::get('/team',     fn() => view('landing.team'))->name('team');

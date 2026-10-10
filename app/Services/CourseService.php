@@ -22,6 +22,7 @@ class CourseService
             return Enrollment::create([
                 'user_id'       => $user->id,
                 'course_id'     => $course->id,
+                'vendor_id'     => $course->vendor_id,
                 'amount_paid'   => 0,
                 'payment_method'=> 'free',
                 'status'        => 'active',
@@ -49,6 +50,7 @@ class CourseService
             return Enrollment::create([
                 'user_id'        => $user->id,
                 'course_id'      => $course->id,
+                'vendor_id'      => $course->vendor_id,
                 'amount_paid'    => $amount,
                 'payment_method' => 'razorpay',
                 'transaction_id' => $paymentId,

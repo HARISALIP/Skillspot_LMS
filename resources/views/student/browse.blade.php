@@ -1,7 +1,7 @@
 @extends('layouts.student')
 @section('title','Browse Courses — Skillspot.in')
 @section('page-title','Browse Courses')
-@section('page-sub','Find your next skill — {{ $courses->total() }} courses available')
+@section('page-sub', 'Find your next skill — ' . $courses->total() . ' ' . \Illuminate\Support\Str::plural('course', $courses->total()) . ' available')
 
 @section('student-content')
 

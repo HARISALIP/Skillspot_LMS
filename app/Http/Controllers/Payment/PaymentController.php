@@ -261,7 +261,7 @@ class PaymentController extends Controller
     {
         Enrollment::firstOrCreate(
             ['user_id' => $user->id, 'course_id' => $course->id],
-            ['vendor_id' => 1, 'amount_paid' => 0, 'status' => 'active', 'progress' => 0]
+            ['vendor_id' => $course->vendor_id, 'amount_paid' => 0, 'status' => 'active', 'progress' => 0]
         );
         return response()->json(['success' => true, 'free' => true, 'course_id' => $course->id]);
     }
