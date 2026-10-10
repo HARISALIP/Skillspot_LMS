@@ -280,9 +280,9 @@
           <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
             {{ old('type',$lesson->type) === 'pdf' ? 'PDF URL' : 'Text Content' }}
           </label>
-          @if(old('type',$lesson->type) === 'pdf')
+          <div id="pdfFields" class="{{ old('type',$lesson->type ?? 'video') === 'pdf' ? '' : 'hidden' }}">
           {{-- PDF Upload Section --}}
-          <input type="hidden" name="content" id="pdfContentInput" value="{{ old('content',$lesson->content) }}">
+          <input type="hidden" name="content" id="pdfContentInput" value="{{ old('content',$lesson->content) }}" {{ old('type',$lesson->type ?? 'video') === 'pdf' ? '' : 'disabled' }}>
 
           {{-- Current PDF info --}}
           @if($isEdit && $lesson->content && old('type',$lesson->type) === 'pdf')
@@ -348,9 +348,10 @@
                class="text-xs text-green-700 font-bold hover:underline flex-shrink-0">View PDF →</a>
           </div>
 
-          @else
+          </div>
+          <div id="textFields" class="{{ old('type',$lesson->type ?? 'video') === 'text' ? '' : 'hidden' }}">
           {{-- Quill Rich Text Editor --}}
-          <input type="hidden" name="content" id="contentInput" value="{{ old('content',$lesson->content) }}">
+          <input type="hidden" name="content" id="contentInput" value="{{ old('content',$lesson->content) }}" {{ old('type',$lesson->type ?? 'video') === 'text' ? '' : 'disabled' }}>
           <div id="quillEditor" class="rounded-xl border border-gray-200 bg-white overflow-hidden" style="min-height:280px;">
             <div id="quillToolbar">
               <span class="ql-formats">
@@ -415,7 +416,7 @@
             <div id="quillContent" style="min-height:220px; font-size:14px; font-family:Inter,sans-serif;"></div>
           </div>
           <p class="text-xs text-gray-400 mt-1.5">Rich text editor — bold, italic, headings, colors, lists, links, images & more</p>
-          @endif
+          </div>
         </div>
 
         {{-- Notes --}}
@@ -720,6 +721,10 @@ function onTypeChange(type) {
   document.getElementById('fieldLive').classList.toggle('hidden',     type !== 'live');
   document.getElementById('fieldContent').classList.toggle('hidden',  !['text','pdf'].includes(type));
   document.getElementById('fieldQuiz').classList.toggle('hidden', type !== 'quiz');
+  document.getElementById('pdfFields').classList.toggle('hidden', type !== 'pdf');
+  document.getElementById('textFields').classList.toggle('hidden', type !== 'text');
+  document.getElementById('pdfContentInput').disabled = type !== 'pdf';
+  document.getElementById('contentInput').disabled = type !== 'text';
   if (type === 'text') {
     setTimeout(initQuill, 100); // slight delay for DOM visibility
   }
@@ -838,7 +843,7 @@ function updatePdfPreview(url, filename) {
 // Init PDF preview if existing content
 window.addEventListener('DOMContentLoaded', () => {
   const pdfInput = document.getElementById('pdfContentInput');
-  if (pdfInput && pdfInput.value) {
+  if (pdfInput && !pdfInput.disabled && pdfInput.value) {
     updatePdfPreview(pdfInput.value);
   }
 });
