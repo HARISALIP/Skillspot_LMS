@@ -4,14 +4,14 @@
 
 <!-- Hero -->
 <section class="gradient-hero pt-32 pb-20 px-4 text-center relative overflow-hidden">
-  <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-600 opacity-20 rounded-full blur-3xl pointer-events-none"></div>
-  <div class="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent-600 opacity-20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-200/40 opacity-30 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent-200/40 opacity-30 rounded-full blur-3xl pointer-events-none"></div>
   <div class="relative z-10 max-w-3xl mx-auto">
-    <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm text-blue-200 mb-6">
-      <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> Our Story
+    <div class="inline-flex items-center gap-2 bg-white/90 border border-brand-200/80 rounded-full px-4 py-1.5 text-sm text-brand-700 font-semibold mb-6 shadow-sm">
+      <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Our Story
     </div>
-    <h1 class="text-4xl md:text-6xl font-black text-white mb-6">About <span class="gradient-text">Skillspot.in</span></h1>
-    <p class="text-xl text-gray-300 leading-relaxed">We are a passionate team of educators and technologists building the future of tech education in India.</p>
+    <h1 class="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">About <span class="gradient-text">Skillspot.in</span></h1>
+    <p class="text-xl text-slate-600 leading-relaxed font-normal">We are a passionate team of educators and technologists building the future of tech education in India.</p>
   </div>
 </section>
 

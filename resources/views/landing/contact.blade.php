@@ -14,10 +14,10 @@
 
 <!-- Hero -->
 <section class="gradient-hero pt-32 pb-20 px-4 text-center relative overflow-hidden">
-  <div class="absolute top-1/3 right-1/4 w-72 h-72 bg-accent-600 opacity-20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute top-1/3 right-1/4 w-72 h-72 bg-accent-200/40 opacity-30 rounded-full blur-3xl pointer-events-none"></div>
   <div class="relative z-10 max-w-2xl mx-auto">
-    <h1 class="text-4xl md:text-6xl font-black text-white mb-4">Get in <span class="gradient-text">Touch</span></h1>
-    <p class="text-xl text-gray-300">We'd love to hear from you. Our team typically replies within 24 hours.</p>
+    <h1 class="text-4xl md:text-6xl font-black text-slate-900 mb-4 tracking-tight">Get in <span class="gradient-text">Touch</span></h1>
+    <p class="text-xl text-slate-600 font-normal">We'd love to hear from you. Our team typically replies within 24 hours.</p>
   </div>
 </section>
 

@@ -4,8 +4,8 @@
 
 <section class="gradient-hero pt-32 pb-16 px-4 text-center relative overflow-hidden">
   <div class="relative z-10 max-w-2xl mx-auto">
-    <h1 class="text-4xl md:text-5xl font-black text-white mb-4">Privacy <span class="gradient-text">Policy</span></h1>
-    <p class="text-blue-200">Last updated: {{ date('F d, Y') }}</p>
+    <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">Privacy <span class="gradient-text">Policy</span></h1>
+    <p class="text-slate-600 font-medium">Last updated: {{ date('F d, Y') }}</p>
   </div>
 </section>
 
