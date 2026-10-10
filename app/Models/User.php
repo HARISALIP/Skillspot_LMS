@@ -9,10 +9,22 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles {
+        hasRole as traitHasRole;
+    }
 
     protected $fillable = ['name', 'email', 'phone', 'country', 'country_name', 'registered_via', 'registered_vendor_id', 'portal_access', 'password', 'email_verified_at', 'phone_verified_at'];
     protected $hidden   = ['password', 'remember_token'];
+
+    /** Safe HasRole wrapper */
+    public function hasRole($roles, string $guard = null): bool
+    {
+        try {
+            return $this->traitHasRole($roles, $guard);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
 
     /** All vendors this student has access to */
     public function vendorAccess()

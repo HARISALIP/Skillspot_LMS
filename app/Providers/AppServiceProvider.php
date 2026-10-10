@@ -28,12 +28,16 @@ class AppServiceProvider extends ServiceProvider
         // Redirect authenticated users visiting /login or /register
         // to their correct dashboard instead of generic /dashboard
         RedirectIfAuthenticated::redirectUsing(function ($request) {
-            $user = Auth::user();
-            if (!$user) return '/';
-            if ($user->hasRole('super-admin') || $user->hasRole('admin')) {
-                return route('admin.dashboard');
+            try {
+                $user = Auth::user();
+                if (!$user) return '/';
+                if ($user->hasRole('super-admin') || $user->hasRole('admin')) {
+                    return route('admin.dashboard');
+                }
+                return route('student.dashboard');
+            } catch (\Throwable $e) {
+                return '/';
             }
-            return route('student.dashboard');
         });
     }
 
