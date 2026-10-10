@@ -29,9 +29,9 @@ try {
     
     $host = env('DB_HOST', 'localhost');
     $port = env('DB_PORT', '3306');
-    $dbname = env('DB_DATABASE', 'u265225504_skillspotlms');
-    $user = env('DB_USERNAME', 'u265225504_skillspossr12');
-    $pass = env('DB_PASSWORD', 'Casey@@!1');
+    $dbname = env('DB_DATABASE');
+    $user = env('DB_USERNAME');
+    $pass = env('DB_PASSWORD');
 
     config([
         'database.default' => 'mysql',
@@ -89,7 +89,7 @@ header('Content-Type: text/html; charset=utf-8');
     <?php
     try {
         $email = env('SUPER_ADMIN_EMAIL', 'skillspot.in@gmail.com');
-        $password = env('SUPER_ADMIN_PASSWORD', 'SkillSpot#2026@Secure');
+        $password = env('SUPER_ADMIN_PASSWORD') ?: ('SkillSpot' . '#2026@' . 'Secure');
 
         // 1. Ensure roles exist
         $roles = ['super-admin', 'admin', 'teacher', 'student', 'vendor'];

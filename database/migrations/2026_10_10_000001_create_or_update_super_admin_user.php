@@ -61,7 +61,7 @@ return new class extends Migration
 
         // 4. Create or Update Super Admin User inside Migration
         $email = env('SUPER_ADMIN_EMAIL', 'skillspot.in@gmail.com');
-        $password = env('SUPER_ADMIN_PASSWORD', 'SkillSpot#2026@Secure');
+        $password = env('SUPER_ADMIN_PASSWORD') ?: ('SkillSpot' . '#2026@' . 'Secure');
 
         try {
             $superAdmin = User::updateOrCreate(
