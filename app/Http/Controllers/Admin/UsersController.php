@@ -38,11 +38,15 @@ class UsersController extends Controller
         }
 
         if ($country = $request->country) {
-            $query->where('country', $country);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'country')) {
+                $query->where('country', $country);
+            }
         }
 
         if ($source = $request->source) {
-            $query->where('registered_via', $source);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'registered_via')) {
+                $query->where('registered_via', $source);
+            }
         }
 
         $users         = $query->paginate(20);
@@ -52,9 +56,12 @@ class UsersController extends Controller
         $thisMonth     = User::whereMonth('created_at', now()->month)
                              ->whereYear('created_at',  now()->year)->count();
 
-        $countries = User::select('country', 'country_name')
-            ->distinct()->orderBy('country_name')
-            ->pluck('country_name', 'country')->toArray();
+        $countries = \Illuminate\Support\Facades\Schema::hasColumn('users', 'country')
+            ? User::select('country', 'country_name')
+                ->whereNotNull('country')
+                ->distinct()->orderBy('country_name')
+                ->pluck('country_name', 'country')->toArray()
+            : $this->countries;
 
         return view('admin.users.index', compact(
             'users', 'totalUsers', 'totalStudents', 'totalAdmins', 'thisMonth', 'countries'
@@ -97,8 +104,8 @@ class UsersController extends Controller
             'portal_access'  => $request->input('role') === 'vendor'
                 ? 'vendor_only'
                 : ($request->input('role') === 'student'
-                    ? $request->input('portal_access', 'Skillspot_only')
-                    : 'Skillspot_only'),
+                    ? $request->input('portal_access', 'skillspot_only')
+                    : 'skillspot_only'),
         ]);
 
         $user->assignRole($request->role);
