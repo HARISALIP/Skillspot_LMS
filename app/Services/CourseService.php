@@ -139,6 +139,7 @@ class CourseService
         return Certificate::create([
             'user_id'            => $user->id,
             'course_id'          => $course->id,
+            'vendor_id'          => $course->vendor_id,
             'enrollment_id'      => $enrollment->id,
             'certificate_number' => 'ITF-' . strtoupper(Str::random(6)) . '-' . now()->format('Y'),
             'issued_at'          => now(),

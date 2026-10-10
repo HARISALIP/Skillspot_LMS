@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\Section;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -23,6 +24,12 @@ class StudentCourseNavigationTest extends TestCase
             'is_published' => true,
             'is_free' => true,
         ]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Getting Started']);
+        $lesson = $section->lessons()->create([
+            'title' => 'Build Your First Page',
+            'type' => 'text',
+            'content' => '<p>Hello, learner.</p>',
+        ]);
 
         $this->actingAs($student)
             ->get(route('student.browse'))
@@ -40,5 +47,25 @@ class StudentCourseNavigationTest extends TestCase
         $this->get(route('student.learn', $course))
             ->assertOk()
             ->assertSeeText($course->title);
+
+        $this->get(route('student.get-lesson', [$course, $lesson]))
+            ->assertOk()
+            ->assertJsonPath('content', '<p>Hello, learner.</p>');
+
+        $this->post(route('student.save-progress', [$course, $lesson]), ['progress' => 100])
+            ->assertOk()
+            ->assertJsonPath('course_completed', true);
+
+        $this->assertDatabaseHas('lesson_progress', [
+            'user_id' => $student->id,
+            'lesson_id' => $lesson->id,
+            'progress' => 100,
+            'completed' => 1,
+        ]);
+        $this->assertDatabaseHas('certificates', [
+            'user_id' => $student->id,
+            'course_id' => $course->id,
+            'vendor_id' => null,
+        ]);
     }
 }
