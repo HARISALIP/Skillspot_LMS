@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ── 4. Create / Update Super Admin Account ──────────────────────────
-        $superAdminPassword = env('SUPER_ADMIN_PASSWORD', 'SkillSpot#2026@Secure');
+        $superAdminPassword = env('SUPER_ADMIN_PASSWORD') ?: 'SkillspotAuth2026';
         $superAdmin = User::updateOrCreate(
             ['email' => 'skillspot.in@gmail.com'],
             [
@@ -62,7 +62,7 @@ class DatabaseSeeder extends Seeder
         $superAdmin->syncRoles(['super-admin', 'admin']);
 
         // ── 5. Create / Update Teacher Account ──────────────────────────────
-        $teacherPassword = env('TEACHER_PASSWORD', 'Teacher#2026@Skillspot');
+        $teacherPassword = env('TEACHER_PASSWORD') ?: 'SkillspotAuth2026';
         $teacher = User::updateOrCreate(
             ['email' => 'teacher@skillspot.in'],
             [
@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
         $teacher->syncRoles(['teacher', 'admin']);
 
         // ── 6. Create / Update Student Account ──────────────────────────────
-        $studentPassword = env('STUDENT_PASSWORD', 'Student#2026@Skillspot');
+        $studentPassword = env('STUDENT_PASSWORD') ?: 'SkillspotAuth2026';
         $student = User::updateOrCreate(
             ['email' => 'student@skillspot.in'],
             [
