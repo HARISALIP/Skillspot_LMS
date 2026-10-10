@@ -68,14 +68,14 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
       @php $steps = [
-        ['n'=>'01','icon'=>'📝','title'=>'Create Account','desc'=>'Register free in under 60 seconds. Just your name and email — no credit card required.','color'=>'from-blue-500 to-brand-600'],
-        ['n'=>'02','icon'=>'📚','title'=>'Pick a Course','desc'=>'Browse our catalog of tech courses. Filter by topic, level, or duration. Enroll instantly.','color'=>'from-purple-500 to-accent-600'],
-        ['n'=>'03','icon'=>'🏆','title'=>'Learn & Earn Certificate','desc'=>'Watch video lessons, complete quizzes, finish the course — get a verified certificate.','color'=>'from-emerald-500 to-green-600'],
+        ['n'=>'01','icon'=>'fa-solid fa-user-plus','title'=>'Create Account','desc'=>'Register free in under 60 seconds. Just your name and email — no credit card required.','color'=>'from-blue-500 to-brand-600'],
+        ['n'=>'02','icon'=>'fa-solid fa-book-open-reader','title'=>'Pick a Course','desc'=>'Browse our catalog of tech courses. Filter by topic, level, or duration. Enroll instantly.','color'=>'from-purple-500 to-accent-600'],
+        ['n'=>'03','icon'=>'fa-solid fa-graduation-cap','title'=>'Learn & Earn Certificate','desc'=>'Watch video lessons, complete quizzes, finish the course — get a verified certificate.','color'=>'from-emerald-500 to-green-600'],
       ]; @endphp
       @foreach($steps as $s)
       <div class="bg-slate-50/80 rounded-2xl p-5 text-center border border-slate-200/70 card-hover hover:bg-white transition-all duration-300">
         <div class="w-11 h-11 bg-gradient-to-br {{ $s['color'] }} rounded-xl flex items-center justify-center text-white font-black text-base mx-auto mb-3 shadow-md">{{ $s['n'] }}</div>
-        <div class="text-2xl mb-2">{{ $s['icon'] }}</div>
+        <div class="text-2xl text-brand-600 mb-2"><i class="{{ $s['icon'] }}"></i></div>
         <h3 class="text-base font-bold text-slate-900 mb-1.5">{{ $s['title'] }}</h3>
         <p class="text-slate-500 text-xs leading-relaxed">{{ $s['desc'] }}</p>
       </div>
@@ -97,23 +97,23 @@
 
     @php
       $catIcons = [
-        'Web Development'    => '💻',
-        'Cybersecurity'      => '🔐',
-        'Python & AI'        => '🤖',
-        'Mobile Development'=> '📱',
-        'Cloud & DevOps'     => '☁️',
-        'Database & SQL'     => '🗄️',
-        'Programming'        => '⌨️',
-        'Networking'         => '🌐',
-        'Graphic Design'     => '🎨',
-        'Digital Marketing'  => '📈',
-        'Soft Skills'        => '🤝',
+        'Web Development'    => 'fa-solid fa-laptop-code',
+        'Cybersecurity'      => 'fa-solid fa-shield-halved',
+        'Python & AI'        => 'fa-solid fa-robot',
+        'Mobile Development' => 'fa-solid fa-mobile-screen',
+        'Cloud & DevOps'     => 'fa-solid fa-cloud',
+        'Database & SQL'     => 'fa-solid fa-database',
+        'Programming'        => 'fa-solid fa-code',
+        'Networking'         => 'fa-solid fa-network-wired',
+        'Graphic Design'     => 'fa-solid fa-palette',
+        'Digital Marketing'  => 'fa-solid fa-chart-line',
+        'Soft Skills'        => 'fa-solid fa-handshake',
       ];
     @endphp
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
       @forelse($featuredCourses as $course)
       @php
-        $icon     = $catIcons[$course->category] ?? '📚';
+        $icon     = $catIcons[$course->category] ?? 'fa-solid fa-book-open';
         $isFirst  = $loop->first;
         $levelColor = match($course->level) {
           'intermediate' => 'bg-amber-50 text-amber-700 border border-amber-200/60',
@@ -125,11 +125,11 @@
       <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm card-hover overflow-hidden group hover:border-brand-200">
         {{-- Badge --}}
         @if($course->is_featured && $loop->first)
-        <div class="bg-gradient-to-r from-brand-600 to-accent-600 text-white text-[11px] font-bold text-center py-1 tracking-wider">⭐ MOST POPULAR</div>
+        <div class="bg-gradient-to-r from-brand-600 to-accent-600 text-white text-[11px] font-bold text-center py-1 tracking-wider"><i class="fa-solid fa-star mr-1"></i> MOST POPULAR</div>
         @elseif($course->is_free)
-        <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[11px] font-bold text-center py-1 tracking-wider">🆓 FREE COURSE</div>
+        <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[11px] font-bold text-center py-1 tracking-wider"><i class="fa-solid fa-gift mr-1"></i> FREE COURSE</div>
         @elseif($course->sale_price)
-        <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] font-bold text-center py-1 tracking-wider">🔥 SALE</div>
+        <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white text-[11px] font-bold text-center py-1 tracking-wider"><i class="fa-solid fa-fire mr-1"></i> SALE</div>
         @endif
 
         {{-- Thumbnail --}}
@@ -137,14 +137,14 @@
           @if($course->thumbnail)
             <img src="{{ $course->thumbnail }}" alt="{{ $course->title }}"
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy"
-                 onerror="this.parentElement.innerHTML='<span class=\'text-5xl\'>' + '{{ $icon }}' + '</span>'">
+                 onerror="this.parentElement.innerHTML='<i class=\'{{ $icon }} text-4xl text-brand-600\'></i>'">
           @else
-            <span class="text-5xl group-hover:scale-110 transition-transform duration-300">{{ $icon }}</span>
+            <i class="{{ $icon }} text-4xl text-brand-600 group-hover:scale-110 transition-transform duration-300"></i>
           @endif
           {{-- Enrollments badge --}}
           @if($course->enrollments_count > 0)
-          <div class="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-            👥 {{ $course->enrollments_count }}
+          <div class="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+            <i class="fa-solid fa-users text-[10px]"></i> {{ $course->enrollments_count }}
           </div>
           @endif
         </div>
@@ -165,7 +165,9 @@
           <div class="flex items-center gap-1.5 flex-wrap mb-4">
             <span class="text-[11px] {{ $levelColor }} font-semibold px-2 py-0.5 rounded-md capitalize">{{ $course->level }}</span>
             @if($totalLessons > 0)
-            <span class="text-[11px] bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-md border border-slate-200/60">📹 {{ $totalLessons }} lessons</span>
+            <span class="text-[11px] bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-md border border-slate-200/60 flex items-center gap-1">
+              <i class="fa-solid fa-play-circle text-slate-400"></i> {{ $totalLessons }} lessons
+            </span>
             @endif
             @if($course->language === 'hi')
             <span class="text-[11px] bg-orange-50 text-orange-700 font-medium px-2 py-0.5 rounded-md border border-orange-200/60">हिंदी</span>
@@ -213,15 +215,15 @@
         <p class="text-slate-500 text-sm mb-6 leading-relaxed">We teach what the industry actually uses. Hands-on projects, real code, live sessions, and career-ready skills.</p>
         <div class="space-y-3.5">
           @foreach([
-            ['🎯','Industry-Relevant Curriculum','Courses designed with real-world job requirements in mind.'],
-            ['👨‍🏫','Expert Instructors','Learn from practicing developers and IT professionals.'],
-            ['📜','Verified Certificates','Downloadable certificates for every completed course.'],
-            ['💬','Community Support','Student forums, doubt-clearing sessions, and peer learning.'],
-            ['📱','Learn on Any Device','Fully mobile-responsive. Learn on phone, tablet or desktop.'],
-            ['🔄','Lifetime Access','Enroll once, access forever — including future updates.'],
+            ['fa-solid fa-bullseye','Industry-Relevant Curriculum','Courses designed with real-world job requirements in mind.'],
+            ['fa-solid fa-chalkboard-user','Expert Instructors','Learn from practicing developers and IT professionals.'],
+            ['fa-solid fa-certificate','Verified Certificates','Downloadable certificates for every completed course.'],
+            ['fa-solid fa-comments','Community Support','Student forums, doubt-clearing sessions, and peer learning.'],
+            ['fa-solid fa-mobile-screen-button','Learn on Any Device','Fully mobile-responsive. Learn on phone, tablet or desktop.'],
+            ['fa-solid fa-arrows-rotate','Lifetime Access','Enroll once, access forever — including future updates.'],
           ] as [$icon,$title,$desc])
           <div class="flex items-start gap-3">
-            <div class="w-8 h-8 bg-brand-50 text-brand-600 rounded-lg flex items-center justify-center text-base flex-shrink-0 border border-brand-100/80">{{ $icon }}</div>
+            <div class="w-8 h-8 bg-brand-50 text-brand-600 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border border-brand-100/80"><i class="{{ $icon }}"></i></div>
             <div>
               <div class="font-bold text-slate-900 text-sm">{{ $title }}</div>
               <div class="text-slate-500 text-xs mt-0.5">{{ $desc }}</div>
@@ -235,7 +237,8 @@
       <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-2xl p-5 text-white shadow-xl border border-slate-800">
         <div class="text-white text-xs font-bold mb-4 flex items-center gap-2">
           <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-          🎓 Student Dashboard Preview
+          <i class="fa-solid fa-graduation-cap text-brand-400 text-sm"></i>
+          Student Dashboard Preview
         </div>
         <!-- Progress cards -->
         <div class="space-y-2.5">
@@ -257,7 +260,7 @@
         </div>
         <!-- Certificate -->
         <div class="mt-3.5 bg-gradient-to-r from-amber-400/20 to-yellow-400/20 border border-yellow-400/30 rounded-xl p-3 flex items-center gap-2.5">
-          <span class="text-xl">📜</span>
+          <i class="fa-solid fa-award text-amber-400 text-xl flex-shrink-0"></i>
           <div>
             <div class="text-white text-xs font-bold">Certificate Earned!</div>
             <div class="text-yellow-200 text-[11px]">Cybersecurity Fundamentals</div>
@@ -285,7 +288,7 @@
       @foreach($testimonials as $t)
       <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-hover">
         <div class="flex items-center gap-1 mb-3">
-          @for($i=0;$i<$t['stars'];$i++)<span class="text-amber-400 text-xs">⭐</span>@endfor
+          @for($i=0;$i<$t['stars'];$i++)<i class="fa-solid fa-star text-amber-400 text-xs"></i>@endfor
         </div>
         <p class="text-slate-600 text-xs leading-relaxed mb-4">"{{ $t['text'] }}"</p>
         <div class="flex items-center gap-2.5">
