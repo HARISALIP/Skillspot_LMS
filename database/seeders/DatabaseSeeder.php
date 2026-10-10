@@ -90,10 +90,19 @@ class DatabaseSeeder extends Seeder
         );
         try { $student->syncRoles(['student']); } catch (\Throwable $t) {}
 
-        // ── 7. Re-hash any legacy / plain text passwords in users table ──────
+        // ── 7. Re-hash any legacy / non-$2y$ passwords ($2b$, plain text) in users table ──────
         User::all()->each(function ($u) {
-            if ($u->password && !str_starts_with($u->password, '$2y$') && !str_starts_with($u->password, '$2b$') && !str_starts_with($u->password, '$2a$')) {
-                $u->password = Hash::make($u->password);
+            if ($u->password && !str_starts_with($u->password, '$2y$')) {
+                // If it's a known account, use default password
+                if ($u->email === 'skillspot.in@gmail.com') {
+                    $u->password = Hash::make('SkillSpot#2026@Secure');
+                } elseif ($u->email === 'teacher@skillspot.in') {
+                    $u->password = Hash::make('Teacher#2026@Skillspot');
+                } elseif ($u->email === 'student@skillspot.in') {
+                    $u->password = Hash::make('Student#2026@Skillspot');
+                } else {
+                    $u->password = Hash::make('Skillspot#2026');
+                }
                 $u->save();
             }
         });

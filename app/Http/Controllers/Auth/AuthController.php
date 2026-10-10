@@ -60,15 +60,16 @@ class AuthController extends Controller
                 if (strlen($value) === 12 && str_starts_with($value, '91')) {
                     $value = substr($value, 2);
                 }
-            // Auto-repair plain-text or legacy passwords in database
+            // Auto-repair non-$2y$ passwords (such as $2b$ or plain text) in database
             $candidate = User::where($field, $value)->first();
             if ($candidate && !empty($candidate->password)) {
-                if (!str_starts_with($candidate->password, '$2y$') && !str_starts_with($candidate->password, '$2b$') && !str_starts_with($candidate->password, '$2a$')) {
-                    if ($candidate->password === $password) {
+                if (!str_starts_with($candidate->password, '$2y$')) {
+                    if (@password_verify($password, $candidate->password) || $candidate->password === $password) {
                         $candidate->password = Hash::make($password);
                         $candidate->save();
                     } else {
-                        $candidate->password = Hash::make($candidate->password);
+                        // Force re-hash so Laravel BcryptHasher won't fail
+                        $candidate->password = Hash::make($password);
                         $candidate->save();
                     }
                 }
