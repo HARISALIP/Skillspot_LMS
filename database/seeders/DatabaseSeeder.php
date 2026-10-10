@@ -48,11 +48,12 @@ class DatabaseSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // ── 4. Create / Update Super Admin Account ──────────────────────────
+        $superAdminPassword = env('SUPER_ADMIN_PASSWORD', 'SkillSpot#2026@Secure');
         $superAdmin = User::updateOrCreate(
             ['email' => 'skillspot.in@gmail.com'],
             [
                 'name'              => 'Skillspot Super Admin',
-                'password'          => Hash::make('SkillSpot#2026@Secure'),
+                'password'          => Hash::make($superAdminPassword),
                 'portal_access'     => 'both',
                 'email_verified_at' => now(),
                 'phone_verified_at' => now(),
@@ -61,11 +62,12 @@ class DatabaseSeeder extends Seeder
         $superAdmin->syncRoles(['super-admin', 'admin']);
 
         // ── 5. Create / Update Teacher Account ──────────────────────────────
+        $teacherPassword = env('TEACHER_PASSWORD', 'Teacher#2026@Skillspot');
         $teacher = User::updateOrCreate(
             ['email' => 'teacher@skillspot.in'],
             [
                 'name'              => 'Skillspot Instructor',
-                'password'          => Hash::make('Teacher#2026@Skillspot'),
+                'password'          => Hash::make($teacherPassword),
                 'portal_access'     => 'both',
                 'email_verified_at' => now(),
                 'phone_verified_at' => now(),
@@ -74,11 +76,12 @@ class DatabaseSeeder extends Seeder
         $teacher->syncRoles(['teacher', 'admin']);
 
         // ── 6. Create / Update Student Account ──────────────────────────────
+        $studentPassword = env('STUDENT_PASSWORD', 'Student#2026@Skillspot');
         $student = User::updateOrCreate(
             ['email' => 'student@skillspot.in'],
             [
                 'name'              => 'Skillspot Student',
-                'password'          => Hash::make('Student#2026@Skillspot'),
+                'password'          => Hash::make($studentPassword),
                 'portal_access'     => 'Skillspot_only',
                 'email_verified_at' => now(),
                 'phone_verified_at' => now(),

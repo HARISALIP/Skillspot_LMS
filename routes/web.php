@@ -379,22 +379,19 @@ Route::get('/seed-system-accounts', function () {
             'message' => 'System accounts (Super Admin, Teacher, Student) and all permissions seeded successfully! ✅',
             'accounts' => [
                 'super_admin' => [
-                    'name'     => 'Skillspot Super Admin',
-                    'email'    => 'skillspot.in@gmail.com',
-                    'password' => 'SkillSpot#2026@Secure',
-                    'roles'    => ['super-admin', 'admin'],
+                    'name'  => 'Skillspot Super Admin',
+                    'email' => 'skillspot.in@gmail.com',
+                    'roles' => ['super-admin', 'admin'],
                 ],
                 'teacher' => [
-                    'name'     => 'Skillspot Instructor',
-                    'email'    => 'teacher@skillspot.in',
-                    'password' => 'Teacher#2026@Skillspot',
-                    'roles'    => ['teacher', 'admin'],
+                    'name'  => 'Skillspot Instructor',
+                    'email' => 'teacher@skillspot.in',
+                    'roles' => ['teacher', 'admin'],
                 ],
                 'student' => [
-                    'name'     => 'Skillspot Student',
-                    'email'    => 'student@skillspot.in',
-                    'password' => 'Student#2026@Skillspot',
-                    'roles'    => ['student'],
+                    'name'  => 'Skillspot Student',
+                    'email' => 'student@skillspot.in',
+                    'roles' => ['student'],
                 ],
             ]
         ]);
