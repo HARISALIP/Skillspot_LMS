@@ -11,10 +11,14 @@ class Setting extends Model
     // ── Get a setting value with optional default ──────────────────────
     public static function get(string $key, mixed $default = null): mixed
     {
-        return Cache::rememberForever("setting:{$key}", function () use ($key, $default) {
-            $row = static::where('key', $key)->first();
-            return $row ? $row->value : $default;
-        });
+        try {
+            return Cache::rememberForever("setting:{$key}", function () use ($key, $default) {
+                $row = static::where('key', $key)->first();
+                return $row ? $row->value : $default;
+            });
+        } catch (\Throwable $e) {
+            return $default;
+        }
     }
 
     // ── Set / upsert a setting and bust cache ──────────────────────────
