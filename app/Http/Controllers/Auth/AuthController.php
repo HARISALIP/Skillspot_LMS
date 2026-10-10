@@ -18,76 +18,84 @@ class AuthController extends Controller
     // ── Show Login ─────────────────────────────────────────────────────
     public function showLogin()
     {
-        // Maintenance mode: show maintenance page UNLESS ?admin=1 param present
-        if (Setting::get('maintenance_mode', '0') === '1' && !request()->has('admin')) {
-            return view('auth.maintenance');
+        try {
+            // Maintenance mode: show maintenance page UNLESS ?admin=1 param present
+            if (Setting::get('maintenance_mode', '0') === '1' && !request()->has('admin')) {
+                return view('auth.maintenance');
+            }
+            return view('auth.login');
+        } catch (\Throwable $e) {
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login System Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
         }
-        return view('auth.login');
     }
 
     // ── Process Login — accept email or phone ──────────────────────────
     public function login(Request $request)
     {
-        $request->validate([
-            'login'    => ['required', 'string'],
-            'password' => ['required'],
-        ]);
+        try {
+            $request->validate([
+                'login'    => ['required', 'string'],
+                'password' => ['required'],
+            ]);
 
-        // Human verification
-        $hv = HumanVerifier::verify($request, 'login');
-        if (!$hv['pass']) {
-            return back()->withErrors(['_hv' => $hv['reason']])->withInput($request->only('login'));
-        }
-
-        $login    = trim($request->input('login'));
-        $password = $request->input('password');
-
-        // Detect phone number (digits, spaces, +, -, brackets)
-        $isPhone = preg_match('/^[\+\d][\d\s\-\(\)]{6,14}$/', $login);
-
-        // Normalize phone — strip +91 prefix for India
-        $value = $login;
-        $field = 'email';
-        if ($isPhone) {
-            $field = 'phone';
-            $value = preg_replace('/[\s\-\(\)]/', '', $login);
-            $value = ltrim($value, '+');
-            if (strlen($value) === 12 && str_starts_with($value, '91')) {
-                $value = substr($value, 2);
-            }
-        }
-
-        if (Auth::attempt([$field => $value, 'password' => $password], true)) {
-            $request->session()->regenerate();
-            $user = Auth::user();
-
-            // During maintenance, only admins can login
-            if (Setting::get('maintenance_mode', '0') === '1'
-                && !($user->hasRole('super-admin') || $user->hasRole('admin'))) {
-                Auth::logout();
-                $request->session()->invalidate();
-                return back()->withErrors(['login' => 'Platform is under maintenance. Only admins can login right now.'])->withInput($request->only('login'));
+            // Human verification
+            $hv = HumanVerifier::verify($request, 'login');
+            if (!$hv['pass']) {
+                return back()->withErrors(['_hv' => $hv['reason']])->withInput($request->only('login'));
             }
 
-            // Block vendor_only students from main Skillspot login
-            if ($user->hasRole('student') && $user->portal_access === 'vendor_only') {
-                $vendors = $user->vendorAccess()->where('vendors.status','active')->get();
-                Auth::logout();
-                $request->session()->invalidate();
-                if ($vendors->count() === 1) {
-                    return redirect()->route('vendor.portal.login', $vendors->first()->slug)
-                        ->with('success', 'Please login via your institution portal.');
+            $login    = trim($request->input('login'));
+            $password = $request->input('password');
+
+            // Detect phone number (digits, spaces, +, -, brackets)
+            $isPhone = preg_match('/^[\+\d][\d\s\-\(\)]{6,14}$/', $login);
+
+            // Normalize phone — strip +91 prefix for India
+            $value = $login;
+            $field = 'email';
+            if ($isPhone) {
+                $field = 'phone';
+                $value = preg_replace('/[\s\-\(\)]/', '', $login);
+                $value = ltrim($value, '+');
+                if (strlen($value) === 12 && str_starts_with($value, '91')) {
+                    $value = substr($value, 2);
                 }
-                return back()->withErrors(['login' => 'Your account is not enabled for this portal. Please use your institution portal to login.'])->withInput($request->only('login'));
             }
 
-            return $this->redirectByRole($user);
-        }
+            if (Auth::attempt([$field => $value, 'password' => $password], true)) {
+                $request->session()->regenerate();
+                $user = Auth::user();
 
-        $label = $isPhone ? 'phone number' : 'email';
-        return back()
-            ->withErrors(['login' => "Incorrect {$label} or password. Please try again."])
-            ->withInput($request->only('login'));
+                // During maintenance, only admins can login
+                if (Setting::get('maintenance_mode', '0') === '1'
+                    && !($user->hasRole('super-admin') || $user->hasRole('admin'))) {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    return back()->withErrors(['login' => 'Platform is under maintenance. Only admins can login right now.'])->withInput($request->only('login'));
+                }
+
+                // Block vendor_only students from main Skillspot login
+                if ($user->hasRole('student') && $user->portal_access === 'vendor_only') {
+                    $vendors = $user->vendorAccess()->where('vendors.status','active')->get();
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    if ($vendors->count() === 1) {
+                        return redirect()->route('vendor.portal.login', $vendors->first()->slug)
+                            ->with('success', 'Please login via your institution portal.');
+                    }
+                    return back()->withErrors(['login' => 'Your account is not enabled for this portal. Please use your institution portal to login.'])->withInput($request->only('login'));
+                }
+
+                return $this->redirectByRole($user);
+            }
+
+            $label = $isPhone ? 'phone number' : 'email';
+            return back()
+                ->withErrors(['login' => "Incorrect {$label} or password. Please try again."])
+                ->withInput($request->only('login'));
+        } catch (\Throwable $e) {
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login Process Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
+        }
     }
 
     // ── Show Register ──────────────────────────────────────────────────
