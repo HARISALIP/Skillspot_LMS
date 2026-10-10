@@ -60,6 +60,7 @@ class AuthController extends Controller
                 if (strlen($value) === 12 && str_starts_with($value, '91')) {
                     $value = substr($value, 2);
                 }
+            }
             // Auto-repair non-$2y$ passwords (such as $2b$ or plain text) in database
             $candidate = User::where($field, $value)->first();
             if ($candidate && !empty($candidate->password)) {

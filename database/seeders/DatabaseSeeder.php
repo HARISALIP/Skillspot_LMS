@@ -83,7 +83,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name'              => 'Skillspot Student',
                 'password'          => Hash::make($studentPassword),
-                'portal_access'     => 'Skillspot_only',
+                'portal_access'     => 'skillspot_only',
                 'email_verified_at' => now(),
                 'phone_verified_at' => now(),
             ]
