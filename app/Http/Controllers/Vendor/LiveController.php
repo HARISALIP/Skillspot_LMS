@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Section;
 use App\Models\Lesson;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -18,12 +19,17 @@ class LiveController extends Controller
     {
         $vendor  = $this->vendor();
         $now     = now();
-        $allLive = Lesson::where('type','live')
-            ->whereNotNull('live_scheduled_at')
-            ->whereHas('section.course', fn($q) => $q->where('vendor_id', $vendor->id))
-            ->with('section.course')
-            ->orderBy('live_scheduled_at','desc')
-            ->get();
+
+        if (!Schema::hasTable('lessons') || !Schema::hasColumn('lessons', 'live_scheduled_at')) {
+            $allLive = collect();
+        } else {
+            $allLive = Lesson::where('type','live')
+                ->whereNotNull('live_scheduled_at')
+                ->whereHas('section.course', fn($q) => $q->where('vendor_id', $vendor->id))
+                ->with('section.course')
+                ->orderBy('live_scheduled_at','desc')
+                ->get();
+        }
 
         $upcoming = $allLive->filter(fn($l) =>
             $l->live_scheduled_at && $l->live_scheduled_at->isFuture()

@@ -8,6 +8,7 @@ use App\Models\Lesson;
 use App\Models\Enrollment;
 use App\Models\BatchAttendance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class LiveController extends Controller
 {
@@ -15,11 +16,15 @@ class LiveController extends Controller
     {
         $now = now();
 
-        $allLive = Lesson::where('type','live')
-            ->whereNotNull('live_scheduled_at')
-            ->with('section.course')
-            ->orderBy('live_scheduled_at','desc')
-            ->get();
+        if (!Schema::hasTable('lessons') || !Schema::hasColumn('lessons', 'live_scheduled_at')) {
+            $allLive = collect();
+        } else {
+            $allLive = Lesson::where('type','live')
+                ->whereNotNull('live_scheduled_at')
+                ->with('section.course')
+                ->orderBy('live_scheduled_at','desc')
+                ->get();
+        }
 
         $upcoming = $allLive->filter(fn($l) =>
             $l->live_scheduled_at && $l->live_scheduled_at->isFuture() ||
