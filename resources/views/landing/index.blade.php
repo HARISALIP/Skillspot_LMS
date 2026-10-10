@@ -3,56 +3,56 @@
 @section('content')
 
 <!-- HERO -->
-<section class="gradient-hero min-h-[90vh] flex flex-col items-center justify-center px-4 pt-28 pb-20 text-center relative overflow-hidden">
+<section class="gradient-hero flex flex-col items-center justify-center px-4 pt-24 pb-14 text-center relative overflow-hidden">
   <!-- Soft Background Glows -->
-  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-brand-200/40 to-accent-200/40 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[260px] bg-gradient-to-tr from-brand-200/40 to-accent-200/40 rounded-full blur-3xl pointer-events-none"></div>
 
-  <div class="relative z-10 max-w-4xl mx-auto">
+  <div class="relative z-10 max-w-3xl mx-auto">
     <!-- Badge -->
-    <div class="inline-flex items-center gap-2 bg-white/90 border border-brand-200/80 rounded-full px-4 py-1.5 text-sm text-brand-700 font-semibold mb-8 shadow-sm backdrop-blur-sm">
-      <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></span>
+    <div class="inline-flex items-center gap-2 bg-white/90 border border-brand-200/80 rounded-full px-3.5 py-1 text-xs text-brand-700 font-semibold mb-5 shadow-sm backdrop-blur-sm">
+      <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
       Official Skillspot.in — India
     </div>
 
-    <h1 class="text-4xl sm:text-5xl md:text-7xl font-black text-slate-900 leading-tight mb-6 tracking-tight">
+    <h1 class="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-4 tracking-tight">
       Learn Tech.<br>
       <span class="gradient-text">Build Your Future.</span>
     </h1>
 
-    <p class="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+    <p class="text-sm sm:text-base text-slate-600 max-w-xl mx-auto mb-7 leading-relaxed font-normal">
       Skillspot.in offers professional technology courses in programming, web development, cybersecurity, and more — taught by industry experts.
     </p>
 
-    <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <a href="/register" class="bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-8 py-4 rounded-2xl text-lg font-bold transition shadow-xl shadow-brand-600/25">
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="/register" class="bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-6 py-3 rounded-xl text-sm md:text-base font-bold transition shadow-lg shadow-brand-600/20">
         Start Learning Free →
       </a>
-      <a href="#courses" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm px-8 py-4 rounded-2xl text-lg font-semibold active:scale-[0.98] transition">
+      <a href="#courses" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm px-6 py-3 rounded-xl text-sm md:text-base font-semibold active:scale-[0.98] transition">
         Browse Courses
       </a>
     </div>
 
     <!-- Stats -->
-    <div class="mt-16 grid grid-cols-3 gap-4 max-w-md mx-auto">
-      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-2xl py-4 px-3 text-center shadow-md shadow-slate-200/40">
-        <div class="text-3xl md:text-4xl font-black text-slate-900">{{ $stats['courses'] > 0 ? $stats['courses'].'+ ' : '50+' }}</div>
-        <div class="text-slate-500 text-xs font-medium mt-1">Courses</div>
+    <div class="mt-8 grid grid-cols-3 gap-3 max-w-sm mx-auto">
+      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-xl py-2.5 px-2 text-center shadow-sm">
+        <div class="text-xl md:text-2xl font-black text-slate-900">{{ $stats['courses'] > 0 ? $stats['courses'].'+ ' : '50+' }}</div>
+        <div class="text-slate-500 text-[11px] font-medium mt-0.5">Courses</div>
       </div>
-      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-2xl py-4 px-3 text-center shadow-md shadow-slate-200/40">
-        <div class="text-3xl md:text-4xl font-black text-slate-900">{{ $stats['students'] > 0 ? $stats['students'].'+ ' : '2K+' }}</div>
-        <div class="text-slate-500 text-xs font-medium mt-1">Students</div>
+      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-xl py-2.5 px-2 text-center shadow-sm">
+        <div class="text-xl md:text-2xl font-black text-slate-900">{{ $stats['students'] > 0 ? $stats['students'].'+ ' : '2K+' }}</div>
+        <div class="text-slate-500 text-[11px] font-medium mt-0.5">Students</div>
       </div>
-      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-2xl py-4 px-3 text-center shadow-md shadow-slate-200/40">
-        <div class="text-3xl md:text-4xl font-black text-slate-900">100%</div>
-        <div class="text-slate-500 text-xs font-medium mt-1">Certified</div>
+      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-xl py-2.5 px-2 text-center shadow-sm">
+        <div class="text-xl md:text-2xl font-black text-slate-900">100%</div>
+        <div class="text-slate-500 text-[11px] font-medium mt-0.5">Certified</div>
       </div>
     </div>
   </div>
 
   <!-- Smooth Wave -->
   <div class="absolute bottom-0 left-0 right-0">
-    <svg viewBox="0 0 1440 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 80L1440 80L1440 40C1200 80 720 0 0 40Z" fill="#ffffff"/>
+    <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 60L1440 60L1440 30C1200 60 720 0 0 30Z" fill="#ffffff"/>
     </svg>
   </div>
 </section>
