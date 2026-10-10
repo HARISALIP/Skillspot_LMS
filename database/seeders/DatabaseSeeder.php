@@ -106,5 +106,10 @@ class DatabaseSeeder extends Seeder
                 $u->save();
             }
         });
+
+        // ── 8. Seed Demo Courses (Web Development, AI, Robotics, Coding) ────
+        try {
+            $this->call(DemoCoursesSeeder::class);
+        } catch (\Throwable $t) {}
     }
 }
