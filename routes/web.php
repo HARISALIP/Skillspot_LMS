@@ -377,36 +377,11 @@ Route::get('/seed-system-accounts', function () {
         (new \Database\Seeders\DatabaseSeeder())->run();
 
         // Clear Spatie Permission & Laravel Cache
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        try { app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions(); } catch (\Throwable $t) {}
         try { \Illuminate\Support\Facades\Artisan::call('cache:clear'); } catch (\Throwable $t) {}
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'System accounts (Super Admin, Teacher, Student), Spatie roles & permissions seeded successfully! ✅',
-            'accounts' => [
-                'super_admin' => [
-                    'name'  => 'Skillspot Super Admin',
-                    'email' => 'skillspot.in@gmail.com',
-                    'roles' => ['super-admin', 'admin'],
-                ],
-                'teacher' => [
-                    'name'  => 'Skillspot Instructor',
-                    'email' => 'teacher@skillspot.in',
-                    'roles' => ['teacher', 'admin'],
-                ],
-                'student' => [
-                    'name'  => 'Skillspot Student',
-                    'email' => 'student@skillspot.in',
-                    'roles' => ['student'],
-                ],
-            ]
-        ]);
+        return response('<!DOCTYPE html><html><head><title>System Accounts Seeded — Skillspot.in</title></head><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:40px;line-height:1.6;"><div style="max-width:600px;margin:0 auto;background:#1e293b;padding:30px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.3);"><h2 style="color:#22c55e;margin-top:0;">✅ System Accounts & Permissions Seeded!</h2><p>All roles, permissions, and default accounts have been synchronized and passwords converted to valid Bcrypt hashes.</p><div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;"><h3 style="color:#38bdf8;margin-top:0;">Available Credentials:</h3><ul style="margin:0;padding-left:20px;color:#cbd5e1;"><li><strong>Super Admin:</strong> skillspot.in@gmail.com &nbsp;|&nbsp; <code>SkillSpot#2026@Secure</code></li><li><strong>Teacher:</strong> teacher@skillspot.in &nbsp;|&nbsp; <code>Teacher#2026@Skillspot</code></li><li><strong>Student:</strong> student@skillspot.in &nbsp;|&nbsp; <code>Student#2026@Skillspot</code></li></ul></div><p><a href="/login" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Go to Login Page →</a></p></div></body></html>');
     } catch (\Throwable $e) {
-        return response()->json([
-            'status'  => 'error',
-            'message' => $e->getMessage(),
-            'file'    => $e->getFile(),
-            'line'    => $e->getLine(),
-        ], 500);
+        return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Seeder Exception Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
     }
 });

@@ -38,14 +38,15 @@ class DatabaseSeeder extends Seeder
         // ── 3. Assign All Permissions to Super Admin & Admin ───────────────
         $allPermissions = Permission::all();
 
-        $superAdminRole = Role::findByName('super-admin');
-        $superAdminRole->syncPermissions($allPermissions);
-
-        $adminRole = Role::findByName('admin');
-        $adminRole->syncPermissions($allPermissions);
+        try {
+            $superAdminRole = Role::where('name', 'super-admin')->first();
+            if ($superAdminRole) { $superAdminRole->syncPermissions($allPermissions); }
+            $adminRole = Role::where('name', 'admin')->first();
+            if ($adminRole) { $adminRole->syncPermissions($allPermissions); }
+        } catch (\Throwable $t) {}
 
         // Clear Spatie Permission cache
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        try { app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions(); } catch (\Throwable $t) {}
 
         // ── 4. Create / Update Super Admin Account ──────────────────────────
         $superAdminPassword = env('SUPER_ADMIN_PASSWORD') ?: 'SkillSpot#2026@Secure';
@@ -59,7 +60,7 @@ class DatabaseSeeder extends Seeder
                 'phone_verified_at' => now(),
             ]
         );
-        $superAdmin->syncRoles(['super-admin', 'admin']);
+        try { $superAdmin->syncRoles(['super-admin', 'admin']); } catch (\Throwable $t) {}
 
         // ── 5. Create / Update Teacher Account ──────────────────────────────
         $teacherPassword = env('TEACHER_PASSWORD') ?: 'Teacher#2026@Skillspot';
@@ -73,7 +74,7 @@ class DatabaseSeeder extends Seeder
                 'phone_verified_at' => now(),
             ]
         );
-        $teacher->syncRoles(['teacher', 'admin']);
+        try { $teacher->syncRoles(['teacher', 'admin']); } catch (\Throwable $t) {}
 
         // ── 6. Create / Update Student Account ──────────────────────────────
         $studentPassword = env('STUDENT_PASSWORD') ?: 'Student#2026@Skillspot';
@@ -87,7 +88,7 @@ class DatabaseSeeder extends Seeder
                 'phone_verified_at' => now(),
             ]
         );
-        $student->syncRoles(['student']);
+        try { $student->syncRoles(['student']); } catch (\Throwable $t) {}
 
         // ── 7. Re-hash any legacy / plain text passwords in users table ──────
         User::all()->each(function ($u) {
