@@ -25,7 +25,7 @@ class AuthController extends Controller
             }
             return view('auth.login');
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login System Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login System Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
         }
     }
 
@@ -106,7 +106,7 @@ class AuthController extends Controller
                 ->withErrors(['login' => "Incorrect {$label} or password. Please try again."])
                 ->withInput($request->only('login'));
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login Process Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login Process Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
         }
     }
 
@@ -124,7 +124,7 @@ class AuthController extends Controller
             }
             return view('auth.register');
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Register Page Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
+            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Register Page Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
         }
     }
 

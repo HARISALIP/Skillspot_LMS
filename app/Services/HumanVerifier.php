@@ -23,7 +23,7 @@ class HumanVerifier
 
         $time   = time();
         $ans    = (string)$op['answer'];
-        $secret = config('app.key', 'skillspot-lms-secure-key');
+        $secret = config('app.key') ?: 'skillspot-lms-secure-key';
         $sig    = hash_hmac('sha256', "{$time}:{$ans}:{$formKey}", $secret);
         $token  = base64_encode("{$time}:{$ans}:{$sig}");
 
@@ -86,7 +86,7 @@ class HumanVerifier
                 $parts = explode(':', $decoded, 3);
                 if (count($parts) === 3) {
                     [$timeStr, $ansStr, $sigStr] = $parts;
-                    $secret = config('app.key', 'skillspot-lms-secure-key');
+                    $secret = config('app.key') ?: 'skillspot-lms-secure-key';
                     $validSig = hash_hmac('sha256', "{$timeStr}:{$ansStr}:{$formKey}", $secret);
                     
                     if (hash_equals($validSig, $sigStr)) {
