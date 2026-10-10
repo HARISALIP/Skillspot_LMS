@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Session;
 class HumanVerifier
 {
     // Minimum seconds a human takes to fill a form
-    const MIN_FORM_TIME = 3;
+    const MIN_FORM_TIME = 1;
 
-    // ── Generate a new challenge and store in session ──────────────────
+    // ── Generate a new challenge with signed HMAC token ────────────────
     public static function generate(string $formKey = 'default'): array
     {
         $a   = random_int(1, 9);
@@ -21,14 +21,21 @@ class HumanVerifier
         ];
         $op = $ops[array_rand($ops)];
 
-        $token = bin2hex(random_bytes(16));
+        $time   = time();
+        $ans    = (string)$op['answer'];
+        $secret = config('app.key', 'skillspot-lms-secure-key');
+        $sig    = hash_hmac('sha256', "{$time}:{$ans}:{$formKey}", $secret);
+        $token  = base64_encode("{$time}:{$ans}:{$sig}");
 
-        Session::put("hv_{$formKey}", [
-            'question' => $op['label'],
-            'answer'   => (string) $op['answer'],
-            'token'    => $token,
-            'at'       => time(),
-        ]);
+        // Also save in Session for backward compatibility
+        try {
+            Session::put("hv_{$formKey}", [
+                'question' => $op['label'],
+                'answer'   => $ans,
+                'token'    => $token,
+                'at'       => $time,
+            ]);
+        } catch (\Throwable $e) {}
 
         return [
             'question' => $op['label'],
@@ -40,56 +47,79 @@ class HumanVerifier
     public static function isEnabled(string $formType = 'login'): bool
     {
         $key = $formType === 'register' ? 'human_verify_register' : 'human_verify_login';
-        return \App\Models\Setting::get($key, '1') === '1';
+        try {
+            return \App\Models\Setting::get($key, '1') === '1';
+        } catch (\Throwable $e) {
+            return true;
+        }
     }
 
     // ── Verify all checks ──────────────────────────────────────────────
     public static function verify(Request $request, string $formKey = 'default'): array
     {
-        // If disabled by admin settings, always pass
-        // formKey may be 'login', 'register', 'portal_login_*', 'portal_reg_*'
         $formType = (str_contains($formKey, 'reg') || str_contains($formKey, 'register')) ? 'register' : 'login';
         if (!static::isEnabled($formType)) {
-            Session::forget("hv_{$formKey}");
             return ['pass' => true, 'reason' => ''];
         }
 
-        $session = Session::pull("hv_{$formKey}");
-
-        // 1. Session exists
-        if (!$session) {
-            return ['pass' => false, 'reason' => 'Session expired. Please refresh and try again.'];
-        }
-
-        // 2. Honeypot — must be empty
+        // 1. Honeypot check — must be empty
         if (!empty($request->input('_email_confirm'))
             || !empty($request->input('_website'))
             || !empty($request->input('_phone_confirm'))) {
-            return ['pass' => false, 'reason' => 'Verification failed. Please try again.'];
+            return ['pass' => false, 'reason' => 'Bot activity detected. Please try again.'];
         }
 
-        // 3. Time check — too fast = bot
-        $elapsed = time() - ($session['at'] ?? 0);
-        if ($elapsed < self::MIN_FORM_TIME) {
-            return ['pass' => false, 'reason' => 'Form submitted too quickly. Please try again.'];
-        }
-
-        // 4. JS token must match
-        if (empty($request->input('_hv_token'))
-            || $request->input('_hv_token') !== $session['token']) {
-            return ['pass' => false, 'reason' => 'JavaScript verification failed. Please enable JavaScript.'];
-        }
-
-        // 5. Interaction proof — JS must have recorded activity
-        $interaction = $request->input('_hv_interact', '0');
-        if ((int)$interaction < 1) {
-            return ['pass' => false, 'reason' => 'No human interaction detected. Please interact with the form.'];
-        }
-
-        // 6. Math answer
+        // 2. Math answer must be present
         $givenAnswer = trim($request->input('_hv_answer', ''));
-        if ($givenAnswer !== $session['answer']) {
+        if ($givenAnswer === '') {
+            return ['pass' => false, 'reason' => 'Please answer the human verification question.'];
+        }
+
+        // 3. Token check (Stateless HMAC verification + Session fallback)
+        $token = $request->input('_hv_token', '');
+        $expectedAnswer = null;
+        $genTime = null;
+
+        if (!empty($token)) {
+            $decoded = base64_decode($token, true);
+            if ($decoded && str_contains($decoded, ':')) {
+                $parts = explode(':', $decoded, 3);
+                if (count($parts) === 3) {
+                    [$timeStr, $ansStr, $sigStr] = $parts;
+                    $secret = config('app.key', 'skillspot-lms-secure-key');
+                    $validSig = hash_hmac('sha256', "{$timeStr}:{$ansStr}:{$formKey}", $secret);
+                    
+                    if (hash_equals($validSig, $sigStr)) {
+                        $expectedAnswer = $ansStr;
+                        $genTime = (int)$timeStr;
+                    }
+                }
+            }
+        }
+
+        // Fallback to session if HMAC token not decoded
+        if ($expectedAnswer === null) {
+            try {
+                $sess = Session::get("hv_{$formKey}");
+                if ($sess) {
+                    $expectedAnswer = $sess['answer'] ?? null;
+                    $genTime = $sess['at'] ?? null;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if ($expectedAnswer === null) {
+            return ['pass' => false, 'reason' => 'Verification expired. Please refresh and try again.'];
+        }
+
+        // 4. Verify math calculation
+        if ($givenAnswer !== (string)$expectedAnswer) {
             return ['pass' => false, 'reason' => 'Verification answer is incorrect. Please try again.'];
+        }
+
+        // 5. Time check — max 1 hour valid
+        if ($genTime && (time() - $genTime > 3600)) {
+            return ['pass' => false, 'reason' => 'Verification question timed out. Please refresh and try again.'];
         }
 
         return ['pass' => true, 'reason' => ''];
@@ -101,3 +131,4 @@ class HumanVerifier
         return self::verify($request, $formKey)['pass'];
     }
 }
+
