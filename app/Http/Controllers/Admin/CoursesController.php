@@ -16,13 +16,25 @@ use Illuminate\Support\Str;
 class CoursesController extends Controller
 {
     private function getCategories(): array {
-        return CourseCategory::where('is_active',1)->orderBy('order_col')->pluck('name')->toArray();
+        if (!\Illuminate\Support\Facades\Schema::hasTable('course_categories')) {
+            return ['Web Development', 'Mobile App Development', 'Data Science & AI', 'UI/UX Design'];
+        }
+        $cats = CourseCategory::where('is_active',1)->orderBy('order_col')->pluck('name')->toArray();
+        return !empty($cats) ? $cats : ['Web Development', 'Mobile App Development', 'Data Science & AI', 'UI/UX Design'];
     }
     private function getLevels(): array {
-        return CourseLevel::where('is_active',1)->orderBy('order_col')->pluck('slug')->toArray();
+        if (!\Illuminate\Support\Facades\Schema::hasTable('course_levels')) {
+            return ['all-levels', 'beginner', 'intermediate', 'advanced'];
+        }
+        $lvls = CourseLevel::where('is_active',1)->orderBy('order_col')->pluck('slug')->toArray();
+        return !empty($lvls) ? $lvls : ['all-levels', 'beginner', 'intermediate', 'advanced'];
     }
     private function getLanguages(): array {
-        return CourseLanguage::where('is_active',1)->orderBy('order_col')->pluck('name','code')->toArray();
+        if (!\Illuminate\Support\Facades\Schema::hasTable('course_languages')) {
+            return ['en' => 'English', 'hi' => 'Hindi', 'es' => 'Spanish'];
+        }
+        $langs = CourseLanguage::where('is_active',1)->orderBy('order_col')->pluck('name','code')->toArray();
+        return !empty($langs) ? $langs : ['en' => 'English', 'hi' => 'Hindi', 'es' => 'Spanish'];
     }
 
     // ── List courses ───────────────────────────────────────────────────
