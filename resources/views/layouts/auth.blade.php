@@ -43,7 +43,7 @@
 
   <!-- Main -->
   <div class="relative z-10 flex-1 flex items-center justify-center px-4 py-6 md:py-8">
-    <div class="w-full max-w-[420px] bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 overflow-hidden">
+    <div class="w-full @yield('container-class', 'max-w-[420px]') bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 overflow-hidden transition-all duration-300">
       @yield('content')
     </div>
   </div>
