@@ -23,10 +23,16 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-// Purge cached DB connection & apply current .env settings in memory
+// Purge cached DB connection, OPcache & apply current .env settings in memory
 try {
+    if (function_exists('opcache_reset')) {
+        @opcache_reset();
+    }
     Illuminate\Support\Facades\Artisan::call('config:clear');
-    
+    Illuminate\Support\Facades\Artisan::call('route:clear');
+    Illuminate\Support\Facades\Artisan::call('view:clear');
+    Illuminate\Support\Facades\Artisan::call('cache:clear');
+
     $host = env('DB_HOST', 'localhost');
     $port = env('DB_PORT', '3306');
     $dbname = env('DB_DATABASE');
