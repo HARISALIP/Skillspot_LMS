@@ -11,6 +11,13 @@ class MediaController extends Controller
     // ── Media manager page ─────────────────────────────────────────────
     public function index(Request $request)
     {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('uploads')) {
+            $files   = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 24);
+            $folders = collect([]);
+            $stats   = ['total' => 0, 'images' => 0, 'videos' => 0, 'docs' => 0, 'size' => 0];
+            return view('admin.media.index', compact('files','folders','stats'));
+        }
+
         $query = Upload::with('uploader')->latest();
 
         if ($type   = $request->type)   $query->where('type',   $type);
