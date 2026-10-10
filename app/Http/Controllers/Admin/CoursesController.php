@@ -10,7 +10,9 @@ use App\Models\Section;
 use App\Models\Lesson;
 use App\Models\Enrollment;
 use App\Models\Vendor;
+use App\Services\LessonQuiz;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CoursesController extends Controller
@@ -203,9 +205,15 @@ class CoursesController extends Controller
     // ── Lesson: store ──────────────────────────────────────────────────
     public function storeLesson(Request $request, Course $course, Section $section)
     {
+        abort_unless($section->course_id === $course->id, 404);
         $data = $this->validateLesson($request);
+        $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
         $data['order'] = $section->lessons()->max('order') + 1;
-        $lesson = $section->lessons()->create($data);
+        $lesson = DB::transaction(function () use ($section, $data, $quiz) {
+            $lesson = $section->lessons()->create($data);
+            if ($quiz) LessonQuiz::save($lesson, $quiz);
+            return $lesson;
+        });
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Lesson \"{$lesson->title}\" added ✅");
     }
@@ -213,6 +221,8 @@ class CoursesController extends Controller
     // ── Lesson: edit form ──────────────────────────────────────────────
     public function editLesson(Course $course, Section $section, Lesson $lesson)
     {
+        abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
+        $lesson->load('quiz.questions');
         return view('admin.courses.lesson', [
             'course'  => $course,
             'section' => $section,
@@ -224,7 +234,13 @@ class CoursesController extends Controller
     // ── Lesson: update ─────────────────────────────────────────────────
     public function updateLesson(Request $request, Course $course, Section $section, Lesson $lesson)
     {
-        $lesson->update($this->validateLesson($request));
+        abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
+        $data = $this->validateLesson($request);
+        $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
+        DB::transaction(function () use ($lesson, $data, $quiz) {
+            $lesson->update($data);
+            if ($quiz) LessonQuiz::save($lesson, $quiz);
+        });
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Lesson updated ✅");
     }

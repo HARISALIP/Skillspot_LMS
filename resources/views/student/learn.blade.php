@@ -62,6 +62,11 @@
         <div id="lessonContent" class="prose prose-sm max-w-none text-gray-700"></div>
       </div>
 
+      <div id="pdfWrap" class="hidden bg-white p-4">
+        <div class="flex justify-between items-center pb-3 text-sm"><strong>📄 Course handout</strong><a id="pdfOpen" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-bold">Open PDF ↗</a></div>
+        <iframe id="pdfFrame" class="w-full rounded-xl border border-gray-200" style="height:70vh" title="Course PDF handout"></iframe>
+      </div>
+
       {{-- Live class --}}
       <div id="liveWrap" class="hidden p-6 bg-white rounded-2xl min-h-[300px] text-center">
         <div class="text-5xl mb-4">📡</div>
@@ -246,17 +251,19 @@ async function loadLesson(lessonId) {
       doneBtn.disabled   = false;
       doneBtn.className  = 'flex-shrink-0 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition';
     }
+    doneBtn.classList.toggle('hidden', data.type === 'quiz');
 
     // Render based on type
     if (data.type === 'video' && data.video_url) {
       renderVideo(data.video_url, data.progress);
     } else if (data.type === 'live') {
       renderLive(data);
-    } else if (data.type === 'text' || data.type === 'quiz') {
+    } else if (data.type === 'quiz' && data.quiz) {
+      renderQuiz(data.quiz, data.completed);
+    } else if (data.type === 'text') {
       renderContent(data.content || '<p class="text-gray-400">No content available.</p>');
     } else if (data.type === 'pdf' && data.content) {
-      window.open(data.content, '_blank');
-      renderContent('<p class="text-gray-500">PDF opened in new tab.</p>');
+      renderPdf(data.content);
     } else {
       renderContent('<p class="text-gray-400">Content not available.</p>');
     }
@@ -267,7 +274,7 @@ async function loadLesson(lessonId) {
 }
 
 function hideAllPlayers() {
-  ['videoWrap','iframeWrap','contentWrap','liveWrap','playerLoading'].forEach(id => {
+  ['videoWrap','iframeWrap','contentWrap','pdfWrap','liveWrap','playerLoading'].forEach(id => {
     document.getElementById(id).classList.add('hidden');
   });
 }
@@ -305,6 +312,84 @@ function renderVideo(url, savedProgress) {
 
 function renderContent(html) {
   document.getElementById('lessonContent').innerHTML = html;
+  document.getElementById('contentWrap').classList.remove('hidden');
+}
+
+function renderPdf(url) {
+  try {
+    const parsed = new URL(url, location.origin);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported PDF URL');
+    document.getElementById('pdfFrame').src = parsed.href;
+    document.getElementById('pdfOpen').href = parsed.href;
+    document.getElementById('pdfWrap').classList.remove('hidden');
+  } catch (e) { renderContent('<p>PDF link is unavailable.</p>'); }
+}
+
+function renderQuiz(quiz, completed) {
+  const container = document.getElementById('lessonContent');
+  container.replaceChildren();
+  const title = document.createElement('h2');
+  title.textContent = quiz.title;
+  container.appendChild(title);
+  const subtitle = document.createElement('p');
+  subtitle.textContent = `Answer all ${quiz.questions.length} questions. Pass score: ${quiz.pass_score}%.`;
+  container.appendChild(subtitle);
+  if (completed) {
+    const passed = document.createElement('p');
+    passed.className = 'rounded-xl bg-green-50 text-green-700 p-4 font-bold';
+    passed.textContent = '✅ You passed this quiz.';
+    container.appendChild(passed);
+  } else {
+    const form = document.createElement('form');
+    form.className = 'space-y-5';
+    quiz.questions.forEach((question, index) => {
+      const fieldset = document.createElement('fieldset');
+      fieldset.className = 'rounded-xl border border-gray-200 p-4';
+      const legend = document.createElement('legend');
+      legend.className = 'font-bold';
+      legend.textContent = `${index + 1}. ${question.question}`;
+      fieldset.appendChild(legend);
+      question.options.forEach((option, choice) => {
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-3 p-2 rounded-lg hover:bg-brand-50 cursor-pointer';
+        const input = document.createElement('input');
+        input.type = 'radio'; input.name = `q${question.id}`; input.value = choice;
+        input.required = true;
+        label.append(input, document.createTextNode(option));
+        fieldset.appendChild(label);
+      });
+      form.appendChild(fieldset);
+    });
+    const button = document.createElement('button');
+    button.type = 'submit'; button.className = 'rounded-xl bg-brand-600 text-white font-bold px-6 py-3';
+    button.textContent = 'Submit quiz';
+    const result = document.createElement('p');
+    result.className = 'font-bold';
+    form.append(button, result);
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      button.disabled = true;
+      const answers = Object.fromEntries(quiz.questions.map(q => [q.id, Number(new FormData(form).get(`q${q.id}`))]));
+      try {
+        const response = await fetch(`${API_BASE}/lesson/${currentLessonId}/quiz`, {
+          method: 'POST', headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+          body: JSON.stringify({answers}),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not submit quiz.');
+        result.textContent = data.passed ? `✅ Passed — ${data.score}%.` : `Try again — ${data.score}%. You need ${data.pass_score}%.`;
+        result.className = `font-bold ${data.passed ? 'text-green-700' : 'text-amber-700'}`;
+        if (data.passed) {
+          document.getElementById('progressBar').style.width = data.course_progress + '%';
+          document.getElementById('progressText').textContent = data.course_progress + '%';
+          const item = document.querySelector(`.lesson-item[data-lesson-id="${currentLessonId}"]`);
+          if (item) { item.classList.add('done'); item.querySelector('.lesson-icon').textContent = '✅'; }
+          if (data.certificate) { document.getElementById('certNumber').textContent = 'Certificate ID: ' + data.certificate; document.getElementById('certModal').classList.remove('hidden'); }
+        } else button.disabled = false;
+      } catch (error) { result.textContent = error.message; button.disabled = false; }
+    });
+    container.appendChild(form);
+  }
   document.getElementById('contentWrap').classList.remove('hidden');
 }
 
