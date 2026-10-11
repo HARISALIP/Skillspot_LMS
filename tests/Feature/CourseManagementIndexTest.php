@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\Section;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Notification;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -104,9 +107,12 @@ class CourseManagementIndexTest extends TestCase
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
     }
 
-    public function test_super_admin_can_create_an_instructor_from_the_course_modal(): void
+    public function test_super_admin_can_invite_an_instructor_from_the_course_modal(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => 'smtp.example.test', 'mail.from.address' => 'no-reply@example.test']);
+        Setting::set('mail_invites_verified_at', now()->toIso8601String());
+        Notification::fake();
         Role::findOrCreate('super-admin', 'web');
         $admin = User::factory()->create(['country' => 'IN', 'country_name' => 'India']);
         $admin->assignRole('super-admin');
@@ -117,12 +123,28 @@ class CourseManagementIndexTest extends TestCase
 
         $this->actingAs($admin)->postJson(route('admin.courses.instructors.store'), [
             'first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.test',
-            'password' => 'secure-password', 'password_confirmation' => 'secure-password',
+            'roles' => ['teacher'],
         ])->assertCreated()->assertJsonPath('instructor.email', 'jane@example.test');
 
         $instructor = User::where('email', 'jane@example.test')->firstOrFail();
         $this->assertTrue($instructor->hasRole('teacher'));
+        $this->assertTrue($instructor->hasRole('student'));
         $this->assertSame('IN', $instructor->country);
+        Notification::assertSentTo($instructor, ResetPassword::class);
+    }
+
+    public function test_member_invitations_stay_disabled_until_smtp_is_verified(): void
+    {
+        config(['mail.default' => 'log']);
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->postJson(route('admin.courses.instructors.store'), [
+            'email' => 'blocked@example.test', 'roles' => ['teacher'],
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseMissing('users', ['email' => 'blocked@example.test']);
     }
 
     public function test_teacher_cannot_create_instructors_from_the_course_modal(): void
@@ -132,8 +154,7 @@ class CourseManagementIndexTest extends TestCase
         $teacher->assignRole('teacher');
 
         $this->actingAs($teacher)->postJson(route('admin.courses.instructors.store'), [
-            'first_name' => 'Blocked', 'email' => 'blocked@example.test',
-            'password' => 'secure-password', 'password_confirmation' => 'secure-password',
+            'first_name' => 'Blocked', 'email' => 'blocked@example.test', 'roles' => ['teacher'],
         ])->assertForbidden();
     }
 }

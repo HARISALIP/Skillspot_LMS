@@ -115,6 +115,7 @@ class SettingsController extends Controller
 
         // Sync mail to .env so queue/jobs pick it up
         if ($group === 'mail') {
+            if ($request->filled('mail_mailer'))       $this->updateEnvKey('MAIL_MAILER',       $request->input('mail_mailer'));
             if ($request->filled('mail_host'))         $this->updateEnvKey('MAIL_HOST',         $request->input('mail_host'));
             if ($request->filled('mail_port'))         $this->updateEnvKey('MAIL_PORT',         $request->input('mail_port'));
             if ($request->filled('mail_username'))     $this->updateEnvKey('MAIL_USERNAME',     $request->input('mail_username'));
@@ -122,6 +123,7 @@ class SettingsController extends Controller
             if ($request->filled('mail_encryption'))   $this->updateEnvKey('MAIL_SCHEME',       $request->input('mail_encryption'));
             if ($request->filled('mail_from_address')) $this->updateEnvKey('MAIL_FROM_ADDRESS', $request->input('mail_from_address'));
             if ($request->filled('mail_from_name'))    $this->updateEnvKey('MAIL_FROM_NAME',    '"' . $request->input('mail_from_name') . '"');
+            Setting::set('mail_invites_verified_at', '', 'mail', 'text', 'Member invites verified at');
         }
 
         Cache::flush();
@@ -152,12 +154,16 @@ class SettingsController extends Controller
 
     public function testMail(Request $request)
     {
+        if (config('mail.default') !== 'smtp' || blank(config('mail.mailers.smtp.host')) || blank(config('mail.from.address'))) {
+            return back()->with('error', 'Save a complete SMTP configuration before sending a test email.');
+        }
         $to = $request->input('test_email_addr', auth()->user()->email);
         try {
             \Illuminate\Support\Facades\Mail::raw(
                 'This is a test email from Skillspot. If you received this, your SMTP is working! 🎉',
                 fn($msg) => $msg->to($to)->subject('Skillspot — SMTP Test')
             );
+            Setting::set('mail_invites_verified_at', now()->toIso8601String(), 'mail', 'text', 'Member invites verified at');
             return back()->with('success', "Test email sent to {$to} ✅");
         } catch (\Exception $e) {
             return back()->with('error', 'Mail failed: ' . $e->getMessage());

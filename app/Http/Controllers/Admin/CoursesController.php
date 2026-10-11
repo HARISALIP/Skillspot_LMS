@@ -12,14 +12,15 @@ use App\Models\Upload;
 use App\Models\Enrollment;
 use App\Models\Vendor;
 use App\Models\User;
+use App\Models\Setting;
 use App\Services\LessonQuiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 
 class CoursesController extends Controller
@@ -82,12 +83,13 @@ class CoursesController extends Controller
 
         $categories = $this->getCategories();
         $categoryRecords = CourseCategory::where('is_active', 1)->orderBy('order_col')->get(['id', 'name']);
-        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'admin', 'super-admin']))
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
             ->orderBy('name')->get(['id', 'name', 'email']);
-        if (!$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
         $canCreateInstructors = auth()->user()->hasRole(['admin', 'super-admin']);
+        $inviteMailReady = $this->inviteMailReady();
         return view('admin.courses.index', compact(
-            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors','canCreateInstructors'
+            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors','canCreateInstructors','inviteMailReady'
         ));
     }
 
@@ -185,15 +187,21 @@ class CoursesController extends Controller
     public function storeInstructor(Request $request)
     {
         abort_unless($request->user()->hasRole(['admin', 'super-admin']), 403);
+        if (!$this->inviteMailReady()) {
+            throw ValidationException::withMessages([
+                'email' => 'SMTP must be configured and a test email sent before member invitations can be created.',
+            ]);
+        }
 
         $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:120'],
+            'first_name' => ['nullable', 'string', 'max:120'],
             'last_name' => ['nullable', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(8)],
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => ['in:teacher,admin'],
         ]);
 
-        $name = trim($data['first_name'].' '.($data['last_name'] ?? ''));
+        $name = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? '')) ?: Str::before($data['email'], '@');
         $user = User::create([
             'name' => $name,
             'email' => $data['email'],
@@ -201,12 +209,29 @@ class CoursesController extends Controller
             'country_name' => $request->user()->country_name ?: 'India',
             'registered_via' => 'admin',
             'portal_access' => 'skillspot_only',
-            'password' => Hash::make($data['password']),
+            'password' => Hash::make(Str::random(64)),
         ]);
-        Role::findOrCreate('teacher', 'web');
-        $user->assignRole('teacher');
+        $roles = array_unique(array_merge(['student'], $data['roles']));
+        foreach ($roles as $role) Role::findOrCreate($role, 'web');
+        $user->syncRoles($roles);
 
-        return response()->json(['instructor' => $user->only(['id', 'name', 'email'])], 201);
+        try {
+            $status = Password::sendResetLink(['email' => $user->email]);
+            if ($status !== Password::RESET_LINK_SENT) throw new \RuntimeException(__($status));
+        } catch (\Throwable $exception) {
+            $user->delete();
+            throw ValidationException::withMessages(['email' => 'The invitation could not be sent. No member was created.']);
+        }
+
+        return response()->json(['instructor' => $user->only(['id', 'name', 'email']), 'roles' => $roles], 201);
+    }
+
+    private function inviteMailReady(): bool
+    {
+        return config('mail.default') === 'smtp'
+            && filled(config('mail.mailers.smtp.host'))
+            && filled(config('mail.from.address'))
+            && filled(Setting::get('mail_invites_verified_at'));
     }
 
     // ── Edit form ──────────────────────────────────────────────────────

@@ -178,7 +178,11 @@
           <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
             <button type="button" id="clearInstructors" class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear</button>
             @if($canCreateInstructors)
+              @if($inviteMailReady)
             <button type="button" id="openNewInstructorModal" class="text-sm font-medium text-brand-600 hover:text-brand-700"><i class="fa-solid fa-plus mr-1"></i>Create New Instructor</button>
+              @else
+            <span class="text-xs font-medium text-amber-700">SMTP invite required</span>
+              @endif
             @endif
           </div>
         </div>
@@ -223,22 +227,24 @@
     @csrf
     <div class="flex items-center justify-between border-b border-gray-100 pb-4">
       <div>
-        <h2 id="newInstructorModalTitle" class="text-lg font-bold text-gray-900">Create New Instructor</h2>
-        <p class="mt-1 text-sm text-gray-500">This creates a Teacher account and adds it to this course.</p>
+        <h2 id="newInstructorModalTitle" class="text-lg font-bold text-gray-900">Add New Member</h2>
+        <p class="mt-1 text-sm text-gray-500">We’ll email a secure link so they can choose their own password.</p>
       </div>
-      <button type="button" class="closeNewInstructorModal rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close instructor form"><i class="fa-solid fa-xmark"></i></button>
+      <button type="button" class="closeNewInstructorModal rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close member form"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <p id="newInstructorError" class="mt-4 hidden rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
+    <label class="mt-5 block text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span><input name="email" type="email" required maxlength="255" placeholder="jane@doe.com" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
     <div class="mt-5 grid gap-4 sm:grid-cols-2">
-      <label class="text-sm font-medium text-gray-700">First name <span class="text-red-500">*</span><input name="first_name" required maxlength="120" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
-      <label class="text-sm font-medium text-gray-700">Last name<input name="last_name" maxlength="120" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+      <label class="text-sm font-medium text-gray-700">First name<input name="first_name" maxlength="120" placeholder="Jane" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+      <label class="text-sm font-medium text-gray-700">Last name<input name="last_name" maxlength="120" placeholder="Doe" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
     </div>
-    <label class="mt-4 block text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span><input name="email" type="email" required maxlength="255" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
-    <div class="mt-4 grid gap-4 sm:grid-cols-2">
-      <label class="text-sm font-medium text-gray-700">Password <span class="text-red-500">*</span><input name="password" type="password" required minlength="8" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
-      <label class="text-sm font-medium text-gray-700">Confirm password <span class="text-red-500">*</span><input name="password_confirmation" type="password" required minlength="8" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
-    </div>
-    <div class="mt-6 flex justify-end gap-3"><button type="button" class="closeNewInstructorModal rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button><button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Create Instructor</button></div>
+    <fieldset class="mt-5"><legend class="text-sm font-medium text-gray-700">Roles</legend>
+      <label class="mt-3 flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"><span><strong class="block text-gray-800">Student</strong><span class="text-xs text-gray-500">Learn courses and track progress</span></span><input type="checkbox" checked disabled class="rounded border-gray-300 text-brand-600"></label>
+      <label class="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm"><span><strong class="block text-gray-800">Course Creator</strong><span class="text-xs text-gray-500">Build and manage courses, chapters, and lessons</span></span><input name="roles[]" value="teacher" type="checkbox" checked class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"></label>
+      <label class="mt-2 flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 text-sm"><span><strong class="block text-gray-800">Moderator</strong><span class="text-xs text-gray-500">Manage members, content, and settings</span></span><input name="roles[]" value="admin" type="checkbox" class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"></label>
+      <div class="mt-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm text-gray-400"><strong class="block">Evaluator</strong><span class="text-xs">Available when Skillspot has its grading workflow.</span></div>
+    </fieldset>
+    <div class="mt-6 flex justify-end gap-3"><button type="button" class="closeNewInstructorModal rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button><button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Add</button></div>
   </form>
 </div>
 @endsection
@@ -344,7 +350,7 @@
     instructorPickerMenu.classList.add('hidden');
     newInstructorError.classList.add('hidden');
     newInstructorModal.classList.remove('hidden');
-    newInstructorForm.elements.first_name.focus();
+    newInstructorForm.elements.email.focus();
   });
   document.querySelectorAll('.closeNewInstructorModal').forEach((button) => button.addEventListener('click', closeNewInstructorModal));
   newInstructorModal?.addEventListener('click', (event) => { if (event.target === newInstructorModal) closeNewInstructorModal(); });

@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
@@ -27,6 +29,45 @@ class AuthController extends Controller
         } catch (\Throwable $e) {
             return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login System Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
         }
+    }
+
+    public function showForgotPassword()
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetLink(Request $request)
+    {
+        $request->validate(['email' => ['required', 'email']]);
+        PasswordBroker::sendResetLink($request->only('email'));
+
+        return back()->with('status', 'If that email has an account, a set-password link has been sent.');
+    }
+
+    public function showResetPassword(Request $request, string $token)
+    {
+        return view('auth.reset-password', ['token' => $token, 'email' => $request->query('email')]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $status = PasswordBroker::reset($request->only('email', 'password', 'password_confirmation', 'token'), function (User $user, string $password) {
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'remember_token' => Str::random(60),
+                'email_verified_at' => $user->email_verified_at ?: now(),
+            ])->save();
+        });
+
+        return $status === PasswordBroker::PASSWORD_RESET
+            ? redirect()->route('login')->with('status', 'Password set. You can now sign in.')
+            : back()->withErrors(['email' => __($status)]);
     }
 
     // ── Process Login — accept email or phone ──────────────────────────
