@@ -854,7 +854,7 @@ function updatePdfPreview(url, filename) {
   preview.classList.remove('hidden');
 }
 
-@include('admin.courses.material-script')
+@include('admin.courses.material-script', ['materialOwner' => $lesson])
 
 // Init PDF preview if existing content
 window.addEventListener('DOMContentLoaded', () => {

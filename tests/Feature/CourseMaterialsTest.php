@@ -38,7 +38,12 @@ class CourseMaterialsTest extends TestCase
         $this->actingAs($teacher)->post(route('admin.courses.store'), $input)->assertRedirect();
         $course = Course::where('title', 'Robotics')->firstOrFail();
         $this->assertCount(2, $course->resources);
-        $this->get(route('admin.courses.edit', $course))->assertOk()->assertSee('Sample paper');
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
+        $section->lessons()->create(['title' => 'First lesson', 'type' => 'text', 'resources' => [
+            ['title' => 'Lesson-only diagram', 'kind' => 'image', 'upload_id' => $image->id],
+        ]]);
+        $this->get(route('admin.courses.edit', $course))->assertOk()
+            ->assertSee('Sample paper')->assertDontSee('Lesson-only diagram');
         CourseService::enrollFree($student, $course);
         $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
             ->assertSee('Sample paper')->assertSee('Circuit diagram')

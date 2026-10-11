@@ -1,4 +1,3 @@
-@php($materialOwner = $lesson ?? $course)
 const materialNames = @json($materialUploads ?? []);
 const savedMaterials = @json(old('resources', $materialOwner->resources ?? []));
 let materialRowIndex = 0;
