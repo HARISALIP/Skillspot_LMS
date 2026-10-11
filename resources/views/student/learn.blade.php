@@ -418,7 +418,7 @@ function renderVideo(url, savedProgress) {
 function renderContent(html, title = 'Lesson') {
   const source = document.createElement('div');
   source.innerHTML = html;
-  const slides = [...source.childNodes].filter(node => node.nodeType === 1 || node.textContent.trim());
+  const slides = [...source.childNodes].filter(node => node.textContent.trim() || (node.nodeType === 1 && (node.matches('img, video, iframe, audio, svg, canvas') || node.querySelector('img, video, iframe, audio, svg, canvas'))));
   if (!slides.length) slides.push(document.createTextNode('No content available.'));
   const container = document.getElementById('lessonContent');
   container.innerHTML = '<div class="lesson-slide rounded-2xl border border-blue-100 overflow-hidden flex flex-col shadow-sm"><div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between gap-4"><span class="text-xs font-black tracking-widest uppercase text-teal-300">Skillspot · Lesson</span><span id="slideCount" class="text-xs font-bold text-slate-300"></span></div><div class="flex-1 px-7 py-9 sm:px-12 sm:py-12"><h2 id="slideTitle" class="text-2xl sm:text-3xl font-black text-slate-900 mb-8"></h2><div id="slideBody" class="lesson-slide-body"></div></div><div class="flex items-center justify-between gap-4 border-t border-blue-100 px-6 py-4 bg-white"><button id="slidePrevious" type="button" class="font-bold text-brand-700 disabled:text-gray-400">← Previous</button><span id="slideDots" class="text-xs font-semibold text-gray-500" aria-live="polite"></span><button id="slideNext" type="button" class="font-bold text-brand-700 disabled:text-gray-400">Next →</button></div></div>';
