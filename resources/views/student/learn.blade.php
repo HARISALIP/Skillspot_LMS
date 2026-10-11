@@ -185,6 +185,7 @@
     @foreach($course->sections as $section)
       @foreach($section->lessons as $materialLesson)
         @foreach($materialsByLesson[$materialLesson->id] ?? [] as $material)
+          @continue(collect($courseMaterials)->contains(fn($courseMaterial) => $courseMaterial['title'] === $material['title'] && $courseMaterial['kind'] === $material['kind']))
           @include('student.material-card', ['source' => $materialLesson->title])
         @endforeach
       @endforeach
