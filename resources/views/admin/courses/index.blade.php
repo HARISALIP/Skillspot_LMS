@@ -186,6 +186,9 @@
     courseCreateMenuButton?.setAttribute('aria-expanded', 'false');
     newCourseModal?.classList.remove('hidden');
   });
+  if (new URLSearchParams(window.location.search).has('new')) {
+    newCourseModal?.classList.remove('hidden');
+  }
   document.querySelectorAll('.closeNewCourseModal').forEach((button) => button.addEventListener('click', closeNewCourseModal));
   newCourseModal?.addEventListener('click', (event) => {
     if (event.target === newCourseModal) closeNewCourseModal();

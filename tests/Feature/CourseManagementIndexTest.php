@@ -41,6 +41,9 @@ class CourseManagementIndexTest extends TestCase
             ->assertSee(route('admin.courses.edit', $course));
 
         $this->actingAs($student)->get(route('admin.courses'))->assertForbidden();
+
+        $this->actingAs($teacher)->get(route('admin.courses.create'))
+            ->assertRedirect(route('admin.courses', ['new' => 1]));
     }
 
     public function test_teacher_can_import_a_frappe_course_zip_as_a_draft(): void

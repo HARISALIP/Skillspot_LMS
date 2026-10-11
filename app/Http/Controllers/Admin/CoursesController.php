@@ -84,16 +84,7 @@ class CoursesController extends Controller
     // ── Create form ────────────────────────────────────────────────────
     public function create()
     {
-        $course  = new Course();
-        $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
-        return view('admin.courses.form', [
-            'course'     => $course,
-            'vendors'    => $vendors,
-            'categories' => $this->getCategories(),
-            'levels'     => $this->getLevels(),
-            'languages'  => $this->getLanguages(),
-            'isEdit'     => false,
-        ]);
+        return redirect()->route('admin.courses', ['new' => 1]);
     }
 
     public function importForm()
