@@ -41,6 +41,14 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('Unpublished')
             ->assertSeeText('New Course')
             ->assertSeeText('Import via ZIP')
+            ->assertSeeText('Learning')
+            ->assertSeeText('Administrator')
+            ->assertSeeText('Search')
+            ->assertSeeText('Notifications')
+            ->assertSeeText('Batches')
+            ->assertSeeText('Certifications')
+            ->assertSeeText('Getting started')
+            ->assertSeeText('Collapse')
             ->assertSee(route('admin.courses.edit', $course));
 
         $this->actingAs($student)->get(route('admin.courses'))->assertForbidden();

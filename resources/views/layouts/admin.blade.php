@@ -11,248 +11,75 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter','sans-serif'] },
-          colors: {
-            brand: { 50:'#eff6ff',100:'#dbeafe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',900:'#1e3a8a' },
-            accent: { 100:'#ede9fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',900:'#4c1d95' }
-          }
-        }
-      }
-    }
-  </script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']},colors:{brand:{50:'#eff6ff',100:'#dbeafe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',900:'#1e3a8a'},accent:{100:'#ede9fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',900:'#4c1d95'}}}}}</script>
   <style>
-    .sidebar { width: 260px; min-width: 260px; }
-    .sidebar-collapsed { width: 72px; min-width: 72px; }
-    #sidebar { transition: width 0.25s ease, min-width 0.25s ease; }
-    .nav-label { transition: opacity 0.2s, width 0.2s; }
-    .sidebar-collapsed .nav-label { opacity:0; width:0; overflow:hidden; white-space:nowrap; }
-    .sidebar-collapsed .brand-text { display:none; }
-    .active-nav { background: rgba(37,99,235,0.12); color: #2563eb; font-weight: 600; }
-    .active-nav .nav-icon { color: #2563eb; }
+    .frappe-sidebar{width:224px;min-width:224px;transition:width .2s ease,min-width .2s ease}.frappe-sidebar.is-collapsed{width:60px;min-width:60px}.frappe-sidebar.is-collapsed .sidebar-copy,.frappe-sidebar.is-collapsed .sidebar-subtitle,.frappe-sidebar.is-collapsed .nav-copy,.frappe-sidebar.is-collapsed .nav-meta,.frappe-sidebar.is-collapsed .onboarding-card,.frappe-sidebar.is-collapsed .collapse-copy{display:none}.frappe-sidebar.is-collapsed .app-menu-button,.frappe-sidebar.is-collapsed .nav-item,.frappe-sidebar.is-collapsed .footer-action{justify-content:center}.frappe-sidebar.is-collapsed .app-menu-button{padding-left:.5rem;padding-right:.5rem}.frappe-sidebar.is-collapsed .nav-item{padding-left:.625rem;padding-right:.625rem}.frappe-sidebar.is-collapsed .nav-icon{margin-right:0}
+    .frappe-sidebar[data-theme="dark"]{background:#202020;border-color:#303030;color:#d4d4d4}.frappe-sidebar[data-theme="dark"] .sidebar-border{border-color:#303030}.frappe-sidebar[data-theme="dark"] .muted{color:#a3a3a3}.frappe-sidebar[data-theme="dark"] .nav-item{color:#c3c3c3}.frappe-sidebar[data-theme="dark"] .nav-item:hover{background:#2c2c2c;color:#fff}.frappe-sidebar[data-theme="dark"] .nav-item.is-active{background:#404040;color:#fff;border-color:#515151}.frappe-sidebar[data-theme="dark"] .app-menu-button:hover,.frappe-sidebar[data-theme="dark"] .footer-action:hover{background:#2c2c2c}.frappe-sidebar[data-theme="dark"] .app-menu{background:#292929;border-color:#3b3b3b;color:#ddd}.frappe-sidebar[data-theme="dark"] .app-menu a,.frappe-sidebar[data-theme="dark"] .app-menu button{color:#d4d4d4}.frappe-sidebar[data-theme="dark"] .app-menu a:hover,.frappe-sidebar[data-theme="dark"] .app-menu button:hover{background:#393939}.frappe-sidebar[data-theme="dark"] .getting-started{background:#262626;border-color:#373737}.frappe-sidebar[data-theme="dark"] .theme-menu{background:#292929;border-color:#3b3b3b}
+    .app-menu,.theme-menu,.notification-panel,.command-palette{display:none}.app-menu.is-open,.theme-menu.is-open,.notification-panel.is-open,.command-palette.is-open{display:block}.command-palette{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);padding-top:12vh}.command-box{width:min(34rem,calc(100vw - 2rem));margin:auto}
   </style>
   @stack('styles')
 </head>
 <body class="font-sans bg-gray-50 text-gray-900 antialiased">
-
+@php
+  $user = auth()->user();
+  $isTeacherOnly = $user->hasRole('teacher') && !$user->hasRole(['admin', 'super-admin']);
+  $navItems = [
+    ['icon'=>'fa-house','label'=>'Home','route'=>'admin.dashboard','href'=>route('admin.dashboard'),'teacher'=>true],
+    ['icon'=>'fa-book-open','label'=>'Courses','route'=>'admin.courses*','href'=>route('admin.courses'),'teacher'=>true],
+    ['icon'=>'fa-layer-group','label'=>'Batches','route'=>'admin.batches*','href'=>route('admin.batches'),'teacher'=>true],
+    ['icon'=>'fa-certificate','label'=>'Certifications','route'=>'admin.certs*','href'=>route('admin.certs'),'teacher'=>true],
+    ['icon'=>'fa-user-graduate','label'=>'Enrollments','route'=>'admin.enrollments*','href'=>route('admin.enrollments'),'teacher'=>true],
+    ['icon'=>'fa-video','label'=>'Live Classes','route'=>'admin.live*','href'=>route('admin.live'),'teacher'=>true],
+    ['icon'=>'fa-photo-film','label'=>'Media','route'=>'admin.media*','href'=>route('admin.media'),'teacher'=>true],
+    ['icon'=>'fa-store','label'=>'Vendors','route'=>'admin.vendors*','href'=>route('admin.vendors'),'teacher'=>false],
+    ['icon'=>'fa-users','label'=>'Users','route'=>'admin.users*','href'=>route('admin.users'),'teacher'=>false],
+  ];
+@endphp
 <div class="flex h-screen overflow-hidden">
-
-  <!-- Sidebar -->
-  <aside id="sidebar" class="sidebar bg-white border-r border-gray-100 flex flex-col h-full z-30 fixed lg:relative shadow-sm lg:shadow-none">
-
-    <!-- Logo -->
-    <div class="flex items-center justify-between px-5 h-16 border-b border-gray-100 flex-shrink-0">
-      <a href="/admin" class="flex items-center gap-2.5">
-        <div class="w-8 h-8 bg-gradient-to-br from-brand-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-black text-base flex-shrink-0">I</div>
-        <span class="brand-text font-bold text-gray-900 text-base">Skillspot.in <span class="text-brand-600">LMS</span></span>
-      </a>
-      <button id="sidebarToggle" class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition hidden lg:flex">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  <aside id="sidebar" class="frappe-sidebar bg-white border-r border-gray-200 flex flex-col h-full z-30 fixed lg:relative" data-theme="dark">
+    <div class="relative p-2 sidebar-border border-b">
+      <button id="appMenuButton" type="button" aria-expanded="false" class="app-menu-button w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-black/5">
+        <span class="w-7 h-7 rounded-lg bg-emerald-700 text-white flex items-center justify-center shrink-0"><i class="fa-solid fa-book-open text-xs"></i></span>
+        <span class="sidebar-copy min-w-0 flex-1"><span class="block text-sm font-semibold leading-4 truncate">Learning</span><span class="sidebar-subtitle muted block text-xs leading-4">Administrator</span></span><i class="sidebar-copy fa-solid fa-chevron-down muted text-xs"></i>
       </button>
-    </div>
-
-    <!-- Admin badge -->
-    <div class="px-4 py-3 border-b border-gray-100">
-      <div class="bg-gradient-to-r from-brand-50 to-accent-100 rounded-xl px-3 py-2 flex items-center gap-2">
-        <div class="w-7 h-7 bg-gradient-to-br from-brand-500 to-accent-500 rounded-lg flex items-center justify-center text-white text-xs font-black flex-shrink-0">
-          {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
-        </div>
-        <div class="nav-label overflow-hidden">
-          <div class="text-xs font-semibold text-gray-900 truncate">{{ auth()->user()->name ?? 'Admin' }}</div>
-          <div class="text-xs text-brand-600 font-medium">Super Admin</div>
-        </div>
+      <div id="appMenu" class="app-menu absolute left-2 right-2 top-[calc(100%-2px)] z-50 rounded-xl border shadow-xl p-1.5">
+        <a href="{{ route('admin.profile') }}" class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm"><i class="fa-regular fa-user w-4 muted"></i>My Profile</a>
+        <div class="relative"><button id="themeMenuButton" type="button" class="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm"><i class="fa-solid fa-sun w-4 muted"></i><span class="flex-1">Theme</span><i class="fa-solid fa-chevron-right text-xs muted"></i></button><div id="themeMenu" class="theme-menu absolute left-[calc(100%+4px)] top-0 w-36 rounded-xl border shadow-xl p-1.5"><button type="button" data-sidebar-theme="light" class="w-full rounded-lg px-2.5 py-2 text-left text-sm hover:bg-black/5">Light</button><button type="button" data-sidebar-theme="dark" class="w-full rounded-lg px-2.5 py-2 text-left text-sm hover:bg-black/5">Dark</button><button type="button" data-sidebar-theme="system" class="w-full rounded-lg px-2.5 py-2 text-left text-sm hover:bg-black/5">System</button></div></div>
+        @if(!$isTeacherOnly)<a href="{{ route('admin.settings') }}" class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm"><i class="fa-solid fa-gear w-4 muted"></i>Settings</a><a href="{{ route('admin.roles') }}" class="flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm"><i class="fa-solid fa-wrench w-4 muted"></i>Configuration</a>@endif
+        <form method="POST" action="{{ route('logout') }}" class="mt-1 border-t sidebar-border pt-1">@csrf<button type="submit" class="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm"><i class="fa-solid fa-right-from-bracket w-4 muted"></i>Log out</button></form>
       </div>
     </div>
-
-    <!-- Nav -->
-    <nav class="flex-1 px-3 py-4 overflow-y-auto">
-      @php
-        $isTeacherOnly = auth()->user()->hasRole('teacher') && !auth()->user()->hasRole(['admin','super-admin']);
-        $navItems = [
-          ['fa'=>'fa-solid fa-chart-pie',         'color'=>'text-blue-500',    'label'=>'Dashboard',   'route'=>'admin.dashboard',   'href'=>route('admin.dashboard'),  'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-store',             'color'=>'text-purple-500',  'label'=>'Vendors',     'route'=>'admin.vendors',     'href'=>route('admin.vendors'),    'teacherOk'=>false],
-          ['fa'=>'fa-solid fa-users',             'color'=>'text-emerald-500', 'label'=>'Users',       'route'=>'admin.users',       'href'=>route('admin.users'),      'teacherOk'=>false],
-          ['fa'=>'fa-solid fa-book-open',         'color'=>'text-indigo-500',  'label'=>'Courses',     'route'=>'admin.courses',     'href'=>route('admin.courses'),    'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-user-graduate',     'color'=>'text-amber-500',   'label'=>'Enrollments', 'route'=>'admin.enrollments', 'href'=>route('admin.enrollments'),'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-video',             'color'=>'text-rose-500',    'label'=>'Live Classes','route'=>'admin.live',        'href'=>route('admin.live'),       'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-cubes',             'color'=>'text-cyan-500',    'label'=>'Batches',     'route'=>'admin.batches',     'href'=>route('admin.batches'),    'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-credit-card',       'color'=>'text-emerald-600', 'label'=>'Payments',    'route'=>'admin.payments',    'href'=>route('admin.payments'),   'teacherOk'=>false],
-          ['fa'=>'fa-solid fa-certificate',       'color'=>'text-amber-600',   'label'=>'Certificates','route'=>'admin.certs',       'href'=>route('admin.certs'),      'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-photo-film',        'color'=>'text-teal-500',    'label'=>'Media',       'route'=>'admin.media',       'href'=>route('admin.media'),      'teacherOk'=>true],
-          ['fa'=>'fa-solid fa-shield-halved',     'color'=>'text-violet-500',  'label'=>'Roles',       'route'=>'admin.roles',       'href'=>route('admin.roles'),      'teacherOk'=>false],
-          ['fa'=>'fa-solid fa-sliders',           'color'=>'text-slate-500',   'label'=>'Settings',    'route'=>'admin.settings',    'href'=>route('admin.settings'),   'teacherOk'=>false],
-          ['fa'=>'fa-solid fa-circle-user',       'color'=>'text-blue-600',    'label'=>'My Profile',  'route'=>'admin.profile',     'href'=>route('admin.profile'),    'teacherOk'=>true],
-        ];
-      @endphp
-
-      @php $courseOpen = request()->routeIs('admin.courses*'); @endphp
-
-      {{-- Simple nav items --}}
+    <nav class="flex-1 overflow-y-auto px-2 py-3" aria-label="Main navigation">
+      <button id="searchButton" type="button" class="nav-item w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm muted hover:bg-black/5" title="Search (Ctrl+K)"><i class="nav-icon fa-solid fa-magnifying-glass w-4 text-center"></i><span class="nav-copy flex-1">Search</span><kbd class="nav-meta rounded bg-black/10 px-1.5 py-0.5 text-[10px]">Ctrl K</kbd></button>
+      <div class="relative"><button id="notificationsButton" type="button" class="nav-item w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm muted hover:bg-black/5"><i class="nav-icon fa-regular fa-bell w-4 text-center"></i><span class="nav-copy">Notifications</span></button><div id="notificationPanel" class="notification-panel absolute left-1 right-1 top-full z-40 rounded-xl border border-gray-200 bg-white p-4 text-center text-sm text-gray-500 shadow-xl">No notifications yet.</div></div>
+      <div class="my-3 border-t sidebar-border"></div>
       @foreach($navItems as $item)
-        @if($isTeacherOnly && !($item['teacherOk'] ?? false)) @continue @endif
-        @if($item['label'] === 'Courses')
-        {{-- Courses expandable group --}}
-        <div class="mb-0.5">
-          <button onclick="toggleCoursesMenu()"
-                  class="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full transition nav-label
-                         {{ $courseOpen ? 'bg-brand-50 text-brand-700 font-semibold' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-            <span class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-50 text-indigo-500">
-              <i class="fa-solid fa-book-open text-sm"></i>
-            </span>
-            <span class="nav-label text-sm font-medium flex-1 text-left">Courses</span>
-            <svg id="coursesArrow" class="nav-label w-4 h-4 transition-transform {{ $courseOpen ? 'rotate-180' : '' }}"
-                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M19 9l-7 7-7-7"/>
-            </svg>
-          </button>
-          <div id="coursesSubmenu" class="{{ $courseOpen ? '' : 'hidden' }} nav-label ml-4 mt-0.5 space-y-0.5 border-l-2 border-brand-100 pl-3">
-            @foreach([
-              ['fa-solid fa-list-check','All Courses',  route('admin.courses'),           'admin.courses'],
-              ['fa-solid fa-plus','New Course',   route('admin.courses.create'),    'admin.courses.create'],
-              ['fa-solid fa-tags','Categories',  route('admin.courses.categories'),'admin.courses.categories*'],
-              ['fa-solid fa-signal','Levels',       route('admin.courses.levels'),    'admin.courses.levels*'],
-              ['fa-solid fa-globe','Languages',    route('admin.courses.languages'), 'admin.courses.languages*'],
-            ] as [$faIcon,$lbl,$href,$rt])
-            <a href="{{ $href }}"
-               class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition
-                      {{ request()->routeIs($rt) ? 'bg-brand-100 text-brand-700 font-semibold' : 'text-gray-600 hover:bg-gray-100' }}">
-              <i class="{{ $faIcon }} text-xs opacity-75"></i> {{ $lbl }}
-            </a>
-            @endforeach
-          </div>
-        </div>
-        @else
-        <a href="{{ $item['href'] }}"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 transition group {{ request()->routeIs($item['route']) ? 'active-nav' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-          <span class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all {{ request()->routeIs($item['route']) ? 'bg-brand-600 text-white shadow-sm shadow-brand-500/30' : 'bg-slate-100/80 ' . $item['color'] . ' group-hover:bg-white group-hover:shadow-sm' }}">
-            <i class="{{ $item['fa'] }} text-sm"></i>
-          </span>
-          <span class="nav-label text-sm font-medium">{{ $item['label'] }}</span>
-        </a>
-        @endif
+        @if($isTeacherOnly && !$item['teacher']) @continue @endif
+        <a href="{{ $item['href'] }}" title="{{ $item['label'] }}" class="nav-item {{ request()->routeIs($item['route']) ? 'is-active border' : '' }} mb-0.5 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm"><i class="nav-icon fa-solid {{ $item['icon'] }} w-4 text-center"></i><span class="nav-copy">{{ $item['label'] }}</span></a>
       @endforeach
     </nav>
-
-    <!-- Logout -->
-    <div class="px-3 py-4 border-t border-gray-100 space-y-1">
-      @if(auth()->user()->hasRole('teacher'))
-      <a href="{{ route('vendor.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition">
-        <span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
-          <i class="fa-solid fa-building text-sm"></i>
-        </span>
-        <span class="nav-label text-sm font-medium">Vendor Panel</span>
-      </a>
-      @endif
-      <form method="POST" action="/logout">
-        @csrf
-        <button type="submit" class="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-left text-gray-600 hover:bg-red-50 hover:text-red-600 transition">
-          <span class="w-7 h-7 rounded-lg bg-red-50 text-red-500 flex items-center justify-center flex-shrink-0">
-            <i class="fa-solid fa-right-from-bracket text-sm"></i>
-          </span>
-          <span class="nav-label text-sm font-medium">Logout</span>
-        </button>
-      </form>
+    <div class="sidebar-border border-t p-2">
+      <div class="getting-started onboarding-card mb-2 rounded-xl border border-gray-200 p-3"><div class="flex items-center gap-2 text-sm font-semibold"><i class="fa-solid fa-diagram-project text-xs"></i>Getting started</div><p class="sidebar-copy muted mt-1 text-xs">Create your first course.</p><a href="{{ route('admin.courses', ['new'=>1]) }}" class="sidebar-copy mt-2 flex items-center justify-center gap-2 rounded-lg bg-blue-700 px-2 py-1.5 text-sm font-medium text-white hover:bg-blue-600"><i class="fa-solid fa-angles-right text-xs"></i>Continue</a></div>
+      <div class="flex gap-2 px-1 pb-1"><a href="{{ route('admin.profile') }}" class="footer-action flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm muted hover:bg-black/5" title="My Profile"><i class="fa-regular fa-user"></i><span class="nav-copy">My Profile</span></a>@if($user->hasRole('teacher'))<a href="{{ route('vendor.dashboard') }}" class="footer-action flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm muted hover:bg-black/5" title="Vendor Panel"><i class="fa-solid fa-bolt"></i><span class="nav-copy">Vendor Panel</span></a>@endif</div>
+      <button id="sidebarToggle" type="button" class="footer-action w-full flex items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm muted hover:bg-black/5" title="Collapse sidebar"><i class="fa-solid fa-right-from-bracket rotate-180"></i><span class="collapse-copy">Collapse</span></button>
     </div>
   </aside>
-
-  <!-- Mobile overlay -->
-  <div id="mobileOverlay" class="fixed inset-0 bg-black/40 z-20 hidden lg:hidden" onclick="closeMobileSidebar()"></div>
-
-  <!-- Main content -->
-  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-    <!-- Top bar -->
-    <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10">
-      <div class="flex items-center gap-3">
-        <!-- Mobile menu btn -->
-        <button id="mobileMenuBtn" onclick="openMobileSidebar()" class="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-        </button>
-        <div>
-          <h1 class="text-base md:text-lg font-bold text-gray-900">@yield('page-title', 'Dashboard')</h1>
-          <p class="text-xs text-gray-500 hidden sm:block">@yield('page-sub', 'Skillspot.in LMS Admin')</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2 md:gap-3">
-        @yield('page-actions')
-        <!-- Notifications -->
-        <button class="relative p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
-        <!-- Avatar -->
-        <div class="w-8 h-8 bg-gradient-to-br from-brand-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-black text-sm cursor-pointer">
-          {{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}
-        </div>
-      </div>
-    </header>
-
-    <!-- Page content -->
-    <main class="flex-1 overflow-y-auto">
-      @if(session("impersonating_as"))
-      <div class="bg-purple-600 text-white px-4 py-2.5 flex items-center justify-between text-sm">
-        <span class="font-semibold">👤 Impersonating: <strong>{{ auth()->user()->name }}</strong> ({{ auth()->user()->roles->first()?->name ?? "user" }})</span>
-        <a href="{{ route("admin.users.impersonate.stop") }}"
-           class="bg-white text-purple-600 font-bold px-4 py-1.5 rounded-lg text-xs hover:bg-purple-50 transition">
-          Stop Impersonating →
-        </a>
-      </div>
-      @endif
-      <div class="p-4 md:p-6">
-      @yield('admin-content')
-      </div>
-    </main>
+  <div id="mobileOverlay" class="fixed inset-0 z-20 hidden bg-black/40 lg:hidden"></div>
+  <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+    <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10"><div class="flex items-center gap-3"><button id="mobileMenuBtn" type="button" class="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-500"><i class="fa-solid fa-bars"></i></button><div><h1 class="text-base md:text-lg font-bold text-gray-900">@yield('page-title', 'Dashboard')</h1><p class="text-xs text-gray-500 hidden sm:block">@yield('page-sub', 'Skillspot.in LMS Admin')</p></div></div><div class="flex items-center gap-3">@yield('page-actions')<a href="{{ route('admin.profile') }}" title="My Profile" class="w-8 h-8 bg-gradient-to-br from-brand-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-black text-sm">{{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}</a></div></header>
+    <main class="flex-1 overflow-y-auto">@if(session('impersonating_as'))<div class="bg-purple-600 text-white px-4 py-2.5 flex items-center justify-between text-sm"><span class="font-semibold">👤 Impersonating: <strong>{{ $user->name }}</strong> ({{ $user->roles->first()?->name ?? 'user' }})</span><a href="{{ route('admin.users.impersonate.stop') }}" class="bg-white text-purple-600 font-bold px-4 py-1.5 rounded-lg text-xs">Stop Impersonating →</a></div>@endif<div class="p-4 md:p-6">@yield('admin-content')</div></main>
   </div>
 </div>
-
+<div id="commandPalette" class="command-palette" role="dialog" aria-modal="true" aria-label="Search Skillspot"><div class="command-box overflow-hidden rounded-2xl bg-white shadow-2xl"><div class="flex items-center border-b border-gray-100 px-4"><i class="fa-solid fa-magnifying-glass text-gray-400"></i><input id="commandInput" type="search" autocomplete="off" placeholder="Search pages…" class="w-full border-0 px-3 py-4 text-sm outline-none"><button id="commandClose" type="button" class="text-gray-400 hover:text-gray-700">Esc</button></div><div id="commandItems" class="max-h-80 overflow-y-auto p-2">@foreach($navItems as $item)@if($isTeacherOnly && !$item['teacher']) @continue @endif<a href="{{ $item['href'] }}" data-command-item="{{ strtolower($item['label']) }}" class="command-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100"><i class="fa-solid {{ $item['icon'] }} w-4 text-gray-400"></i>{{ $item['label'] }}</a>@endforeach<a href="{{ route('admin.profile') }}" data-command-item="profile" class="command-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100"><i class="fa-regular fa-user w-4 text-gray-400"></i>My Profile</a>@if(!$isTeacherOnly)<a href="{{ route('admin.settings') }}" data-command-item="settings" class="command-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100"><i class="fa-solid fa-gear w-4 text-gray-400"></i>Settings</a>@endif</div></div></div>
 <script>
-  // Sidebar collapse (desktop)
-  const sidebar = document.getElementById('sidebar');
-  document.getElementById('sidebarToggle')?.addEventListener('click', () => {
-    sidebar.classList.toggle('sidebar-collapsed');
-    sidebar.classList.toggle('sidebar');
-  });
-
-  // Mobile sidebar
-  function openMobileSidebar() {
-    sidebar.style.transform = 'translateX(0)';
-    document.getElementById('mobileOverlay').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeMobileSidebar() {
-    document.getElementById('mobileOverlay').classList.add('hidden');
-    document.body.style.overflow = '';
-  }
-
-  // Mobile: hide sidebar off-screen by default on small screens
-  if (window.innerWidth < 1024) {
-    sidebar.style.transform = 'translateX(-100%)';
-    sidebar.style.transition = 'transform 0.25s ease';
-    function openMobileSidebar() {
-      sidebar.style.transform = 'translateX(0)';
-      document.getElementById('mobileOverlay').classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-    }
-    function closeMobileSidebar() {
-      sidebar.style.transform = 'translateX(-100%)';
-      document.getElementById('mobileOverlay').classList.add('hidden');
-      document.body.style.overflow = '';
-    }
-  }
+  const sidebar=document.getElementById('sidebar'),appMenu=document.getElementById('appMenu'),themeMenu=document.getElementById('themeMenu'),palette=document.getElementById('commandPalette'),mobileOverlay=document.getElementById('mobileOverlay');
+  const applySidebarTheme=(preference)=>{const theme=preference==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):preference;sidebar.dataset.theme=theme;localStorage.setItem('skillspot-sidebar-theme',preference)};
+  applySidebarTheme(localStorage.getItem('skillspot-sidebar-theme')||'dark');
+  document.getElementById('sidebarToggle').addEventListener('click',()=>{sidebar.classList.toggle('is-collapsed');localStorage.setItem('skillspot-sidebar-collapsed',sidebar.classList.contains('is-collapsed'))});if(localStorage.getItem('skillspot-sidebar-collapsed')==='true')sidebar.classList.add('is-collapsed');
+  document.getElementById('appMenuButton').addEventListener('click',()=>{appMenu.classList.toggle('is-open');document.getElementById('appMenuButton').setAttribute('aria-expanded',appMenu.classList.contains('is-open'));themeMenu.classList.remove('is-open')});document.getElementById('themeMenuButton').addEventListener('click',()=>themeMenu.classList.toggle('is-open'));document.querySelectorAll('[data-sidebar-theme]').forEach(button=>button.addEventListener('click',()=>{applySidebarTheme(button.dataset.sidebarTheme);themeMenu.classList.remove('is-open');appMenu.classList.remove('is-open')}));
+  document.getElementById('notificationsButton').addEventListener('click',()=>document.getElementById('notificationPanel').classList.toggle('is-open'));const openPalette=()=>{palette.classList.add('is-open');document.getElementById('commandInput').focus()},closePalette=()=>palette.classList.remove('is-open');document.getElementById('searchButton').addEventListener('click',openPalette);document.getElementById('commandClose').addEventListener('click',closePalette);palette.addEventListener('click',event=>{if(event.target===palette)closePalette()});document.getElementById('commandInput').addEventListener('input',event=>document.querySelectorAll('[data-command-item]').forEach(item=>item.classList.toggle('hidden',!item.dataset.commandItem.includes(event.target.value.toLowerCase()))));
+  window.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();openPalette()}if(event.key==='Escape'){closePalette();appMenu.classList.remove('is-open');themeMenu.classList.remove('is-open')}});const openMobileSidebar=()=>{sidebar.style.transform='translateX(0)';mobileOverlay.classList.remove('hidden')},closeMobileSidebar=()=>{sidebar.style.transform='translateX(-100%)';mobileOverlay.classList.add('hidden')};document.getElementById('mobileMenuBtn').addEventListener('click',openMobileSidebar);mobileOverlay.addEventListener('click',closeMobileSidebar);if(window.innerWidth<1024){sidebar.style.transform='translateX(-100%)';sidebar.style.transition='transform .2s ease'}
 </script>
 @stack('scripts')
-
-<script>
-function toggleCoursesMenu() {
-  const menu  = document.getElementById('coursesSubmenu');
-  const arrow = document.getElementById('coursesArrow');
-  if (!menu) return;
-  menu.classList.toggle('hidden');
-  arrow.style.transform = menu.classList.contains('hidden') ? '' : 'rotate(180deg)';
-}
-</script>
 </body>
 </html>
