@@ -28,4 +28,21 @@ class SettingsWorkspaceTest extends TestCase
             ->assertSeeText('Configuration')
             ->assertSeeText('License');
     }
+
+    public function test_settings_can_render_inside_the_workspace_overlay(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('id="settingsModalButton"', false)
+            ->assertSee(route('admin.settings', ['embed' => 1]));
+
+        $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
+            ->assertOk()
+            ->assertSeeText('System settings')
+            ->assertDontSeeText('Configure your learning platform');
+    }
 }

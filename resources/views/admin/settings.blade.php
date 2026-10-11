@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends(request()->boolean('embed') ? 'layouts.admin-embed' : 'layouts.admin')
 @section('title', 'Settings — Skillspot.in Admin')
 @section('page-title', 'Settings')
 @section('page-sub', 'Configure your learning platform')
@@ -92,7 +92,11 @@ $tabs = [
             <h2 class="text-base font-black text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
             <p class="text-xs text-gray-400 mt-0.5">{{ $tabs[$activeTab]['description'] }}</p>
           </div>
-          <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="ml-auto rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
+          @if(request()->boolean('embed'))
+            <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="ml-auto rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
+          @else
+            <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="ml-auto rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
+          @endif
         </div>
       </div>
 
