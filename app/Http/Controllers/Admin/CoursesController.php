@@ -96,6 +96,57 @@ class CoursesController extends Controller
         ]);
     }
 
+    public function importForm()
+    {
+        return view('admin.courses.import');
+    }
+
+    public function importZip(Request $request)
+    {
+        $request->validate(['archive' => 'required|file|mimes:zip|max:51200']);
+        $zip = new \ZipArchive();
+
+        if ($zip->open($request->file('archive')->getRealPath()) !== true || $zip->numFiles > 500) {
+            return back()->withErrors(['archive' => 'Choose a valid course ZIP with no more than 500 files.']);
+        }
+
+        $archiveSize = 0;
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entry = $zip->statIndex($index);
+            $archiveSize += $entry['size'] ?? 0;
+            if ($archiveSize > 52428800 || (($entry['size'] ?? 0) > 1048576 && ($entry['comp_size'] ?? 0) * 100 < $entry['size'])) {
+                $zip->close();
+                return back()->withErrors(['archive' => 'The ZIP expands to more than 50 MB or is compressed too heavily.']);
+            }
+        }
+
+        $courseFile = $zip->statName('course.json');
+        $courseContents = $courseFile && $courseFile['size'] <= 1048576 ? $zip->getFromName('course.json') : false;
+        $zip->close();
+        $courseData = is_string($courseContents) ? json_decode($courseContents, true) : null;
+        $title = is_array($courseData) && is_string($courseData['title'] ?? null) ? trim($courseData['title']) : '';
+
+        if ($title === '' || strlen($title) > 255) {
+            return back()->withErrors(['archive' => 'The ZIP must contain a course.json file with a course title.']);
+        }
+
+        $course = Course::create([
+            'title' => $title,
+            'description' => is_string($courseData['description'] ?? null) ? $courseData['description'] : null,
+            'category' => is_string($courseData['category'] ?? null) ? $courseData['category'] : 'General',
+            'level' => is_string($courseData['level'] ?? null) ? $courseData['level'] : 'beginner',
+            'language' => is_string($courseData['language'] ?? null) ? $courseData['language'] : 'en',
+            'price' => 0,
+            'is_free' => true,
+            'visibility' => 'draft',
+            'is_published' => false,
+        ]);
+
+        $course->teachers()->syncWithoutDetaching([auth()->id() => ['added_by' => auth()->id()]]);
+        return redirect()->route('admin.courses.edit', $course)
+            ->with('success', "Course \"{$course->title}\" imported as a draft. Add its sections and lessons before publishing.");
+    }
+
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {

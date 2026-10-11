@@ -3,11 +3,21 @@
 @section('page-title','Courses')
 @section('page-sub','')
 @section('page-actions')
-<a href="{{ route('admin.courses.create') }}" class="inline-flex items-center gap-2 rounded-lg bg-[#f7f7f7] px-3 py-1.5 text-sm font-medium text-[#202020] transition hover:bg-white">
-  <i class="fa-solid fa-plus text-xs"></i>
-  <span>Create</span>
-  <i class="fa-solid fa-chevron-down ml-1 text-[10px]"></i>
-</a>
+<div class="relative" id="courseCreateMenu">
+  <button type="button" id="courseCreateMenuButton" aria-expanded="false" aria-controls="courseCreateMenuItems" class="inline-flex items-center gap-2 rounded-lg bg-[#f7f7f7] px-3 py-1.5 text-sm font-medium text-[#202020] transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+    <i class="fa-solid fa-plus text-xs"></i>
+    <span>Create</span>
+    <i class="fa-solid fa-chevron-down ml-1 text-[10px]"></i>
+  </button>
+  <div id="courseCreateMenuItems" class="absolute right-0 z-30 mt-2 hidden w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg" role="menu">
+    <a href="{{ route('admin.courses.create') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
+      <i class="fa-regular fa-book-open w-4 text-gray-500"></i> New Course
+    </a>
+    <a href="{{ route('admin.courses.import') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
+      <i class="fa-solid fa-folder-plus w-4 text-gray-500"></i> Import via ZIP
+    </a>
+  </div>
+</div>
 @endsection
 
 @push('styles')
@@ -105,3 +115,21 @@
   @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+  const courseCreateMenu = document.getElementById('courseCreateMenu');
+  const courseCreateMenuButton = document.getElementById('courseCreateMenuButton');
+  const courseCreateMenuItems = document.getElementById('courseCreateMenuItems');
+  courseCreateMenuButton?.addEventListener('click', () => {
+    const isOpen = !courseCreateMenuItems.classList.toggle('hidden');
+    courseCreateMenuButton.setAttribute('aria-expanded', String(isOpen));
+  });
+  document.addEventListener('click', (event) => {
+    if (!courseCreateMenu?.contains(event.target)) {
+      courseCreateMenuItems?.classList.add('hidden');
+      courseCreateMenuButton?.setAttribute('aria-expanded', 'false');
+    }
+  });
+</script>
+@endpush

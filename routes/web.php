@@ -82,6 +82,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     // Courses
     Route::get('/courses',                                            [CoursesController::class,'index'])->name('courses');
     Route::get('/courses/create',                                     [CoursesController::class,'create'])->name('courses.create');
+    Route::get('/courses/import',                                     [CoursesController::class,'importForm'])->name('courses.import');
+    Route::post('/courses/import',                                    [CoursesController::class,'importZip'])->name('courses.import.store');
     Route::post('/courses',                                           [CoursesController::class,'store'])->name('courses.store');
     Route::get('/courses/{course}/edit',                              [CoursesController::class,'edit'])->name('courses.edit');
     Route::put('/courses/{course}',                                   [CoursesController::class,'update'])->name('courses.update');
