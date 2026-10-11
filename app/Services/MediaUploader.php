@@ -51,7 +51,7 @@ class MediaUploader
 
         // Determine URL
         $publicBase = Setting::get('r2_public_url','');
-        $url = $disk === 'public' ? Storage::disk('public')->url($path)
+        $url = $disk === 'public' ? ''
             : ($publicBase ? rtrim($publicBase,'/') . '/' . $path : '');
 
         return Upload::create([

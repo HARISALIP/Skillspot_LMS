@@ -5,9 +5,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Upload;
 use App\Services\MediaUploader;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class MediaController extends Controller
 {
+    public function publicFile(Upload $upload)
+    {
+        abort_unless($upload->is_public && $upload->disk === 'public', 404);
+        abort_unless(Storage::disk('public')->exists($upload->path), 404);
+
+        return Storage::disk('public')->response($upload->path, $upload->original_name);
+    }
+
     // ── Media manager page ─────────────────────────────────────────────
     public function index(Request $request)
     {

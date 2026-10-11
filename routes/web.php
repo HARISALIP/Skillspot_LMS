@@ -22,6 +22,7 @@ use App\Http\Controllers\SecureVideoController;
 
 // ── Landing ────────────────────────────────────────────────────────────────
 Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/media/file/{upload:uuid}', [MediaController::class, 'publicFile'])->name('media.public');
 
 // ── Secure video streaming (auth required)
 Route::middleware(['auth','portal.access'])->group(function () {
