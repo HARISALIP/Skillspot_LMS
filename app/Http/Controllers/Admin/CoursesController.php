@@ -52,7 +52,10 @@ class CoursesController extends Controller
     // ── List courses ───────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $query = Course::with('sections')->withCount('enrollments')->latest();
+        $query = Course::with('sections.lessons')
+            ->withCount(['enrollments', 'reviews'])
+            ->withAvg('reviews', 'rating')
+            ->latest();
 
         if ($s = $request->search) {
             $query->where(function($q) use ($s) {
@@ -60,9 +63,11 @@ class CoursesController extends Controller
             });
         }
         if ($request->category) $query->where('category', $request->category);
-        if ($request->level)    $query->where('level',    $request->level);
-        if ($request->status === 'published') $query->where('is_published', 1);
-        if ($request->status === 'draft')     $query->where('is_published', 0);
+        $tab = $request->input('tab', 'published');
+        if ($tab === 'published') $query->where('is_published', 1);
+        if ($tab === 'upcoming') $query->whereDate('batch_start_date', '>', today());
+        if ($tab === 'unpublished') $query->where('is_published', 0);
+        // shortcut: courses have no creator_id, scope Created once ownership is modeled.
 
         $courses    = $query->paginate(15);
         $totalCourses   = Course::count();

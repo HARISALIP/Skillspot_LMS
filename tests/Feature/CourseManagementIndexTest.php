@@ -33,7 +33,8 @@ class CourseManagementIndexTest extends TestCase
             ->assertOk()
             ->assertSeeText('Robotics Fundamentals')
             ->assertSeeText('Published')
-            ->assertSeeText('Create course')
+            ->assertSeeText('All Courses')
+            ->assertSeeText('Unpublished')
             ->assertSee(route('admin.courses.edit', $course));
 
         $this->actingAs($student)->get(route('admin.courses'))->assertForbidden();
