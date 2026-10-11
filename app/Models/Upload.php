@@ -45,6 +45,8 @@ class Upload extends Model
             'image'    => '🖼️',
             'video'    => '🎬',
             'pdf'      => '📄',
+            'audio'    => '🎧',
+            'presentation' => '📊',
             'document' => '📝',
             default    => '📎',
         };
@@ -74,7 +76,11 @@ class Upload extends Model
     {
         if (str_starts_with($mime, 'image/'))                  return 'image';
         if (str_starts_with($mime, 'video/'))                  return 'video';
+        if (str_starts_with($mime, 'audio/'))                  return 'audio';
         if ($mime === 'application/pdf')                        return 'pdf';
+        if (in_array($mime, ['application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation']))
+            return 'presentation';
         if (in_array($mime, ['application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain','application/vnd.ms-excel',

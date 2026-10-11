@@ -8,12 +8,14 @@ use App\Models\CourseLevel;
 use App\Models\CourseLanguage;
 use App\Models\Section;
 use App\Models\Lesson;
+use App\Models\Upload;
 use App\Models\Enrollment;
 use App\Models\Vendor;
 use App\Services\LessonQuiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CoursesController extends Controller
 {
@@ -200,6 +202,7 @@ class CoursesController extends Controller
             'section' => $section,
             'lesson'  => new Lesson(),
             'isEdit'  => false,
+            'materialUploads' => [],
         ]);
     }
 
@@ -224,11 +227,15 @@ class CoursesController extends Controller
     {
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $lesson->load('quiz.questions');
+        $materialUploads = Upload::whereIn('id', collect($lesson->resources ?? [])
+            ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])
+            ->filter()->unique())->pluck('original_name', 'id');
         return view('admin.courses.lesson', [
             'course'  => $course,
             'section' => $section,
             'lesson'  => $lesson,
             'isEdit'  => true,
+            'materialUploads' => $materialUploads,
         ]);
     }
 
@@ -333,11 +340,35 @@ class CoursesController extends Controller
             'live_meeting_id'    => 'nullable|string|max:100',
             'live_password'      => 'nullable|string|max:100',
             'notes'           => 'nullable|string',
+            'resources'       => 'nullable|array|max:30',
+            'resources.*.title' => 'required|string|max:120',
+            'resources.*.kind' => 'required|in:slides,audio,image,notes,quiz_paper,question_paper,study_material',
+            'resources.*.upload_id' => 'required|integer|exists:uploads,id',
+            'resources.*.preview_upload_id' => 'nullable|integer|exists:uploads,id',
             'duration'        => 'nullable|integer|min:0',
             'is_preview'      => 'boolean',
         ]);
         $data['is_preview']    = $request->boolean('is_preview');
         $data['video_storage'] = $request->input('video_storage', 'external');
+        $data['resources'] = array_values($data['resources'] ?? []);
+        $allowedTypes = [
+            'slides' => ['presentation'], 'audio' => ['audio'], 'image' => ['image'],
+            'notes' => ['pdf','document'], 'quiz_paper' => ['pdf'],
+            'question_paper' => ['pdf'], 'study_material' => ['pdf'],
+        ];
+        $uploads = Upload::whereIn('id', collect($data['resources'])
+            ->flatMap(fn($r) => [$r['upload_id'], $r['preview_upload_id'] ?? null])->filter()->unique())
+            ->get()->keyBy('id');
+        foreach ($data['resources'] as $index => $resource) {
+            $file = $uploads->get($resource['upload_id']);
+            $preview = $uploads->get($resource['preview_upload_id'] ?? null);
+            if (!$file?->is_public || !in_array($file->type, $allowedTypes[$resource['kind']], true)
+                || ($preview && (!$preview->is_public || $preview->type !== 'pdf'))
+                || ($resource['kind'] === 'slides' && !$preview)
+                || (!empty($resource['preview_upload_id']) && (!$preview || $resource['kind'] !== 'slides'))) {
+                throw ValidationException::withMessages(["resources.$index.upload_id" => 'Choose a public file of the correct type for this material.']);
+            }
+        }
         return $data;
     }
 }

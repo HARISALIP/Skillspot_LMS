@@ -63,7 +63,7 @@
       </div>
 
       <div id="pdfWrap" class="hidden bg-white p-4">
-        <div class="flex justify-between items-center pb-3 text-sm"><strong>📄 Course handout</strong><a id="pdfOpen" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-bold">Open PDF ↗</a></div>
+        <div class="flex justify-between items-center gap-3 pb-3 text-sm"><strong>📄 Course handout</strong><div class="flex gap-3"><a id="pdfOpen" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-bold">View ↗</a><a id="pdfDownload" class="text-brand-600 font-bold">Download ↓</a></div></div>
         <iframe id="pdfFrame" class="w-full rounded-xl border border-gray-200" style="height:70vh" title="Course PDF handout"></iframe>
       </div>
 
@@ -173,6 +173,38 @@
     </div>
   </div>
 </div>
+
+@if(collect($materialsByLesson)->flatten(1)->isNotEmpty())
+<section id="studyMaterials" class="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+  <h2 class="font-black text-gray-900 text-lg">📚 Study materials</h2>
+  <p class="text-sm text-gray-500 mt-1 mb-4">View lesson resources here or download copies for offline study.</p>
+  <div class="grid gap-3 md:grid-cols-2">
+    @foreach($course->sections as $section)
+      @foreach($section->lessons as $materialLesson)
+        @foreach($materialsByLesson[$materialLesson->id] ?? [] as $material)
+        <article class="rounded-xl border border-gray-200 p-4">
+          <div class="text-xs font-semibold text-brand-600">{{ $materialLesson->title }} · {{ ucwords(str_replace('_',' ', $material['kind'])) }}</div>
+          <h3 class="font-bold text-gray-900 mt-1">{{ $material['title'] }}</h3>
+          @if($material['type'] === 'audio')
+            <audio controls preload="none" class="w-full mt-3" src="{{ $material['url'] }}">Audio playback is unavailable in this browser.</audio>
+          @elseif($material['type'] === 'image')
+            <a href="{{ $material['url'] }}" target="_blank" rel="noopener noreferrer"><img src="{{ $material['url'] }}" alt="{{ $material['title'] }}" class="max-h-48 w-full object-contain mt-3 rounded-lg bg-gray-50"></a>
+          @endif
+          <div class="flex gap-3 mt-3 text-sm font-bold">
+            @if($material['type'] !== 'audio')
+              @if($material['type'] !== 'presentation' || $material['preview_url'])
+                <a href="{{ $material['preview_url'] ?: $material['url'] }}" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:underline">View {{ $material['type'] === 'presentation' ? 'slides' : 'file' }} ↗</a>
+              @endif
+            @endif
+            <a href="{{ $material['download_url'] }}" class="text-gray-700 hover:underline">Download ↓</a>
+          </div>
+        </article>
+        @endforeach
+      @endforeach
+    @endforeach
+  </div>
+</section>
+@endif
 
 {{-- Certificate modal --}}
 <div id="certModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -321,6 +353,9 @@ function renderPdf(url) {
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported PDF URL');
     document.getElementById('pdfFrame').src = parsed.href;
     document.getElementById('pdfOpen').href = parsed.href;
+    const localMedia = parsed.origin === location.origin && /^\/media\/file\/[a-f0-9-]+$/.test(parsed.pathname);
+    document.getElementById('pdfDownload').classList.toggle('hidden', !localMedia);
+    if (localMedia) document.getElementById('pdfDownload').href = parsed.pathname + '/download';
     document.getElementById('pdfWrap').classList.remove('hidden');
   } catch (e) { renderContent('<p>PDF link is unavailable.</p>'); }
 }

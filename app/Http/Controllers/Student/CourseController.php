@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Lesson;
+use App\Models\Upload;
 use App\Models\Section;
 use App\Models\Setting;
 use App\Services\CourseService;
@@ -189,6 +190,7 @@ class CourseController extends Controller
         }
 
         $course->load('sections.lessons');
+        $materialsByLesson = $this->materialsForLessons($course->sections->flatMap->lessons);
         $enrollment = Enrollment::where('user_id',$user->id)->where('course_id',$course->id)->first();
 
         // Get lesson progress for this user
@@ -215,7 +217,7 @@ class CourseController extends Controller
 
         return view('student.learn', compact(
             'course','enrollment','lessonProgress','completedIds',
-            'currentLesson','certificate'
+            'currentLesson','certificate','materialsByLesson'
         ));
     }
 
@@ -261,6 +263,7 @@ class CourseController extends Controller
             'video_url'    => $videoUrl,
             'content'      => $lesson->content,
             'notes'        => $lesson->notes,
+            'materials'    => $this->materialsForLessons(collect([$lesson]))[$lesson->id] ?? [],
             'duration'     => $lesson->duration,
             'is_preview'   => $lesson->is_preview,
             'progress'     => $progress?->progress ?? 0,
@@ -272,6 +275,32 @@ class CourseController extends Controller
             'live_meeting_id'   => $lesson->live_meeting_id,
             'live_password'     => $lesson->live_password,
         ]);
+    }
+
+    private function materialsForLessons($lessons): array
+    {
+        $ids = $lessons->flatMap(fn($lesson) => collect($lesson->resources ?? [])
+            ->flatMap(fn($resource) => [$resource['upload_id'] ?? null, $resource['preview_upload_id'] ?? null]))
+            ->filter()->unique();
+        $uploads = Upload::whereIn('id', $ids)->where('is_public', true)->get()->keyBy('id');
+        $materials = [];
+        foreach ($lessons as $lesson) {
+            $materials[$lesson->id] = [];
+            foreach ($lesson->resources ?? [] as $resource) {
+                $file = $uploads->get($resource['upload_id'] ?? null);
+                if (!$file) continue;
+                $preview = $uploads->get($resource['preview_upload_id'] ?? null);
+                $materials[$lesson->id][] = [
+                    'title' => $resource['title'] ?? $file->original_name,
+                    'kind' => $resource['kind'] ?? 'study_material',
+                    'type' => $file->type,
+                    'url' => $file->public_url,
+                    'preview_url' => $preview?->public_url,
+                    'download_url' => route('media.download', $file->uuid),
+                ];
+            }
+        }
+        return $materials;
     }
 
     // ── Save lesson progress ───────────────────────────────────────────
