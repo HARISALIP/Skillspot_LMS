@@ -47,7 +47,9 @@ class MediaUploader
 
         // Upload to R2 (or local if not configured)
         $options = $isPublic ? ['visibility' => 'public'] : [];
-        Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()), $options);
+        if (!Storage::disk($disk)->put($path, file_get_contents($file->getRealPath()), $options)) {
+            throw new \RuntimeException('File storage failed. Please try again.');
+        }
 
         // Determine URL
         $publicBase = Setting::get('r2_public_url','');
