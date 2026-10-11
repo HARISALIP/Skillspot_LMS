@@ -129,8 +129,13 @@ class SettingsController extends Controller
         Cache::flush();
         Artisan::call('config:clear');
 
+        $settingsRoute = ['tab' => $group];
+        if ($request->boolean('embed')) {
+            $settingsRoute['embed'] = 1;
+        }
+
         return redirect()
-            ->route('admin.settings', ['tab' => $group])
+            ->route('admin.settings', $settingsRoute)
             ->with('success', ucfirst($group) . ' settings saved successfully ✅');
     }
 

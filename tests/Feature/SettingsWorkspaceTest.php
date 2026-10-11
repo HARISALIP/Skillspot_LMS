@@ -43,6 +43,7 @@ class SettingsWorkspaceTest extends TestCase
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
             ->assertOk()
             ->assertSeeText('System settings')
-            ->assertDontSeeText('Configure your learning platform');
+            ->assertDontSeeText('Configure your learning platform')
+            ->assertDontSee('Main navigation');
     }
 }

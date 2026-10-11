@@ -16,6 +16,8 @@
 @section('admin-content')
 
 @php
+$embedded = request()->boolean('embed');
+$settingsQuery = $embedded ? ['embed' => 1] : [];
 $tabs = [
   'branding' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Academy identity, domain, branding and contact details'],
   'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup & Access', 'description'=>'Registration, verification, sessions and maintenance'],
@@ -45,7 +47,7 @@ $tabs = [
   <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-64 lg:border-b-0 lg:border-r overflow-y-auto">
     <div class="lg:hidden flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1">
       @foreach($tabs as $key => $tab)
-      <a href="{{ route('admin.settings', ['tab' => $key]) }}"
+      <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
          class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition
                 {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-lg shadow-brand-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-brand-300 hover:text-brand-600' }}">
         <i class="{{ $tab['fa'] }}"></i> {{ $tab['label'] }}
@@ -63,7 +65,7 @@ $tabs = [
           <p class="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ $tab['group'] }}</p>
           @php $lastGroup = $tab['group']; @endphp
         @endif
-        <a href="{{ route('admin.settings', ['tab' => $key]) }}"
+        <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition font-medium
                   {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/70 hover:text-gray-900' }}">
           <span class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all {{ $activeTab === $key ? 'bg-white/20 text-white' : $tab['bg'] . ' ' . $tab['color'] }}">
@@ -100,7 +102,7 @@ $tabs = [
         </div>
       </div>
 
-      <form method="POST" action="{{ route('admin.settings.save', $activeTab) }}" id="settingsForm">
+      <form method="POST" action="{{ route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
         @csrf
         <div class="p-6 space-y-5">
 
@@ -202,7 +204,7 @@ $tabs = [
             <div class="flex flex-col sm:flex-row gap-3">
               <input type="email" name="test_email_addr" value="{{ auth()->user()->email }}"
                      class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-gray-50">
-              <button type="submit" formaction="{{ route('admin.settings.mail.test') }}"
+              <button type="submit" formaction="{{ route('admin.settings.mail.test', $settingsQuery) }}"
                       class="flex-shrink-0 px-5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-bold transition">
                 📨 Send Test Email
               </button>
