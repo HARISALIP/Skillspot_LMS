@@ -222,10 +222,21 @@
           </div>
         </div>
 
+        <div class="border-t border-gray-100 pt-5" id="courseMaterials">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 class="font-black text-gray-900">📚 Course materials</h3>
+              <p class="text-xs text-gray-500 mt-1">Add PDFs, notes, PowerPoint slides, images, audio and practice papers for the whole course. Students can preview and download them.</p>
+            </div>
+            <button type="button" onclick="addMaterialRow()" class="px-3 py-2 rounded-lg bg-brand-50 text-brand-700 text-sm font-bold">+ Add material</button>
+          </div>
+          <div id="materialRows" class="space-y-3"></div>
+        </div>
+
         {{-- Save --}}
         <div class="flex items-center justify-between pt-3 border-t border-gray-100">
           <a href="{{ route('admin.courses') }}" class="text-sm text-gray-500 hover:text-gray-700 transition">← Back to Courses</a>
-          <button type="submit"
+          <button type="submit" id="saveBtn"
                   class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-black px-7 py-2.5 rounded-xl transition shadow-md text-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
             {{ $isEdit ? 'Save Changes' : 'Create Course' }}
@@ -483,6 +494,11 @@
 @endsection
 
 @push('scripts')
+<script>
+const _uploadUrl = '{{ route('admin.media.upload') }}';
+const _csrf = '{{ csrf_token() }}';
+@include('admin.courses.material-script')
+</script>
 <script>
   function toggleSection(id) {
     const body  = document.getElementById('sectionBody-' + id);

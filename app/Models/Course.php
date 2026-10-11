@@ -12,7 +12,7 @@ class Course extends Model
     protected $fillable = [
         'vendor_id','title','slug','description','thumbnail','intro_video',
         'language','level','category','price','sale_price','is_free',
-        'is_published','is_featured','visibility','requirements','outcomes',
+        'is_published','is_featured','visibility','requirements','outcomes','resources',
         'max_students','course_type','batch_name','batch_start_date','batch_end_date','registration_open',
     ];
 
@@ -26,6 +26,7 @@ class Course extends Model
         'sale_price'         => 'decimal:2',
         'requirements'       => 'array',
         'outcomes'           => 'array',
+        'resources'          => 'array',
         'batch_start_date'   => 'date',
         'batch_end_date'     => 'date',
     ];
