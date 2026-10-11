@@ -64,7 +64,7 @@
 
       <div id="pdfWrap" class="hidden bg-white p-4">
         <div class="flex justify-between items-center gap-3 pb-3 text-sm"><strong>📄 Course handout</strong><div class="flex gap-3"><a id="pdfOpen" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-bold">View ↗</a><a id="pdfDownload" class="text-brand-600 font-bold">Download ↓</a></div></div>
-        <iframe id="pdfFrame" class="w-full rounded-xl border border-gray-200" style="height:70vh" title="Course PDF handout"></iframe>
+        <div id="pdfPages" class="w-full rounded-xl border border-gray-200 bg-gray-100 p-3 overflow-auto" style="height:70vh" aria-label="Course PDF handout"></div>
       </div>
 
       {{-- Live class --}}
@@ -226,7 +226,38 @@
 @endsection
 
 @push('scripts')
+<script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
 <script>
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = '{{ asset('vendor/pdfjs/pdf.worker.min.js') }}';
+const pdfRenderTokens = new WeakMap();
+async function renderPdfPages(url, container) {
+  const token = Symbol();
+  pdfRenderTokens.set(container, token);
+  container.textContent = 'Loading PDF preview…';
+  try {
+    if (!window.pdfjsLib) throw new Error('PDF viewer unavailable');
+    const pdf = await pdfjsLib.getDocument(url).promise;
+    if (pdfRenderTokens.get(container) !== token) return;
+    container.replaceChildren();
+    for (let number = 1; number <= pdf.numPages; number++) {
+      if (pdfRenderTokens.get(container) !== token) return;
+      const page = await pdf.getPage(number);
+      const base = page.getViewport({scale: 1});
+      const viewport = page.getViewport({scale: Math.min(2, Math.max(0.2, (container.clientWidth - 28) / base.width))});
+      const scale = Math.min(window.devicePixelRatio || 1, 2);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(viewport.width * scale);
+      canvas.height = Math.floor(viewport.height * scale);
+      canvas.style.width = viewport.width + 'px';
+      canvas.style.height = viewport.height + 'px';
+      canvas.className = 'block mx-auto mb-3 bg-white shadow-sm max-w-full';
+      container.appendChild(canvas);
+      await page.render({canvasContext: canvas.getContext('2d'), viewport, transform: scale === 1 ? null : [scale, 0, 0, scale, 0, 0]}).promise;
+    }
+  } catch (error) {
+    if (pdfRenderTokens.get(container) === token) container.textContent = 'Preview unavailable here. Use “Open in new tab” above.';
+  }
+}
 function openMaterial(button) {
   const viewer = document.getElementById('materialViewer');
   const body = document.getElementById('materialViewerBody');
@@ -234,6 +265,11 @@ function openMaterial(button) {
   document.getElementById('materialViewerTitle').textContent = title;
   document.getElementById('materialViewerOpen').href = url;
   body.replaceChildren();
+  viewer.showModal();
+  if (type === 'pdf' || type === 'presentation') {
+    renderPdfPages(url, body);
+    return;
+  }
   let content;
   if (type === 'image') {
     content = document.createElement('img');
@@ -250,10 +286,11 @@ function openMaterial(button) {
   }
   content.src = url;
   body.appendChild(content);
-  viewer.showModal();
 }
 document.getElementById('materialViewer').addEventListener('close', () => {
-  document.getElementById('materialViewerBody').replaceChildren();
+  const body = document.getElementById('materialViewerBody');
+  pdfRenderTokens.delete(body);
+  body.replaceChildren();
 });
 document.getElementById('materialViewer').addEventListener('click', event => {
   if (event.target.id === 'materialViewer') event.target.close();
@@ -333,6 +370,7 @@ async function loadLesson(lessonId) {
 }
 
 function hideAllPlayers() {
+  pdfRenderTokens.delete(document.getElementById('pdfPages'));
   ['videoWrap','iframeWrap','contentWrap','pdfWrap','liveWrap','playerLoading'].forEach(id => {
     document.getElementById(id).classList.add('hidden');
   });
@@ -378,12 +416,12 @@ function renderPdf(url) {
   try {
     const parsed = new URL(url, location.origin);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported PDF URL');
-    document.getElementById('pdfFrame').src = parsed.href;
+    document.getElementById('pdfWrap').classList.remove('hidden');
+    renderPdfPages(parsed.href, document.getElementById('pdfPages'));
     document.getElementById('pdfOpen').href = parsed.href;
     const localMedia = parsed.origin === location.origin && /^\/media\/file\/[a-f0-9-]+$/.test(parsed.pathname);
     document.getElementById('pdfDownload').classList.toggle('hidden', !localMedia);
     if (localMedia) document.getElementById('pdfDownload').href = parsed.pathname + '/download';
-    document.getElementById('pdfWrap').classList.remove('hidden');
   } catch (e) { renderContent('<p>PDF link is unavailable.</p>'); }
 }
 
