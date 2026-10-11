@@ -589,6 +589,7 @@ async function uploadVideo(file) {
 
   const xhr = new XMLHttpRequest();
   xhr.open('POST', _uploadUrl);
+  xhr.setRequestHeader('Accept', 'application/json');
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {
       const p = Math.round(e.loaded / e.total * 100);
@@ -780,6 +781,7 @@ async function uploadPdfFile(file) {
 
   const xhr = new XMLHttpRequest();
   xhr.open('POST', '{{ route("admin.media.upload") }}');
+  xhr.setRequestHeader('Accept', 'application/json');
 
   xhr.upload.onprogress = (e) => {
     if (e.lengthComputable) {

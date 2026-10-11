@@ -51,7 +51,8 @@ class MediaUploader
 
         // Determine URL
         $publicBase = Setting::get('r2_public_url','');
-        $url = $publicBase ? rtrim($publicBase,'/') . '/' . $path : '';
+        $url = $disk === 'public' ? Storage::disk('public')->url($path)
+            : ($publicBase ? rtrim($publicBase,'/') . '/' . $path : '');
 
         return Upload::create([
             'uuid'          => $uuid,

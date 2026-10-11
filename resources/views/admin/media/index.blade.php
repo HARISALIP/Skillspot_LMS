@@ -281,6 +281,7 @@ async function uploadFiles(fileList) {
     try {
       const xhr = new XMLHttpRequest();
       xhr.open('POST', uploadUrl);
+      xhr.setRequestHeader('Accept', 'application/json');
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {
           const pct = Math.round(e.loaded / e.total * 100);

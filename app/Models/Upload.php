@@ -53,6 +53,9 @@ class Upload extends Model
     // ── Full accessible URL ────────────────────────────────────────────
     public function getPublicUrlAttribute(): string
     {
+        if ($this->disk === 'public') {
+            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->path);
+        }
         if (!empty($this->url)) return $this->url;
         // If R2 public URL is configured, use that
         $publicBase = \App\Models\Setting::get('r2_public_url','');
