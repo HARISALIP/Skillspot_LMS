@@ -108,6 +108,7 @@ class CoursesController extends Controller
     // ── Update ─────────────────────────────────────────────────────────
     public function update(Request $request, Course $course)
     {
+        $request->merge(['visibility' => $request->input('visibility') ?: $course->visibility]);
         $data = $this->validateCourse($request, $course->id);
         $course->update($data);
         return back()->with('success', "Course updated ✅");

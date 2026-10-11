@@ -13,6 +13,30 @@ class StudentCourseNavigationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_editing_course_details_keeps_a_published_course_public(): void
+    {
+        config(['app.key' => str_repeat('a', 32)]);
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $course = Course::create([
+            'title' => 'Web Development', 'slug' => 'web-development',
+            'category' => 'Web Development', 'level' => 'beginner',
+            'visibility' => 'public', 'is_published' => true,
+        ]);
+
+        $this->actingAs($teacher)->put(route('admin.courses.update', $course), [
+            'title' => 'Web Development', 'category' => 'Web Development',
+            'level' => 'beginner', 'language' => 'en', 'price' => 0,
+            'thumbnail' => 'https://example.com/cover.png',
+        ])->assertRedirect();
+
+        $course->refresh();
+        $this->assertSame('public', $course->visibility);
+        $this->assertTrue($course->is_published);
+        $this->assertSame('https://example.com/cover.png', $course->thumbnail);
+    }
+
     public function test_student_can_browse_open_and_start_a_free_course(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
