@@ -10,9 +10,9 @@
     <i class="fa-solid fa-chevron-down ml-1 text-[10px]"></i>
   </button>
   <div id="courseCreateMenuItems" class="absolute right-0 z-30 mt-2 hidden w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg" role="menu">
-    <a href="{{ route('admin.courses.create') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
+    <button type="button" id="openNewCourseModal" class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
       <i class="fa-regular fa-book-open w-4 text-gray-500"></i> New Course
-    </a>
+    </button>
     <a href="{{ route('admin.courses.import') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
       <i class="fa-solid fa-folder-plus w-4 text-gray-500"></i> Import via ZIP
     </a>
@@ -114,6 +114,53 @@
   </div>
   @endif
 </div>
+
+<div id="newCourseModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="newCourseModalTitle">
+  <div class="mx-auto my-6 w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl md:my-12 md:p-8">
+    <div class="flex items-center justify-between border-b border-gray-100 pb-5">
+      <h2 id="newCourseModalTitle" class="text-xl font-bold text-gray-900">New Course</h2>
+      <button type="button" class="closeNewCourseModal rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700" aria-label="Close new course form">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="grid gap-x-5 gap-y-5 pt-6 md:grid-cols-2">
+      <label class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span>
+        <input type="text" disabled class="mt-2 h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm" aria-label="Course title">
+      </label>
+      <label class="block text-sm font-medium text-gray-700">Category
+        <select disabled class="mt-2 h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500">
+          <option>Select option</option>
+        </select>
+      </label>
+      <label class="block text-sm font-medium text-gray-700">Instructors <span class="text-red-500">*</span>
+        <input type="text" disabled placeholder="Select instructors" class="mt-2 h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm placeholder:text-gray-400">
+      </label>
+      <div class="text-sm font-medium text-gray-700">Course thumbnail
+        <div class="mt-2 flex items-center gap-3">
+          <div class="flex h-24 flex-1 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50 text-gray-400"><i class="fa-regular fa-image text-xl"></i></div>
+          <button type="button" disabled class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-400">Upload</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 border-t border-gray-100 pt-5">
+      <label class="block text-sm font-medium text-gray-700">Short introduction <span class="text-red-500">*</span>
+        <textarea disabled rows="3" class="mt-2 w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm"></textarea>
+      </label>
+      <label class="mt-5 block text-sm font-medium text-gray-700">Course description <span class="text-red-500">*</span>
+        <div class="mt-2 rounded-lg border border-gray-200 bg-gray-50">
+          <div class="flex h-10 items-center gap-4 border-b border-gray-200 px-3 text-xs text-gray-400"><span>Heading</span><b>B</b><i>I</i><span>List</span><span>Link</span><span>Image</span></div>
+          <div class="h-32"></div>
+        </div>
+      </label>
+    </div>
+
+    <div class="mt-6 flex justify-end">
+      <button type="button" disabled class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white opacity-50">Save</button>
+    </div>
+  </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -130,6 +177,21 @@
       courseCreateMenuItems?.classList.add('hidden');
       courseCreateMenuButton?.setAttribute('aria-expanded', 'false');
     }
+  });
+  const newCourseModal = document.getElementById('newCourseModal');
+  const openNewCourseModal = document.getElementById('openNewCourseModal');
+  const closeNewCourseModal = () => newCourseModal?.classList.add('hidden');
+  openNewCourseModal?.addEventListener('click', () => {
+    courseCreateMenuItems?.classList.add('hidden');
+    courseCreateMenuButton?.setAttribute('aria-expanded', 'false');
+    newCourseModal?.classList.remove('hidden');
+  });
+  document.querySelectorAll('.closeNewCourseModal').forEach((button) => button.addEventListener('click', closeNewCourseModal));
+  newCourseModal?.addEventListener('click', (event) => {
+    if (event.target === newCourseModal) closeNewCourseModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeNewCourseModal();
   });
 </script>
 @endpush
