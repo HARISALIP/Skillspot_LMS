@@ -54,7 +54,7 @@ class Upload extends Model
     public function getPublicUrlAttribute(): string
     {
         if ($this->disk === 'public') {
-            return \Illuminate\Support\Facades\Storage::disk('public')->url($this->path);
+            return route('media.public', $this->uuid);
         }
         if (!empty($this->url)) return $this->url;
         // If R2 public URL is configured, use that
