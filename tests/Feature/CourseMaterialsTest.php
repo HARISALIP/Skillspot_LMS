@@ -41,13 +41,15 @@ class CourseMaterialsTest extends TestCase
         $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
         $section->lessons()->create(['title' => 'First lesson', 'type' => 'text', 'resources' => [
             ['title' => 'Lesson-only diagram', 'kind' => 'image', 'upload_id' => $image->id],
+            ['title' => 'Sample paper', 'kind' => 'question_paper', 'upload_id' => $paper->id],
         ]]);
         $this->get(route('admin.courses.edit', $course))->assertOk()
             ->assertSee('Sample paper')->assertDontSee('Lesson-only diagram');
         CourseService::enrollFree($student, $course);
-        $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
+        $page = $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
             ->assertSee('Sample paper')->assertSee('Circuit diagram')
             ->assertSee('materialViewer')->assertSee(route('media.download', $paper->uuid));
+        $this->assertSame(1, substr_count($page->getContent(), '<h3 class="font-bold text-gray-900 mt-1">Sample paper</h3>'));
 
         $paper->update(['is_public' => false]);
         $this->actingAs($teacher)->put(route('admin.courses.update', $course), $input)
