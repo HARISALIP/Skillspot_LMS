@@ -16,6 +16,12 @@ class SettingsController extends Controller
             'text_direction'   => ['label' => 'Text Direction',  'type' => 'select',  'default' => 'auto',         'options' => ['auto' => 'Auto', 'ltr' => 'Left to right', 'rtl' => 'Right to left']],
             'allow_guest_access' => ['label' => 'Allow Guest Access', 'type' => 'boolean', 'default' => '1'],
         ],
+        'communication' => [
+            'site_email'    => ['label' => 'Contact Email',       'type' => 'text', 'default' => ''],
+            'site_phone'    => ['label' => 'Contact Phone',       'type' => 'text', 'default' => ''],
+            'site_whatsapp' => ['label' => 'WhatsApp Number',     'type' => 'text', 'default' => ''],
+            'site_maps_url' => ['label' => 'Contact / Maps URL',  'type' => 'text', 'default' => ''],
+        ],
         'branding' => [
             'app_url'          => ['label' => 'App / Domain URL',         'type' => 'text',     'default' => 'https://Skillspot.in'],
             'site_name'        => ['label' => 'Academy Name',             'type' => 'text',     'default' => 'Skillspot'],

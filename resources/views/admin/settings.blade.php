@@ -20,12 +20,16 @@ $embedded = request()->boolean('embed');
 $settingsQuery = $embedded ? ['embed' => 1] : [];
 $tabs = [
   'general'  => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Language, timezone, direction and guest access'],
-  'branding' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-palette',            'color'=>'text-violet-600', 'bg'=>'bg-violet-100', 'label'=>'Branding',        'description'=>'Academy identity, domain, branding and contact details'],
-  'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup & Access', 'description'=>'Registration, verification, sessions and maintenance'],
+  'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup',          'description'=>'Registration, verification, sessions and maintenance'],
+  'categories'=>['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired',       'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'Categories',      'description'=>'Create and manage course categories', 'shortcut'=>route('admin.courses.categories')],
+  'communication'=>['group'=>'Communication',     'fa'=>'fa-solid fa-sliders',            'color'=>'text-sky-600',    'bg'=>'bg-sky-100',    'label'=>'General',         'description'=>'Contact details displayed to learners'],
   'mail'     => ['group'=>'Communication',        'fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP',    'description'=>'Delivery settings and the member-invitation test'],
-  'storage'  => ['group'=>'Storage',              'fa'=>'fa-solid fa-cloud',              'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Media & Storage', 'description'=>'Cloudflare R2 storage, keys and upload limits'],
+  'members'  => ['group'=>'User Management',      'fa'=>'fa-solid fa-user',                'color'=>'text-indigo-600', 'bg'=>'bg-indigo-100', 'label'=>'Users',           'description'=>'Manage members, roles and access', 'shortcut'=>route('admin.users')],
   'payment'  => ['group'=>'Payment',              'fa'=>'fa-solid fa-credit-card',        'color'=>'text-emerald-600','bg'=>'bg-emerald-100','label'=>'Configuration',  'description'=>'Razorpay mode, credentials and course pricing'],
+  'transactions'=>['group'=>'Payment',            'fa'=>'fa-solid fa-building-columns',   'color'=>'text-green-600',  'bg'=>'bg-green-100',  'label'=>'Transactions',    'description'=>'Review payments and issue refunds', 'shortcut'=>route('admin.payments')],
+  'storage'  => ['group'=>'Integrations',          'fa'=>'fa-solid fa-key',                'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Services',        'description'=>'Cloud storage, keys and upload limits'],
   'license'  => ['group'=>'Platform',             'fa'=>'fa-solid fa-key',                'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'License',        'description'=>'Plan, capacity and platform limits'],
+  'branding' => ['group'=>'Customization',         'fa'=>'fa-solid fa-palette',            'color'=>'text-violet-600', 'bg'=>'bg-violet-100', 'label'=>'Branding',        'description'=>'Academy identity, domain, branding and contact details'],
 ];
 @endphp
 
@@ -105,12 +109,25 @@ $tabs = [
       </div>
       @endif
 
-      <form method="POST" action="{{ route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
+      <form method="POST" action="{{ isset($tabs[$activeTab]['shortcut']) ? '#' : route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
         @csrf
         <div class="relative p-6 space-y-5">
 
+          {{-- LINKED MANAGEMENT AREA --}}
+          @if(isset($tabs[$activeTab]['shortcut']))
+          <section class="py-10 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl {{ $tabs[$activeTab]['bg'] }} {{ $tabs[$activeTab]['color'] }}">
+              <i class="{{ $tabs[$activeTab]['fa'] }}"></i>
+            </div>
+            <h2 class="mt-4 text-lg font-bold text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
+            <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">{{ $tabs[$activeTab]['description'] }}. This uses Skillspot’s existing management workspace so changes are immediate and persistent.</p>
+            <a href="{{ $tabs[$activeTab]['shortcut'] }}" target="_parent" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700">
+              Open {{ $tabs[$activeTab]['label'] }} <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+            </a>
+          </section>
+
           {{-- GENERAL --}}
-          @if($activeTab === 'general')
+          @elseif($activeTab === 'general')
           @if(request()->boolean('embed'))
             <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
           @else
@@ -145,6 +162,18 @@ $tabs = [
                   <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4"></span>
                 </span>
               </label>
+            </div>
+          </section>
+
+          {{-- COMMUNICATION --}}
+          @elseif($activeTab === 'communication')
+          <section class="space-y-4">
+            <h2 class="text-lg font-bold text-gray-900">Contact Information</h2>
+            <p class="text-sm text-gray-500">These details are used wherever learners need to contact Skillspot.</p>
+            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+              @foreach($schema['communication'] as $key => $meta)
+                <x-settings-field :field="$key" :meta="$meta" :value="$settings[$key] ?? $meta['default']"/>
+              @endforeach
             </div>
           </section>
 
@@ -569,6 +598,7 @@ $tabs = [
         </div>
 
         {{-- Save bar --}}
+        @unless(isset($tabs[$activeTab]['shortcut']))
         <div class="settings-save-bar px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p class="text-xs text-gray-400">
             💡 Changes take effect <strong>immediately</strong> — no restart needed.
@@ -580,6 +610,7 @@ $tabs = [
             Save {{ $tabs[$activeTab]['label'] }}
           </button>
         </div>
+        @endunless
       </form>
     </div>
   </div>
