@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Landing;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\Setting;
 
 class LandingController extends Controller
 {
     public function index()
     {
+        if (!auth()->check() && Setting::get('allow_guest_access', '1') !== '1') {
+            return redirect()->route('login')->with('error', 'Sign in is required while guest access is disabled.');
+        }
+
         // Featured courses for homepage
         $featuredCourses = Course::where('is_published', 1)
             ->where('visibility','public')

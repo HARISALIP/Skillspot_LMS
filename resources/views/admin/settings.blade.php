@@ -7,7 +7,7 @@
 <style>
   .settings-workspace { min-height: min(780px, calc(100vh - 8rem)); }
   .settings-sidebar { scrollbar-width: thin; }
-  body[data-theme="dark"] .settings-shell { background: #202020 !important; border-color: #383838 !important; }
+  body[data-theme="dark"] .settings-shell { background: #202020 !important; }
   body[data-theme="dark"] .settings-sidebar { background: #272727 !important; border-color: #383838 !important; }
   body[data-theme="dark"] .settings-panel-head, body[data-theme="dark"] .settings-save-bar { background: #242424 !important; border-color: #383838 !important; }
 </style>
@@ -19,7 +19,8 @@
 $embedded = request()->boolean('embed');
 $settingsQuery = $embedded ? ['embed' => 1] : [];
 $tabs = [
-  'branding' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Academy identity, domain, branding and contact details'],
+  'general'  => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Language, timezone, direction and guest access'],
+  'branding' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-palette',            'color'=>'text-violet-600', 'bg'=>'bg-violet-100', 'label'=>'Branding',        'description'=>'Academy identity, domain, branding and contact details'],
   'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup & Access', 'description'=>'Registration, verification, sessions and maintenance'],
   'mail'     => ['group'=>'Communication',        'fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP',    'description'=>'Delivery settings and the member-invitation test'],
   'storage'  => ['group'=>'Storage',              'fa'=>'fa-solid fa-cloud',              'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Media & Storage', 'description'=>'Cloudflare R2 storage, keys and upload limits'],
@@ -41,7 +42,7 @@ $tabs = [
 </div>
 @endif
 
-<div class="settings-workspace settings-shell mx-auto flex max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl lg:flex-row">
+<div class="settings-workspace settings-shell mx-auto flex max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl lg:flex-row">
 
   {{-- Sidebar tabs --}}
   <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-64 lg:border-b-0 lg:border-r overflow-y-auto">
@@ -85,6 +86,7 @@ $tabs = [
   <div class="flex-1 min-w-0 overflow-y-auto">
     <div class="min-h-full overflow-hidden">
 
+      @if($activeTab !== 'general')
       <div class="settings-panel-head px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white text-lg shadow-md shadow-brand-500/20">
@@ -101,13 +103,53 @@ $tabs = [
           @endif
         </div>
       </div>
+      @endif
 
       <form method="POST" action="{{ route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
         @csrf
-        <div class="p-6 space-y-5">
+        <div class="relative p-6 space-y-5">
+
+          {{-- GENERAL --}}
+          @if($activeTab === 'general')
+          @if(request()->boolean('embed'))
+            <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
+          @else
+            <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
+          @endif
+          <section class="space-y-4 pr-10">
+            <h2 class="text-lg font-bold text-gray-900">Preferences</h2>
+            <div class="divide-y divide-gray-200">
+              @foreach(['system_language', 'system_timezone', 'text_direction'] as $key)
+              <div class="grid gap-3 py-4 md:grid-cols-[1fr_12rem] md:items-center">
+                <div>
+                  <p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p>
+                  <p class="mt-1 text-xs text-gray-500">{{ match($key) {'system_language' => 'The language this site falls back to.', 'system_timezone' => 'The timezone new courses and batches start from.', default => 'Auto follows the language of the site.'} }}</p>
+                </div>
+                <x-settings-field :field="$key" :meta="$schema['general'][$key]" :value="$settings[$key] ?? $schema['general'][$key]['default']"/>
+              </div>
+              @endforeach
+            </div>
+          </section>
+
+          <section class="space-y-4 pt-5">
+            <h2 class="text-lg font-bold text-gray-900">Access &amp; Availability</h2>
+            <div class="divide-y divide-gray-200">
+              <label class="flex cursor-pointer items-center justify-between gap-6 py-4">
+                <div>
+                  <p class="text-sm font-semibold text-gray-900">Allow Guest Access</p>
+                  <p class="mt-1 text-xs text-gray-500">Keep the public catalogue available to visitors who are not signed in.</p>
+                </div>
+                <span class="relative shrink-0">
+                  <input type="checkbox" name="allow_guest_access" class="peer sr-only" {{ ($settings['allow_guest_access'] ?? '1') === '1' ? 'checked' : '' }}>
+                  <span class="block h-5 w-9 rounded-full bg-gray-300 transition peer-checked:bg-brand-600"></span>
+                  <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4"></span>
+                </span>
+              </label>
+            </div>
+          </section>
 
           {{-- BRANDING --}}
-          @if($activeTab === 'branding')
+          @elseif($activeTab === 'branding')
           <div class="bg-gradient-to-r from-brand-50 to-accent-50 border border-brand-200 rounded-2xl p-5">
             <div class="flex items-start gap-3">
               <span class="text-2xl flex-shrink-0">🌐</span>

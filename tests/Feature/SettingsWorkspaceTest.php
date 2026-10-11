@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -21,6 +22,9 @@ class SettingsWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSeeText('System settings')
             ->assertSeeText('System Configuration')
+            ->assertSeeText('General')
+            ->assertSeeText('Preferences')
+            ->assertSeeText('Access & Availability')
             ->assertSeeText('Signup & Access')
             ->assertSeeText('Communication')
             ->assertSeeText('Email / SMTP')
@@ -45,5 +49,29 @@ class SettingsWorkspaceTest extends TestCase
             ->assertSeeText('System settings')
             ->assertDontSeeText('Configure your learning platform')
             ->assertDontSee('Main navigation');
+    }
+
+    public function test_general_preferences_are_saved(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'general'), [
+            'system_language' => 'en',
+            'system_timezone' => 'UTC',
+            'text_direction' => 'ltr',
+            'allow_guest_access' => '1',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'general']));
+
+        $this->assertDatabaseHas('settings', ['key' => 'system_timezone', 'value' => 'UTC']);
+        $this->assertDatabaseHas('settings', ['key' => 'text_direction', 'value' => 'ltr']);
+    }
+
+    public function test_guest_access_setting_protects_the_public_homepage(): void
+    {
+        Setting::set('allow_guest_access', '0', 'general', 'boolean', 'Allow Guest Access');
+
+        $this->get(route('home'))->assertRedirect(route('login'));
     }
 }

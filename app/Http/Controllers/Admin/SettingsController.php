@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\Cache;
 class SettingsController extends Controller
 {
     private array $schema = [
+        'general' => [
+            'system_language'  => ['label' => 'System Language', 'type' => 'select',  'default' => 'en',           'options' => ['en' => 'English']],
+            'system_timezone'  => ['label' => 'System Timezone', 'type' => 'select',  'default' => 'Asia/Kolkata', 'options' => ['Asia/Kolkata' => 'Asia/Kolkata', 'UTC' => 'UTC', 'Europe/London' => 'Europe/London', 'America/New_York' => 'America/New_York']],
+            'text_direction'   => ['label' => 'Text Direction',  'type' => 'select',  'default' => 'auto',         'options' => ['auto' => 'Auto', 'ltr' => 'Left to right', 'rtl' => 'Right to left']],
+            'allow_guest_access' => ['label' => 'Allow Guest Access', 'type' => 'boolean', 'default' => '1'],
+        ],
         'branding' => [
             'app_url'          => ['label' => 'App / Domain URL',         'type' => 'text',     'default' => 'https://Skillspot.in'],
             'site_name'        => ['label' => 'Academy Name',             'type' => 'text',     'default' => 'Skillspot'],
@@ -81,7 +87,7 @@ class SettingsController extends Controller
     // ── Show settings ──────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $activeTab = $request->get('tab', 'branding');
+        $activeTab = $request->get('tab', 'general');
         $settings  = Setting::allKeyed();
         $schema    = $this->schema;
         return view('admin.settings', compact('activeTab', 'settings', 'schema'));
@@ -105,6 +111,14 @@ class SettingsController extends Controller
             }
 
             Setting::set($key, $value, $group, $meta['type'], $meta['label']);
+        }
+
+        // Apply platform-wide preferences on the next request as well as retaining them in settings.
+        if ($group === 'general') {
+            config(['app.locale' => $request->input('system_language', 'en')]);
+            config(['app.timezone' => $request->input('system_timezone', 'Asia/Kolkata')]);
+            app()->setLocale($request->input('system_language', 'en'));
+            date_default_timezone_set($request->input('system_timezone', 'Asia/Kolkata'));
         }
 
         // Special: sync app_url back to .env APP_URL so artisan commands work too
