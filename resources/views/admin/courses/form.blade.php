@@ -497,7 +497,7 @@
 <script>
 const _uploadUrl = '{{ route('admin.media.upload') }}';
 const _csrf = '{{ csrf_token() }}';
-@include('admin.courses.material-script')
+@include('admin.courses.material-script', ['materialOwner' => $course])
 </script>
 <script>
   function toggleSection(id) {
