@@ -10,6 +10,12 @@
   body[data-theme="dark"] .settings-shell { background: #202020 !important; }
   body[data-theme="dark"] .settings-sidebar { background: #272727 !important; border-color: #383838 !important; }
   body[data-theme="dark"] .settings-panel-head, body[data-theme="dark"] .settings-save-bar { background: #242424 !important; border-color: #383838 !important; }
+  body[data-theme="dark"] .category-settings, body[data-theme="dark"] .category-settings input { color: #d1d1d1; }
+  body[data-theme="dark"] .category-settings input { background: #292929; border-color: #3d3d3d; }
+  body[data-theme="dark"] .category-settings [data-category-row], body[data-theme="dark"] .category-settings .category-head { border-color: #303030; }
+  body[data-theme="dark"] .category-settings [data-category-row] button:first-child { color: #d1d1d1; }
+  body[data-theme="dark"] .category-settings details > div, body[data-theme="dark"] dialog { background: #242424; color: #d1d1d1; }
+  body[data-theme="dark"] .category-settings details button { color: #d1d1d1; }
 </style>
 @endpush
 
@@ -21,7 +27,7 @@ $settingsQuery = $embedded ? ['embed' => 1] : [];
 $tabs = [
   'general'  => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Language, timezone, direction and guest access'],
   'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup',          'description'=>'Registration, verification, sessions and maintenance'],
-  'categories'=>['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired',       'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'Categories',      'description'=>'Create and manage course categories', 'shortcut'=>route('admin.courses.categories')],
+  'categories'=>['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired',       'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'Categories',      'description'=>'Create and manage course categories'],
   'communication'=>['group'=>'Communication',     'fa'=>'fa-solid fa-sliders',            'color'=>'text-sky-600',    'bg'=>'bg-sky-100',    'label'=>'General',         'description'=>'Contact details displayed to learners'],
   'mail'     => ['group'=>'Communication',        'fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP',    'description'=>'Delivery settings and the member-invitation test'],
   'members'  => ['group'=>'User Management',      'fa'=>'fa-solid fa-user',                'color'=>'text-indigo-600', 'bg'=>'bg-indigo-100', 'label'=>'Users',           'description'=>'Manage members, roles and access', 'shortcut'=>route('admin.users')],
@@ -109,13 +115,59 @@ $tabs = [
       </div>
       @endif
 
-      <form method="POST" action="{{ isset($tabs[$activeTab]['shortcut']) ? '#' : route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
+      @php $managedPanel = $activeTab === 'categories' || isset($tabs[$activeTab]['shortcut']); @endphp
+      @if($managedPanel)
+      <div id="settingsForm">
+      @else
+      <form method="POST" action="{{ route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
         @csrf
+      @endif
         <div class="relative p-6 space-y-5">
 
           {{-- LINKED MANAGEMENT AREA --}}
           @if(isset($tabs[$activeTab]['shortcut']))
           <iframe title="{{ $tabs[$activeTab]['label'] }}" src="{{ $tabs[$activeTab]['shortcut'] }}?embed=1" class="h-[calc(100vh-13rem)] min-h-[34rem] w-full border-0"></iframe>
+
+          {{-- CATEGORIES --}}
+          @elseif($activeTab === 'categories')
+          <section class="category-settings space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="relative w-full max-w-xs">
+                <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+                <input id="categorySearch" type="search" placeholder="Search" class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+              </div>
+              <button type="button" onclick="document.getElementById('newCategoryDialog').showModal()" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-50">
+                <i class="fa-solid fa-plus"></i> New
+              </button>
+            </div>
+
+            <div class="overflow-hidden">
+              <div class="category-head grid grid-cols-[1fr_9rem_2rem] gap-3 border-b border-gray-100 px-1 py-3 text-xs font-medium text-gray-400">
+                <span>Category</span><span>Created</span><span></span>
+              </div>
+              <div id="categoryRows">
+                @forelse($categories as $category)
+                <div data-category-row data-category-name="{{ strtolower($category->name) }}" class="grid grid-cols-[1fr_9rem_2rem] items-center gap-3 border-b border-gray-100 px-1 py-4 text-sm">
+                  <button type="button" onclick="openCategoryEditor({{ $category->id }}, @js($category->name))" class="truncate text-left font-medium text-gray-800 hover:text-brand-600">{{ $category->name }}</button>
+                  <span class="text-gray-500">{{ $category->created_at?->format('d M Y') }}</span>
+                  <details class="relative justify-self-end">
+                    <summary class="cursor-pointer list-none rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800" aria-label="Category actions"><i class="fa-solid fa-ellipsis"></i></summary>
+                    <div class="absolute right-0 z-10 mt-1 w-28 overflow-hidden rounded-lg bg-white py-1 text-sm shadow-lg ring-1 ring-black/5">
+                      <button type="button" onclick="openCategoryEditor({{ $category->id }}, @js($category->name))" class="block w-full px-3 py-2 text-left text-gray-700 hover:bg-gray-50">Edit</button>
+                      <form method="POST" action="{{ route('admin.settings.categories.destroy', $category) }}" onsubmit="return confirm('Delete {{ addslashes($category->name) }}?')">
+                        @csrf @method('DELETE')
+                        @if($embedded)<input type="hidden" name="embed" value="1">@endif
+                        <button class="block w-full px-3 py-2 text-left text-red-600 hover:bg-red-50">Delete</button>
+                      </form>
+                    </div>
+                  </details>
+                </div>
+                @empty
+                <p id="emptyCategories" class="py-10 text-center text-sm text-gray-400">No categories yet.</p>
+                @endforelse
+              </div>
+            </div>
+          </section>
 
           {{-- GENERAL --}}
           @elseif($activeTab === 'general')
@@ -589,7 +641,7 @@ $tabs = [
         </div>
 
         {{-- Save bar --}}
-        @unless(isset($tabs[$activeTab]['shortcut']))
+        @unless($managedPanel)
         <div class="settings-save-bar px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p class="text-xs text-gray-400">
             💡 Changes take effect <strong>immediately</strong> — no restart needed.
@@ -602,14 +654,49 @@ $tabs = [
           </button>
         </div>
         @endunless
-      </form>
+      @if($managedPanel)</div>@else</form>@endif
     </div>
   </div>
 </div>
 
+@if($activeTab === 'categories')
+<dialog id="newCategoryDialog" class="w-full max-w-md rounded-2xl bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-black/50">
+  <form method="POST" action="{{ route('admin.settings.categories.store') }}" class="p-6">
+    @csrf @if($embedded)<input type="hidden" name="embed" value="1">@endif
+    <div class="flex items-center justify-between gap-4"><h3 class="text-lg font-bold">New Category</h3><button type="button" onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-gray-700" aria-label="Close">×</button></div>
+    <label class="mt-5 block text-sm font-medium">Name<input name="name" required maxlength="100" autofocus class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+    <div class="mt-6 flex justify-end gap-3"><button type="button" onclick="this.closest('dialog').close()" class="px-4 py-2 text-sm text-gray-600">Cancel</button><button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Create</button></div>
+  </form>
+</dialog>
+
+<dialog id="editCategoryDialog" class="w-full max-w-md rounded-2xl bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-black/50">
+  <form method="POST" id="editCategoryForm" class="p-6">
+    @csrf @method('PUT') @if($embedded)<input type="hidden" name="embed" value="1">@endif
+    <div class="flex items-center justify-between gap-4"><h3 class="text-lg font-bold">Edit Category</h3><button type="button" onclick="this.closest('dialog').close()" class="text-gray-400 hover:text-gray-700" aria-label="Close">×</button></div>
+    <label class="mt-5 block text-sm font-medium">Name<input id="editCategoryName" name="name" required maxlength="100" class="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+    <div class="mt-6 flex justify-end gap-3"><button type="button" onclick="this.closest('dialog').close()" class="px-4 py-2 text-sm text-gray-600">Cancel</button><button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save</button></div>
+  </form>
+</dialog>
+@endif
+
 @push('scripts')
 <script>
 const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+
+function openCategoryEditor(id, name) {
+  const dialog = document.getElementById('editCategoryDialog');
+  if (!dialog) return;
+  document.getElementById('editCategoryForm').action = `{{ url('/admin/settings/categories') }}/${id}`;
+  document.getElementById('editCategoryName').value = name;
+  dialog.showModal();
+}
+
+document.getElementById('categorySearch')?.addEventListener('input', (event) => {
+  const query = event.target.value.trim().toLowerCase();
+  document.querySelectorAll('[data-category-row]').forEach((row) => {
+    row.classList.toggle('hidden', !row.dataset.categoryName.includes(query));
+  });
+});
 
 async function settingToggle(key, btn) {
   btn.disabled = true;

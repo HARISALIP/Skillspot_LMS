@@ -2,10 +2,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseCategory;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class SettingsController extends Controller
 {
@@ -96,7 +99,53 @@ class SettingsController extends Controller
         $activeTab = $request->get('tab', 'general');
         $settings  = Setting::allKeyed();
         $schema    = $this->schema;
-        return view('admin.settings', compact('activeTab', 'settings', 'schema'));
+        $categories = $activeTab === 'categories'
+            ? CourseCategory::latest()->get()
+            : collect();
+
+        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories'));
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:100|unique:course_categories,name']);
+
+        CourseCategory::create([
+            'name' => $data['name'],
+            'slug' => Str::slug($data['name']),
+            'icon' => '📚',
+            'is_active' => true,
+            'order_col' => (CourseCategory::max('order_col') ?? 0) + 1,
+        ]);
+
+        return $this->categorySettingsRedirect($request, 'Category created.');
+    }
+
+    public function updateCategory(Request $request, CourseCategory $category)
+    {
+        $data = $request->validate(['name' => 'required|string|max:100|unique:course_categories,name,'.$category->id]);
+
+        $category->update(['name' => $data['name'], 'slug' => Str::slug($data['name'])]);
+
+        return $this->categorySettingsRedirect($request, 'Category updated.');
+    }
+
+    public function destroyCategory(Request $request, CourseCategory $category)
+    {
+        if (Course::where('category', $category->name)->exists()) {
+            return $this->categorySettingsRedirect($request, 'This category is still used by a course and cannot be deleted.', 'error');
+        }
+
+        $category->delete();
+        return $this->categorySettingsRedirect($request, 'Category deleted.');
+    }
+
+    private function categorySettingsRedirect(Request $request, string $message, string $type = 'success')
+    {
+        $parameters = ['tab' => 'categories'];
+        if ($request->boolean('embed')) $parameters['embed'] = 1;
+
+        return redirect()->route('admin.settings', $parameters)->with($type, $message);
     }
 
     // ── Save a group ───────────────────────────────────────────────────

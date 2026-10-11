@@ -82,6 +82,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     Route::post('/settings/mail/test',   [SettingsController::class, 'testMail'])->name('settings.mail.test');
     Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('settings.clear-cache');
     Route::post('/settings/toggle/{key}',  [SettingsController::class, 'toggle'])->name('settings.toggle');
+    Route::post('/settings/categories', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
+    Route::put('/settings/categories/{category}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
+    Route::delete('/settings/categories/{category}', [SettingsController::class, 'destroyCategory'])->name('settings.categories.destroy');
     Route::post('/settings/{group}',     [SettingsController::class, 'save'])->name('settings.save');
     // Courses
     Route::get('/courses',                                            [CoursesController::class,'index'])->name('courses');

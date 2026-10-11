@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\Setting;
+use App\Models\CourseCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -91,5 +92,27 @@ class SettingsWorkspaceTest extends TestCase
         Setting::set('allow_guest_access', '0', 'general', 'boolean', 'Allow Guest Access');
 
         $this->get(route('home'))->assertRedirect(route('login'));
+    }
+
+    public function test_categories_are_managed_inside_the_settings_workspace(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->post(route('admin.settings.categories.store'), ['name' => 'Design', 'embed' => 1])
+            ->assertRedirect(route('admin.settings', ['tab' => 'categories', 'embed' => 1]));
+
+        $category = CourseCategory::where('name', 'Design')->firstOrFail();
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'categories', 'embed' => 1]))
+            ->assertOk()->assertSeeText('Categories')->assertSeeText('Created')->assertSeeText('Design')->assertSeeText('New');
+
+        $this->actingAs($admin)->put(route('admin.settings.categories.update', $category), ['name' => 'Product Design'])
+            ->assertRedirect(route('admin.settings', ['tab' => 'categories']));
+        $this->assertDatabaseHas('course_categories', ['id' => $category->id, 'name' => 'Product Design']);
+
+        $this->actingAs($admin)->delete(route('admin.settings.categories.destroy', $category))
+            ->assertRedirect(route('admin.settings', ['tab' => 'categories']));
+        $this->assertDatabaseMissing('course_categories', ['id' => $category->id]);
     }
 }
