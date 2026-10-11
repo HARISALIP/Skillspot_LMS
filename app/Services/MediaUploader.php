@@ -15,6 +15,9 @@ class MediaUploader
         'image'    => ['image/jpeg','image/png','image/gif','image/webp','image/svg+xml'],
         'video'    => ['video/mp4','video/webm','video/ogg','video/quicktime','video/x-msvideo'],
         'pdf'      => ['application/pdf'],
+        'audio'    => ['audio/mpeg','audio/mp4','audio/x-m4a','audio/wav','audio/x-wav','audio/ogg','audio/webm'],
+        'presentation' => ['application/vnd.ms-powerpoint',
+                           'application/vnd.openxmlformats-officedocument.presentationml.presentation'],
         'document' => ['application/msword',
                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                        'application/vnd.ms-excel',
@@ -38,6 +41,12 @@ class MediaUploader
         $mime      = $file->getMimeType();
         $type      = Upload::typeFromMime($mime);
         $ext       = strtolower($file->getClientOriginalExtension());
+        // shortcut: Fileinfo labels audio-only WebM as video; inspect tracks server-side if this affects more than voice notes.
+        if ($folder === 'course-materials' && $ext === 'webm' && $mime === 'video/webm'
+            && $file->getClientMimeType() === 'audio/webm') $type = 'audio';
+        if (!in_array($mime, self::allowedMimes(), true) || !in_array($ext, explode(',', self::allowedExtensions()), true)) {
+            throw new \InvalidArgumentException('Unsupported file type. Upload an image, video, PDF, document, PowerPoint, or audio file.');
+        }
         $uuid      = (string) Str::uuid();
         $safeName  = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
         $fileName  = $uuid . '_' . $safeName . '.' . $ext;
@@ -103,6 +112,6 @@ class MediaUploader
     // ── Format allowed for validation ─────────────────────────────────
     public static function allowedExtensions(): string
     {
-        return 'jpg,jpeg,png,gif,webp,svg,mp4,webm,ogg,mov,avi,pdf,doc,docx,xls,xlsx,txt';
+        return 'jpg,jpeg,png,gif,webp,svg,mp4,webm,ogg,mov,avi,pdf,doc,docx,xls,xlsx,txt,ppt,pptx,mp3,m4a,wav';
     }
 }

@@ -62,10 +62,10 @@
           <div class="text-4xl mb-2">☁️</div>
           <p class="text-sm font-semibold text-gray-600">Drop files here</p>
           <p class="text-xs text-gray-400 mt-1">or click to browse</p>
-          <p class="text-xs text-gray-400 mt-2">Images, Videos, PDFs, Docs<br>Max {{ \App\Models\Setting::get('max_upload_mb',500) }}MB</p>
+          <p class="text-xs text-gray-400 mt-2">Images, Videos, PDFs, Docs, PPTs, Audio<br>Max {{ \App\Models\Setting::get('max_upload_mb',500) }}MB</p>
         </div>
         <input type="file" id="fileInput" class="hidden" multiple
-               accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+               accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.m4a"
                onchange="uploadFiles(this.files)">
 
         {{-- Folder select --}}
@@ -111,7 +111,7 @@
         <select name="type" onchange="this.form.submit()"
                 class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
           <option value="">All Types</option>
-          @foreach(['image','video','pdf','document','other'] as $t)
+          @foreach(['image','video','audio','presentation','pdf','document','other'] as $t)
           <option value="{{ $t }}" {{ request('type')===$t?'selected':'' }}>{{ ucfirst($t) }}s</option>
           @endforeach
         </select>

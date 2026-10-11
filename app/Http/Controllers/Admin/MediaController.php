@@ -17,6 +17,12 @@ class MediaController extends Controller
         return Storage::disk('public')->response($upload->path, $upload->original_name);
     }
 
+    public function downloadPublicFile(Upload $upload)
+    {
+        abort_unless($upload->is_public && Storage::disk($upload->disk)->exists($upload->path), 404);
+        return Storage::disk($upload->disk)->download($upload->path, $upload->original_name);
+    }
+
     // ── Media manager page ─────────────────────────────────────────────
     public function index(Request $request)
     {
@@ -41,7 +47,7 @@ class MediaController extends Controller
             'total'  => Upload::count(),
             'images' => Upload::where('type','image')->count(),
             'videos' => Upload::where('type','video')->count(),
-            'docs'   => Upload::whereIn('type',['pdf','document'])->count(),
+            'docs'   => Upload::whereIn('type',['pdf','document','presentation','audio'])->count(),
             'size'   => Upload::sum('size'),
         ];
 
