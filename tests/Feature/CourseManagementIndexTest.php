@@ -103,4 +103,37 @@ class CourseManagementIndexTest extends TestCase
         $this->assertSame('<p>Course details</p>', $course->description);
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
     }
+
+    public function test_super_admin_can_create_an_instructor_from_the_course_modal(): void
+    {
+        config(['app.key' => str_repeat('a', 32)]);
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create(['country' => 'IN', 'country_name' => 'India']);
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->get(route('admin.courses'))
+            ->assertOk()
+            ->assertSeeText('Create New Instructor');
+
+        $this->actingAs($admin)->postJson(route('admin.courses.instructors.store'), [
+            'first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.test',
+            'password' => 'secure-password', 'password_confirmation' => 'secure-password',
+        ])->assertCreated()->assertJsonPath('instructor.email', 'jane@example.test');
+
+        $instructor = User::where('email', 'jane@example.test')->firstOrFail();
+        $this->assertTrue($instructor->hasRole('teacher'));
+        $this->assertSame('IN', $instructor->country);
+    }
+
+    public function test_teacher_cannot_create_instructors_from_the_course_modal(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+
+        $this->actingAs($teacher)->postJson(route('admin.courses.instructors.store'), [
+            'first_name' => 'Blocked', 'email' => 'blocked@example.test',
+            'password' => 'secure-password', 'password_confirmation' => 'secure-password',
+        ])->assertForbidden();
+    }
 }

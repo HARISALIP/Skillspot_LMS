@@ -15,9 +15,12 @@ use App\Models\User;
 use App\Services\LessonQuiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rules\Password;
+use Spatie\Permission\Models\Role;
 
 class CoursesController extends Controller
 {
@@ -82,8 +85,9 @@ class CoursesController extends Controller
         $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'admin', 'super-admin']))
             ->orderBy('name')->get(['id', 'name', 'email']);
         if (!$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        $canCreateInstructors = auth()->user()->hasRole(['admin', 'super-admin']);
         return view('admin.courses.index', compact(
-            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors'
+            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors','canCreateInstructors'
         ));
     }
 
@@ -176,6 +180,33 @@ class CoursesController extends Controller
         });
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
+    }
+
+    public function storeInstructor(Request $request)
+    {
+        abort_unless($request->user()->hasRole(['admin', 'super-admin']), 403);
+
+        $data = $request->validate([
+            'first_name' => ['required', 'string', 'max:120'],
+            'last_name' => ['nullable', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'confirmed', Password::min(8)],
+        ]);
+
+        $name = trim($data['first_name'].' '.($data['last_name'] ?? ''));
+        $user = User::create([
+            'name' => $name,
+            'email' => $data['email'],
+            'country' => $request->user()->country ?: 'IN',
+            'country_name' => $request->user()->country_name ?: 'India',
+            'registered_via' => 'admin',
+            'portal_access' => 'skillspot_only',
+            'password' => Hash::make($data['password']),
+        ]);
+        Role::findOrCreate('teacher', 'web');
+        $user->assignRole('teacher');
+
+        return response()->json(['instructor' => $user->only(['id', 'name', 'email'])], 201);
     }
 
     // ── Edit form ──────────────────────────────────────────────────────

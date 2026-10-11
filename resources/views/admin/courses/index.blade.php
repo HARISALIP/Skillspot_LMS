@@ -175,6 +175,12 @@
             <p class="px-2 py-2 text-sm font-normal text-gray-400">No instructors available.</p>
             @endforelse
           </div>
+          <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-2">
+            <button type="button" id="clearInstructors" class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear</button>
+            @if($canCreateInstructors)
+            <button type="button" id="openNewInstructorModal" class="text-sm font-medium text-brand-600 hover:text-brand-700"><i class="fa-solid fa-plus mr-1"></i>Create New Instructor</button>
+            @endif
+          </div>
         </div>
       </div>
       <div class="text-sm font-medium text-gray-700">Course thumbnail
@@ -211,6 +217,30 @@
     </div>
   </form>
 </div>
+
+<div id="newInstructorModal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="newInstructorModalTitle">
+  <form id="newInstructorForm" class="mx-auto my-16 w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" novalidate>
+    @csrf
+    <div class="flex items-center justify-between border-b border-gray-100 pb-4">
+      <div>
+        <h2 id="newInstructorModalTitle" class="text-lg font-bold text-gray-900">Create New Instructor</h2>
+        <p class="mt-1 text-sm text-gray-500">This creates a Teacher account and adds it to this course.</p>
+      </div>
+      <button type="button" class="closeNewInstructorModal rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close instructor form"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <p id="newInstructorError" class="mt-4 hidden rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert"></p>
+    <div class="mt-5 grid gap-4 sm:grid-cols-2">
+      <label class="text-sm font-medium text-gray-700">First name <span class="text-red-500">*</span><input name="first_name" required maxlength="120" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+      <label class="text-sm font-medium text-gray-700">Last name<input name="last_name" maxlength="120" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+    </div>
+    <label class="mt-4 block text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span><input name="email" type="email" required maxlength="255" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+      <label class="text-sm font-medium text-gray-700">Password <span class="text-red-500">*</span><input name="password" type="password" required minlength="8" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+      <label class="text-sm font-medium text-gray-700">Confirm password <span class="text-red-500">*</span><input name="password_confirmation" type="password" required minlength="8" class="mt-2 h-10 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></label>
+    </div>
+    <div class="mt-6 flex justify-end gap-3"><button type="button" class="closeNewInstructorModal rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button><button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Create Instructor</button></div>
+  </form>
+</div>
 @endsection
 
 @push('scripts')
@@ -244,7 +274,10 @@
     if (event.target === newCourseModal) closeNewCourseModal();
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeNewCourseModal();
+    if (event.key === 'Escape') {
+      if (!newInstructorModal?.classList.contains('hidden')) closeNewInstructorModal();
+      else closeNewCourseModal();
+    }
   });
 
   const categoryPicker = document.getElementById('categoryPicker');
@@ -289,6 +322,10 @@
     instructorPickerButton.setAttribute('aria-expanded', String(!instructorPickerMenu.classList.contains('hidden')));
   });
   document.querySelectorAll('input[name="instructor_ids[]"]').forEach((input) => input.addEventListener('change', updateInstructorLabel));
+  document.getElementById('clearInstructors')?.addEventListener('click', () => {
+    document.querySelectorAll('input[name="instructor_ids[]"]:checked').forEach((input) => input.checked = false);
+    updateInstructorLabel();
+  });
   document.getElementById('instructorSearch')?.addEventListener('input', (event) => {
     const query = event.target.value.toLowerCase();
     document.querySelectorAll('.instructorOption').forEach((option) => option.classList.toggle('hidden', !option.textContent.toLowerCase().includes(query)));
@@ -297,6 +334,43 @@
   document.addEventListener('click', (event) => {
     if (!categoryPicker?.contains(event.target)) categoryPickerMenu?.classList.add('hidden');
     if (!instructorPicker?.contains(event.target)) instructorPickerMenu?.classList.add('hidden');
+  });
+
+  const newInstructorModal = document.getElementById('newInstructorModal');
+  const newInstructorForm = document.getElementById('newInstructorForm');
+  const newInstructorError = document.getElementById('newInstructorError');
+  const closeNewInstructorModal = () => newInstructorModal?.classList.add('hidden');
+  document.getElementById('openNewInstructorModal')?.addEventListener('click', () => {
+    instructorPickerMenu.classList.add('hidden');
+    newInstructorError.classList.add('hidden');
+    newInstructorModal.classList.remove('hidden');
+    newInstructorForm.elements.first_name.focus();
+  });
+  document.querySelectorAll('.closeNewInstructorModal').forEach((button) => button.addEventListener('click', closeNewInstructorModal));
+  newInstructorModal?.addEventListener('click', (event) => { if (event.target === newInstructorModal) closeNewInstructorModal(); });
+  newInstructorForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    newInstructorError.classList.add('hidden');
+    const response = await fetch('{{ route('admin.courses.instructors.store') }}', {
+      method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': newInstructorForm.querySelector('input[name="_token"]')?.value || document.querySelector('#newCourseForm input[name="_token"]').value }, body: new FormData(newInstructorForm),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      newInstructorError.textContent = Object.values(payload.errors || {}).flat().join(' ') || 'Unable to create the instructor.';
+      newInstructorError.classList.remove('hidden');
+      return;
+    }
+    const instructor = payload.instructor;
+    const option = document.createElement('label');
+    option.className = 'instructorOption flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm font-normal text-gray-700 hover:bg-gray-50';
+    option.innerHTML = `<input type="checkbox" name="instructor_ids[]" value="${instructor.id}" checked class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"><span class="flex-1 truncate"></span><span class="truncate text-xs text-gray-400"></span>`;
+    option.querySelectorAll('span')[0].textContent = instructor.name;
+    option.querySelectorAll('span')[1].textContent = instructor.email;
+    option.querySelector('input').addEventListener('change', updateInstructorLabel);
+    document.getElementById('instructorOptions').append(option);
+    updateInstructorLabel();
+    newInstructorForm.reset();
+    closeNewInstructorModal();
   });
 
   const thumbnailFile = document.getElementById('thumbnailFile');
