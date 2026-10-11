@@ -19,6 +19,14 @@ use Illuminate\Validation\ValidationException;
 
 class CoursesController extends Controller
 {
+    private const MATERIAL_RULES = [
+        'resources' => 'nullable|array|max:100',
+        'resources.*.title' => 'required|string|max:120',
+        'resources.*.kind' => 'required|in:slides,audio,image,notes,quiz_paper,question_paper,study_material',
+        'resources.*.upload_id' => 'required|integer|exists:uploads,id',
+        'resources.*.preview_upload_id' => 'nullable|integer|exists:uploads,id',
+    ];
+
     private function getCategories(): array {
         if (!\Illuminate\Support\Facades\Schema::hasTable('course_categories')) {
             return ['Web Development', 'Mobile App Development', 'Data Science & AI', 'UI/UX Design'];
@@ -96,6 +104,9 @@ class CoursesController extends Controller
     public function edit(Course $course)
     {
         $course->load('sections.lessons','allowedUsers');
+        $materialUploads = Upload::whereIn('id', collect($course->resources ?? [])
+            ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])->filter())
+            ->pluck('original_name', 'id');
         $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
         return view('admin.courses.form', [
             'course'     => $course,
@@ -104,6 +115,7 @@ class CoursesController extends Controller
             'levels'     => $this->getLevels(),
             'languages'  => $this->getLanguages(),
             'isEdit'     => true,
+            'materialUploads' => $materialUploads,
         ]);
     }
 
@@ -273,7 +285,7 @@ class CoursesController extends Controller
     // ── Validate course fields ─────────────────────────────────────────
     private function validateCourse(Request $request, ?int $ignoreId = null): array
     {
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'vendor_id'         => 'nullable|exists:vendors,id',
             'title'             => 'required|string|max:255',
             'description'       => 'nullable|string',
@@ -295,7 +307,8 @@ class CoursesController extends Controller
             'batch_start_date'  => 'nullable|date',
             'batch_end_date'    => 'nullable|date',
             'registration_open' => 'boolean',
-        ]);
+        ], self::MATERIAL_RULES));
+        $data['resources'] = $this->validatedMaterials($data['resources'] ?? []);
 
         // Convert textarea lines to array
         if (isset($data['requirements'])) {
@@ -325,7 +338,7 @@ class CoursesController extends Controller
     // ── Validate lesson fields ─────────────────────────────────────────
     private function validateLesson(Request $request): array
     {
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'title'           => 'required|string|max:255',
             'description'     => 'nullable|string',
             'type'            => 'required|in:video,text,quiz,pdf,live',
@@ -340,26 +353,27 @@ class CoursesController extends Controller
             'live_meeting_id'    => 'nullable|string|max:100',
             'live_password'      => 'nullable|string|max:100',
             'notes'           => 'nullable|string',
-            'resources'       => 'nullable|array|max:30',
-            'resources.*.title' => 'required|string|max:120',
-            'resources.*.kind' => 'required|in:slides,audio,image,notes,quiz_paper,question_paper,study_material',
-            'resources.*.upload_id' => 'required|integer|exists:uploads,id',
-            'resources.*.preview_upload_id' => 'nullable|integer|exists:uploads,id',
             'duration'        => 'nullable|integer|min:0',
             'is_preview'      => 'boolean',
-        ]);
+        ], self::MATERIAL_RULES));
         $data['is_preview']    = $request->boolean('is_preview');
         $data['video_storage'] = $request->input('video_storage', 'external');
-        $data['resources'] = array_values($data['resources'] ?? []);
+        $data['resources'] = $this->validatedMaterials($data['resources'] ?? []);
+        return $data;
+    }
+
+    private function validatedMaterials(array $resources): array
+    {
+        $resources = array_values($resources);
         $allowedTypes = [
             'slides' => ['presentation'], 'audio' => ['audio'], 'image' => ['image'],
             'notes' => ['pdf','document'], 'quiz_paper' => ['pdf'],
             'question_paper' => ['pdf'], 'study_material' => ['pdf'],
         ];
-        $uploads = Upload::whereIn('id', collect($data['resources'])
+        $uploads = Upload::whereIn('id', collect($resources)
             ->flatMap(fn($r) => [$r['upload_id'], $r['preview_upload_id'] ?? null])->filter()->unique())
             ->get()->keyBy('id');
-        foreach ($data['resources'] as $index => $resource) {
+        foreach ($resources as $index => $resource) {
             $file = $uploads->get($resource['upload_id']);
             $preview = $uploads->get($resource['preview_upload_id'] ?? null);
             if (!$file?->is_public || !in_array($file->type, $allowedTypes[$resource['kind']], true)
@@ -369,6 +383,6 @@ class CoursesController extends Controller
                 throw ValidationException::withMessages(["resources.$index.upload_id" => 'Choose a public file of the correct type for this material.']);
             }
         }
-        return $data;
+        return $resources;
     }
 }

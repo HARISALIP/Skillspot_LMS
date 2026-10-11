@@ -174,37 +174,33 @@
   </div>
 </div>
 
-@if(collect($materialsByLesson)->flatten(1)->isNotEmpty())
+@if($courseMaterials || collect($materialsByLesson)->flatten(1)->isNotEmpty())
 <section id="studyMaterials" class="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
   <h2 class="font-black text-gray-900 text-lg">📚 Study materials</h2>
-  <p class="text-sm text-gray-500 mt-1 mb-4">View lesson resources here or download copies for offline study.</p>
+  <p class="text-sm text-gray-500 mt-1 mb-4">Preview slides, PDFs, images and audio here, or download a copy to study offline.</p>
   <div class="grid gap-3 md:grid-cols-2">
+    @foreach($courseMaterials as $material)
+      @include('student.material-card', ['source' => 'Course material'])
+    @endforeach
     @foreach($course->sections as $section)
       @foreach($section->lessons as $materialLesson)
         @foreach($materialsByLesson[$materialLesson->id] ?? [] as $material)
-        <article class="rounded-xl border border-gray-200 p-4">
-          <div class="text-xs font-semibold text-brand-600">{{ $materialLesson->title }} · {{ ucwords(str_replace('_',' ', $material['kind'])) }}</div>
-          <h3 class="font-bold text-gray-900 mt-1">{{ $material['title'] }}</h3>
-          @if($material['type'] === 'audio')
-            <audio controls preload="none" class="w-full mt-3" src="{{ $material['url'] }}">Audio playback is unavailable in this browser.</audio>
-          @elseif($material['type'] === 'image')
-            <a href="{{ $material['url'] }}" target="_blank" rel="noopener noreferrer"><img src="{{ $material['url'] }}" alt="{{ $material['title'] }}" class="max-h-48 w-full object-contain mt-3 rounded-lg bg-gray-50"></a>
-          @endif
-          <div class="flex gap-3 mt-3 text-sm font-bold">
-            @if($material['type'] !== 'audio')
-              @if($material['type'] !== 'presentation' || $material['preview_url'])
-                <a href="{{ $material['preview_url'] ?: $material['url'] }}" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:underline">View {{ $material['type'] === 'presentation' ? 'slides' : 'file' }} ↗</a>
-              @endif
-            @endif
-            <a href="{{ $material['download_url'] }}" class="text-gray-700 hover:underline">Download ↓</a>
-          </div>
-        </article>
+          @include('student.material-card', ['source' => $materialLesson->title])
         @endforeach
       @endforeach
     @endforeach
   </div>
 </section>
 @endif
+
+<dialog id="materialViewer" class="w-[96vw] max-w-6xl max-h-[96vh] rounded-2xl p-0 shadow-2xl backdrop:bg-black/70" aria-label="Material preview">
+  <div class="flex items-center gap-3 border-b border-gray-200 px-4 py-3 bg-white">
+    <h2 id="materialViewerTitle" class="font-black text-gray-900 truncate flex-1"></h2>
+    <a id="materialViewerOpen" target="_blank" rel="noopener noreferrer" class="text-sm font-bold text-brand-700">Open in new tab ↗</a>
+    <button type="button" onclick="document.getElementById('materialViewer').close()" class="text-2xl text-gray-600 px-2" aria-label="Close preview">×</button>
+  </div>
+  <div id="materialViewerBody" class="bg-gray-100 overflow-auto" style="height:min(82vh,900px)"></div>
+</dialog>
 
 {{-- Certificate modal --}}
 <div id="certModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
@@ -231,6 +227,37 @@
 
 @push('scripts')
 <script>
+function openMaterial(button) {
+  const viewer = document.getElementById('materialViewer');
+  const body = document.getElementById('materialViewerBody');
+  const {title, type, url} = button.dataset;
+  document.getElementById('materialViewerTitle').textContent = title;
+  document.getElementById('materialViewerOpen').href = url;
+  body.replaceChildren();
+  let content;
+  if (type === 'image') {
+    content = document.createElement('img');
+    content.alt = title;
+    content.className = 'w-full h-full object-contain';
+  } else if (type === 'audio') {
+    content = document.createElement('audio');
+    content.controls = true;
+    content.className = 'w-full p-6';
+  } else {
+    content = document.createElement('iframe');
+    content.title = title;
+    content.className = 'w-full h-full border-0';
+  }
+  content.src = url;
+  body.appendChild(content);
+  viewer.showModal();
+}
+document.getElementById('materialViewer').addEventListener('close', () => {
+  document.getElementById('materialViewerBody').replaceChildren();
+});
+document.getElementById('materialViewer').addEventListener('click', event => {
+  if (event.target.id === 'materialViewer') event.target.close();
+});
 const CSRF    = '{{ csrf_token() }}';
 const COURSE  = {{ $course->id }};
 const API_BASE= '/learn/{{ $course->id }}';

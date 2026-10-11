@@ -16,6 +16,39 @@ class CourseMaterialsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_course_creator_can_attach_materials_and_student_can_preview_them(): void
+    {
+        config(['app.key' => str_repeat('a', 32)]);
+        Storage::fake('public');
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $student = User::factory()->create();
+        $paper = $this->upload('question-paper.pdf', 'application/pdf');
+        $image = $this->upload('diagram.png', 'image/png');
+        $input = [
+            'title' => 'Robotics', 'category' => 'Technology', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'visibility' => 'public',
+            'resources' => [
+                ['title' => 'Sample paper', 'kind' => 'question_paper', 'upload_id' => $paper->id],
+                ['title' => 'Circuit diagram', 'kind' => 'image', 'upload_id' => $image->id],
+            ],
+        ];
+
+        $this->actingAs($teacher)->post(route('admin.courses.store'), $input)->assertRedirect();
+        $course = Course::where('title', 'Robotics')->firstOrFail();
+        $this->assertCount(2, $course->resources);
+        $this->get(route('admin.courses.edit', $course))->assertOk()->assertSee('Sample paper');
+        CourseService::enrollFree($student, $course);
+        $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
+            ->assertSee('Sample paper')->assertSee('Circuit diagram')
+            ->assertSee('materialViewer')->assertSee(route('media.download', $paper->uuid));
+
+        $paper->update(['is_public' => false]);
+        $this->actingAs($teacher)->put(route('admin.courses.update', $course), $input)
+            ->assertSessionHasErrors('resources.0.upload_id');
+    }
+
     public function test_teacher_can_attach_slides_and_student_can_view_and_download_them(): void
     {
         config(['app.key' => str_repeat('a', 32)]);

@@ -191,6 +191,7 @@ class CourseController extends Controller
 
         $course->load('sections.lessons');
         $materialsByLesson = $this->materialsForLessons($course->sections->flatMap->lessons);
+        $courseMaterials = $this->materialsForLessons(collect([$course]))[$course->id] ?? [];
         $enrollment = Enrollment::where('user_id',$user->id)->where('course_id',$course->id)->first();
 
         // Get lesson progress for this user
@@ -217,7 +218,7 @@ class CourseController extends Controller
 
         return view('student.learn', compact(
             'course','enrollment','lessonProgress','completedIds',
-            'currentLesson','certificate','materialsByLesson'
+            'currentLesson','certificate','materialsByLesson','courseMaterials'
         ));
     }
 
