@@ -10,7 +10,7 @@ class Course extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'vendor_id','title','slug','description','thumbnail','intro_video',
+        'vendor_id','title','slug','description','short_introduction','thumbnail','intro_video',
         'language','level','category','price','sale_price','is_free',
         'is_published','is_featured','visibility','requirements','outcomes','resources',
         'max_students','course_type','batch_name','batch_start_date','batch_end_date','registration_open',

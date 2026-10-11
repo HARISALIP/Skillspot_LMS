@@ -75,4 +75,32 @@ class CourseManagementIndexTest extends TestCase
             'is_published' => false,
         ]);
     }
+
+    public function test_teacher_can_create_a_course_from_the_modal_fields(): void
+    {
+        config(['app.key' => str_repeat('a', 32)]);
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+
+        $this->actingAs($teacher)->post(route('admin.courses.store'), [
+            'modal_create' => 1,
+            'title' => 'Modal Course',
+            'short_introduction' => 'A short introduction',
+            'description' => '<p>Course details</p><script>alert(1)</script>',
+            'new_category' => 'Framework',
+            'level' => 'beginner',
+            'language' => 'en',
+            'price' => 0,
+            'is_free' => 1,
+            'visibility' => 'draft',
+            'instructor_ids' => [$teacher->id],
+        ])->assertRedirect();
+
+        $course = Course::where('title', 'Modal Course')->firstOrFail();
+        $this->assertSame('Framework', $course->category);
+        $this->assertSame('A short introduction', $course->short_introduction);
+        $this->assertSame('<p>Course details</p>', $course->description);
+        $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
+    }
 }

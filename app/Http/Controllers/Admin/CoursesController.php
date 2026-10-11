@@ -11,9 +11,11 @@ use App\Models\Lesson;
 use App\Models\Upload;
 use App\Models\Enrollment;
 use App\Models\Vendor;
+use App\Models\User;
 use App\Services\LessonQuiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -76,8 +78,12 @@ class CoursesController extends Controller
         $totalEnroll= Enrollment::count();
 
         $categories = $this->getCategories();
+        $categoryRecords = CourseCategory::where('is_active', 1)->orderBy('order_col')->get(['id', 'name']);
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'admin', 'super-admin']))
+            ->orderBy('name')->get(['id', 'name', 'email']);
+        if (!$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
         return view('admin.courses.index', compact(
-            'courses','totalCourses','published','draft','totalEnroll','categories'
+            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors'
         ));
     }
 
@@ -141,8 +147,33 @@ class CoursesController extends Controller
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {
+        if (is_string($request->input('description'))) {
+            $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
+        }
+        if ($request->boolean('modal_create')) {
+            $request->validate([
+                'short_introduction' => 'required|string|max:1000',
+                'description' => 'required|string',
+                'instructor_ids' => 'required|array|min:1',
+            ]);
+        }
+        if ($newCategory = trim((string) $request->input('new_category'))) {
+            $category = CourseCategory::firstOrCreate(
+                ['name' => $newCategory],
+                ['is_active' => true, 'order_col' => CourseCategory::max('order_col') + 1]
+            );
+            $request->merge(['category' => $category->name]);
+        }
         $data = $this->validateCourse($request);
-        $course = Course::create($data);
+        if ($request->hasFile('thumbnail_file')) {
+            $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+        }
+        $course = DB::transaction(function () use ($data, $request) {
+            $course = Course::create($data);
+            $teacherIds = $request->input('instructor_ids', [auth()->id()]);
+            $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
+            return $course;
+        });
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
     }
@@ -336,6 +367,7 @@ class CoursesController extends Controller
             'vendor_id'         => 'nullable|exists:vendors,id',
             'title'             => 'required|string|max:255',
             'description'       => 'nullable|string',
+            'short_introduction'=> 'nullable|string|max:1000',
             'category'          => 'required|string|max:100',
             'level'             => 'required|string|max:60',
             'language'          => 'required|string|max:10',
@@ -345,6 +377,9 @@ class CoursesController extends Controller
             'is_featured'       => 'boolean',
             'visibility'        => 'nullable|in:draft,public,restricted',
             'thumbnail'         => 'nullable|string|max:500',
+            'thumbnail_file'    => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'instructor_ids'    => 'nullable|array',
+            'instructor_ids.*'  => 'integer|exists:users,id',
             'intro_video'       => 'nullable|string|max:500',
             'requirements'      => 'nullable|string',
             'outcomes'          => 'nullable|string',
@@ -380,6 +415,33 @@ class CoursesController extends Controller
         }
 
         return $data;
+    }
+
+    private function sanitizeRichText(string $html): string
+    {
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $document->loadHTML('<div id="course-description">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        $allowedTags = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 's', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'hr', 'table', 'tbody', 'tr', 'td', 'div'];
+        foreach (iterator_to_array($document->getElementsByTagName('*')) as $node) {
+            if ($node->getAttribute('id') === 'course-description') continue;
+            if (!in_array($node->tagName, $allowedTags, true)) {
+                $node->parentNode?->removeChild($node);
+                continue;
+            }
+            foreach (iterator_to_array($node->attributes) as $attribute) {
+                $isSafeUrl = in_array($attribute->name, ['href', 'src'], true)
+                    && (str_starts_with($attribute->value, '/') || filter_var($attribute->value, FILTER_VALIDATE_URL));
+                if (!in_array($attribute->name, ['alt', 'target', 'rel'], true) && !$isSafeUrl) $node->removeAttribute($attribute->name);
+            }
+            if ($node->tagName === 'a' && $node->hasAttribute('target')) $node->setAttribute('rel', 'noopener');
+        }
+
+        $root = $document->getElementById('course-description');
+        return collect(iterator_to_array($root->childNodes))->map(fn ($child) => $document->saveHTML($child))->implode('');
     }
 
     // ── Validate lesson fields ─────────────────────────────────────────
