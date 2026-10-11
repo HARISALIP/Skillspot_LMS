@@ -51,10 +51,13 @@
       </div>
     </div>
     <nav class="relative z-0 flex-1 overflow-y-auto px-2 py-3" aria-label="Main navigation">
+      @php($homeItem = $navItems[0])
+      <a href="{{ $homeItem['href'] }}" title="{{ $homeItem['label'] }}" class="nav-item {{ request()->routeIs($homeItem['route']) ? 'is-active border' : '' }} mb-0.5 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm"><i class="nav-icon fa-solid {{ $homeItem['icon'] }} w-4 text-center"></i><span class="nav-copy">{{ $homeItem['label'] }}</span></a>
       <button id="searchButton" type="button" class="nav-item w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm muted hover:bg-black/5" title="Search (Ctrl+K)"><i class="nav-icon fa-solid fa-magnifying-glass w-4 text-center"></i><span class="nav-copy flex-1">Search</span><kbd class="nav-meta rounded bg-black/10 px-1.5 py-0.5 text-[10px]">Ctrl K</kbd></button>
       <div class="relative"><button id="notificationsButton" type="button" class="nav-item w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm muted hover:bg-black/5"><i class="nav-icon fa-regular fa-bell w-4 text-center"></i><span class="nav-copy">Notifications</span></button><div id="notificationPanel" class="notification-panel absolute left-1 right-1 top-full z-40 rounded-xl border border-gray-200 bg-white p-4 text-center text-sm text-gray-500 shadow-xl">No notifications yet.</div></div>
       <div class="my-3 border-t sidebar-border"></div>
       @foreach($navItems as $item)
+        @if($loop->first) @continue @endif
         @if($isTeacherOnly && !$item['teacher']) @continue @endif
         <a href="{{ $item['href'] }}" title="{{ $item['label'] }}" class="nav-item {{ request()->routeIs($item['route']) ? 'is-active border' : '' }} mb-0.5 flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm"><i class="nav-icon fa-solid {{ $item['icon'] }} w-4 text-center"></i><span class="nav-copy">{{ $item['label'] }}</span></a>
       @endforeach

@@ -115,16 +115,7 @@ $tabs = [
 
           {{-- LINKED MANAGEMENT AREA --}}
           @if(isset($tabs[$activeTab]['shortcut']))
-          <section class="py-10 text-center">
-            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl {{ $tabs[$activeTab]['bg'] }} {{ $tabs[$activeTab]['color'] }}">
-              <i class="{{ $tabs[$activeTab]['fa'] }}"></i>
-            </div>
-            <h2 class="mt-4 text-lg font-bold text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
-            <p class="mx-auto mt-2 max-w-md text-sm text-gray-500">{{ $tabs[$activeTab]['description'] }}. This uses Skillspot’s existing management workspace so changes are immediate and persistent.</p>
-            <a href="{{ $tabs[$activeTab]['shortcut'] }}" target="_parent" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand-700">
-              Open {{ $tabs[$activeTab]['label'] }} <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-            </a>
-          </section>
+          <iframe title="{{ $tabs[$activeTab]['label'] }}" src="{{ $tabs[$activeTab]['shortcut'] }}?embed=1" class="h-[calc(100vh-13rem)] min-h-[34rem] w-full border-0"></iframe>
 
           {{-- GENERAL --}}
           @elseif($activeTab === 'general')

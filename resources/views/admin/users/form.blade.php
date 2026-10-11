@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends(request()->boolean('embed') ? 'layouts.admin-embed' : 'layouts.admin')
 @section('title', isset($user) && $user->exists ? 'Edit User — Skillspot.in Admin' : 'Add New User — Skillspot.in Admin')
 @section('page-title', isset($user) && $user->exists ? 'Edit User' : 'Add New User')
 @section('page-sub',   isset($user) && $user->exists ? 'Update user details, role and password' : 'Create a new student or admin account')

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends(request()->boolean('embed') ? 'layouts.admin-embed' : 'layouts.admin')
 @section('title','Payments — Skillspot.in Admin')
 @section('page-title','Payments')
 @section('page-sub','All payment transactions')

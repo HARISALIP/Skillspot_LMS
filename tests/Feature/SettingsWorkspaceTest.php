@@ -56,6 +56,19 @@ class SettingsWorkspaceTest extends TestCase
             ->assertDontSee('Main navigation');
     }
 
+    public function test_management_panels_can_render_without_the_main_sidebar(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->get(route('admin.users', ['embed' => 1]))
+            ->assertOk()
+            ->assertSeeText('All Users')
+            ->assertSee('Add User')
+            ->assertDontSee('Main navigation');
+    }
+
     public function test_general_preferences_are_saved(): void
     {
         Role::findOrCreate('super-admin', 'web');

@@ -16,6 +16,26 @@
 <body class="font-sans bg-gray-50 text-gray-900 antialiased">
   <main class="h-screen overflow-y-auto p-3 md:p-5">@yield('admin-content')</main>
   <script>document.body.dataset.theme=localStorage.getItem('skillspot-theme')==='light'?'light':(localStorage.getItem('skillspot-theme')==='system'&&!window.matchMedia('(prefers-color-scheme: dark)').matches?'light':'dark')</script>
+  <script>
+    // Keep every management action inside the settings frame instead of returning to the full admin shell.
+    if (window.self !== window.top) {
+      document.addEventListener('click', event => {
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+        const url = new URL(link.href, window.location.origin);
+        if (url.origin === window.location.origin && url.pathname.startsWith('/admin/')) {
+          url.searchParams.set('embed', '1');
+          link.href = url.href;
+        }
+      });
+      document.addEventListener('submit', event => {
+        const form = event.target;
+        if (form.method.toLowerCase() !== 'get') return;
+        const url = new URL(form.action || window.location.href, window.location.origin);
+        if (url.pathname.startsWith('/admin/')) form.action = `${url.pathname}?embed=1`;
+      });
+    }
+  </script>
   @stack('scripts')
 </body>
 </html>
