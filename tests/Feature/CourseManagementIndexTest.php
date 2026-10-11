@@ -49,6 +49,9 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('Certifications')
             ->assertSeeText('Getting started')
             ->assertSeeText('Collapse')
+            ->assertSeeText('Light')
+            ->assertSeeText('Dark')
+            ->assertSeeText('System')
             ->assertSee(route('admin.courses.edit', $course));
 
         $this->actingAs($student)->get(route('admin.courses'))->assertForbidden();
