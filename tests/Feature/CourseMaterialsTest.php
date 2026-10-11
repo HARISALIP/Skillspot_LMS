@@ -48,7 +48,10 @@ class CourseMaterialsTest extends TestCase
         CourseService::enrollFree($student, $course);
         $page = $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
             ->assertSee('Sample paper')->assertSee('Circuit diagram')
-            ->assertSee('materialViewer')->assertSee(route('media.download', $paper->uuid));
+            ->assertSee('materialViewer')->assertSee(route('media.download', $paper->uuid))
+            ->assertSee('id="pdfOpen" type="button"', false)
+            ->assertSee('id="slideNext"', false)
+            ->assertSee('data-download-url="'.route('media.download', $image->uuid).'"', false);
         $this->assertSame(1, substr_count($page->getContent(), '<h3 class="font-bold text-gray-900 mt-1">Sample paper</h3>'));
 
         $paper->update(['is_public' => false]);

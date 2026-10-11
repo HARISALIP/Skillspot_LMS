@@ -3,7 +3,7 @@
   <h3 class="font-bold text-gray-900 mt-1">{{ $material['title'] }}</h3>
   @if($material['type'] === 'image')
     <button type="button" class="mt-3 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden" onclick="openMaterial(this)"
-            data-title="{{ $material['title'] }}" data-type="image" data-url="{{ $material['url'] }}">
+            data-title="{{ $material['title'] }}" data-type="image" data-url="{{ $material['url'] }}" data-download-url="{{ $material['download_url'] }}">
       <img src="{{ $material['url'] }}" alt="Preview {{ $material['title'] }}" loading="lazy" class="max-h-52 w-full object-contain">
     </button>
   @elseif($material['type'] === 'audio')
@@ -14,7 +14,7 @@
   <div class="flex flex-wrap items-center gap-3 mt-auto pt-4 text-sm font-bold">
     @if($material['type'] !== 'document')
       <button type="button" class="text-brand-700 hover:underline" onclick="openMaterial(this)"
-              data-title="{{ $material['title'] }}" data-type="{{ $material['type'] }}" data-url="{{ $material['preview_url'] ?: $material['url'] }}">Preview {{ $material['type'] === 'presentation' ? 'slides' : '' }} ↗</button>
+              data-title="{{ $material['title'] }}" data-type="{{ $material['type'] }}" data-url="{{ $material['preview_url'] ?: $material['url'] }}" data-download-url="{{ $material['download_url'] }}">Preview {{ $material['type'] === 'presentation' ? 'slides' : '' }} ↗</button>
     @else
       <a href="{{ $material['url'] }}" target="_blank" rel="noopener noreferrer" class="text-brand-700 hover:underline">Open file ↗</a>
     @endif
