@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 @section('title','Media Manager — Skillspot.in Admin')
 @section('page-title','Media Manager')
-@section('page-sub','Upload and manage all files stored on Cloudflare R2')
+@section('page-sub','Upload and manage course files')
 
 @section('admin-content')
 
