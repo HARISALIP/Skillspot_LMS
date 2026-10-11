@@ -125,7 +125,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden xl:sticky xl:top-20">
       <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
         <div class="font-black text-gray-900 text-sm">📋 Course Content</div>
-        <div class="text-xs text-gray-400 mt-0.5">
+        <div id="lessonsDoneCount" class="text-xs text-gray-400 mt-0.5">
           {{ $completedIds->count() }}/{{ $course->sections->sum(fn($s)=>$s->lessons->count()) }} lessons done
         </div>
       </div>
@@ -325,6 +325,14 @@ function renderPdf(url) {
   } catch (e) { renderContent('<p>PDF link is unavailable.</p>'); }
 }
 
+function updateProgressDisplay(progress) {
+  document.getElementById('progressBar').style.width = progress + '%';
+  document.getElementById('progressText').textContent = progress + '%';
+  document.getElementById('pageSubtitle').textContent = progress + '% complete';
+  document.getElementById('lessonsDoneCount').textContent =
+    document.querySelectorAll('.lesson-item.done').length + '/' + document.querySelectorAll('.lesson-item').length + ' lessons done';
+}
+
 function renderQuiz(quiz, completed) {
   const container = document.getElementById('lessonContent');
   container.replaceChildren();
@@ -380,10 +388,9 @@ function renderQuiz(quiz, completed) {
         result.textContent = data.passed ? `✅ Passed — ${data.score}%.` : `Try again — ${data.score}%. You need ${data.pass_score}%.`;
         result.className = `font-bold ${data.passed ? 'text-green-700' : 'text-amber-700'}`;
         if (data.passed) {
-          document.getElementById('progressBar').style.width = data.course_progress + '%';
-          document.getElementById('progressText').textContent = data.course_progress + '%';
           const item = document.querySelector(`.lesson-item[data-lesson-id="${currentLessonId}"]`);
           if (item) { item.classList.add('done'); item.querySelector('.lesson-icon').textContent = '✅'; }
+          updateProgressDisplay(data.course_progress);
           if (data.certificate) { document.getElementById('certNumber').textContent = 'Certificate ID: ' + data.certificate; document.getElementById('certModal').classList.remove('hidden'); }
         } else button.disabled = false;
       } catch (error) { result.textContent = error.message; button.disabled = false; }
@@ -441,10 +448,6 @@ async function saveLessonProgress(percent, seconds) {
     const data = await res.json();
     if (!data.ok) return;
 
-    // Update progress bar
-    document.getElementById('progressBar').style.width  = data.course_progress + '%';
-    document.getElementById('progressText').textContent = data.course_progress + '%';
-
     // Mark lesson done in sidebar
     if (data.lesson_done) {
       const btn = document.querySelector(`.lesson-item[data-lesson-id="${currentLessonId}"]`);
@@ -457,6 +460,7 @@ async function saveLessonProgress(percent, seconds) {
       doneBtn.textContent = '✅ Completed';
       doneBtn.disabled    = true;
     }
+    updateProgressDisplay(data.course_progress);
 
     // Certificate earned!
     if (data.course_completed && data.certificate) {

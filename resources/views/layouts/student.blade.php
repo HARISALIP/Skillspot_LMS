@@ -126,7 +126,7 @@
     <header class="h-14 lg:h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10">
       <div>
         <h1 class="text-base font-bold text-gray-900">@yield('page-title', 'My Learning')</h1>
-        <p class="text-xs text-gray-400 hidden sm:block">@yield('page-sub', 'Keep it up! 🔥')</p>
+        <p id="pageSubtitle" class="text-xs text-gray-400 hidden sm:block">@yield('page-sub', 'Keep it up! 🔥')</p>
       </div>
       <div class="flex items-center gap-2">
         <a href="/dashboard/browse" class="hidden sm:flex items-center gap-1.5 text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold px-3 py-2 rounded-xl transition">
