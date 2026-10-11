@@ -11,6 +11,11 @@
   video { -webkit-user-select: none; user-select: none; }
   .lesson-item.active { background: #eff6ff; border-color: #2563eb; }
   .lesson-item.done .lesson-icon { color: #16a34a; }
+  .lesson-slide { min-height: 420px; background: radial-gradient(circle at 88% 18%, #d9f4f2 0, transparent 32%), linear-gradient(135deg, #f8fbff, #eef4ff); }
+  .lesson-slide-body { font-size: clamp(1.15rem, 2vw, 1.5rem); line-height: 1.65; color: #172b4d; }
+  .lesson-slide-body > :first-child { margin-top: 0; }
+  .lesson-slide-body > :last-child { margin-bottom: 0; }
+  .lesson-slide-body img { max-height: 55vh; width: auto; max-width: 100%; object-fit: contain; }
 </style>
 @endpush
 
@@ -63,7 +68,7 @@
       </div>
 
       <div id="pdfWrap" class="hidden bg-white p-4">
-        <div class="flex justify-between items-center gap-3 pb-3 text-sm"><strong>📄 Course handout</strong><div class="flex gap-3"><a id="pdfOpen" target="_blank" rel="noopener noreferrer" class="text-brand-600 font-bold">View ↗</a><a id="pdfDownload" class="text-brand-600 font-bold">Download ↓</a></div></div>
+        <div class="flex justify-between items-center gap-3 pb-3 text-sm"><strong>📄 Course handout</strong><div class="flex gap-3"><button id="pdfOpen" type="button" onclick="openMaterial(this)" class="text-brand-600 font-bold">View full screen ↗</button><a id="pdfDownload" class="text-brand-600 font-bold">Download ↓</a></div></div>
         <div id="pdfPages" class="w-full rounded-xl border border-gray-200 bg-gray-100 p-3 overflow-auto" style="height:70vh" aria-label="Course PDF handout"></div>
       </div>
 
@@ -197,7 +202,7 @@
 <dialog id="materialViewer" class="w-[96vw] max-w-6xl max-h-[96vh] rounded-2xl p-0 shadow-2xl backdrop:bg-black/70" aria-label="Material preview">
   <div class="flex items-center gap-3 border-b border-gray-200 px-4 py-3 bg-white">
     <h2 id="materialViewerTitle" class="font-black text-gray-900 truncate flex-1"></h2>
-    <a id="materialViewerOpen" target="_blank" rel="noopener noreferrer" class="text-sm font-bold text-brand-700">Open in new tab ↗</a>
+    <a id="materialViewerOpen" class="text-sm font-bold text-brand-700">Download ↓</a>
     <button type="button" onclick="document.getElementById('materialViewer').close()" class="text-2xl text-gray-600 px-2" aria-label="Close preview">×</button>
   </div>
   <div id="materialViewerBody" class="bg-gray-100 overflow-auto" style="height:min(82vh,900px)"></div>
@@ -256,15 +261,17 @@ async function renderPdfPages(url, container) {
       await page.render({canvasContext: canvas.getContext('2d'), viewport, transform: scale === 1 ? null : [scale, 0, 0, scale, 0, 0]}).promise;
     }
   } catch (error) {
-    if (pdfRenderTokens.get(container) === token) container.textContent = 'Preview unavailable here. Use “Open in new tab” above.';
+    if (pdfRenderTokens.get(container) === token) container.textContent = 'Preview unavailable here. Please download this file instead.';
   }
 }
 function openMaterial(button) {
   const viewer = document.getElementById('materialViewer');
   const body = document.getElementById('materialViewerBody');
-  const {title, type, url} = button.dataset;
+  const {title, type, url, downloadUrl} = button.dataset;
   document.getElementById('materialViewerTitle').textContent = title;
-  document.getElementById('materialViewerOpen').href = url;
+  const download = document.getElementById('materialViewerOpen');
+  download.classList.toggle('hidden', !downloadUrl);
+  if (downloadUrl) download.href = downloadUrl;
   body.replaceChildren();
   viewer.showModal();
   if (type === 'pdf' || type === 'presentation') {
@@ -358,7 +365,7 @@ async function loadLesson(lessonId) {
     } else if (data.type === 'quiz' && data.quiz) {
       renderQuiz(data.quiz, data.completed);
     } else if (data.type === 'text') {
-      renderContent(data.content || '<p class="text-gray-400">No content available.</p>');
+      renderContent(data.content || '<p class="text-gray-400">No content available.</p>', data.title);
     } else if (data.type === 'pdf' && data.content) {
       renderPdf(data.content);
     } else {
@@ -408,8 +415,26 @@ function renderVideo(url, savedProgress) {
   }
 }
 
-function renderContent(html) {
-  document.getElementById('lessonContent').innerHTML = html;
+function renderContent(html, title = 'Lesson') {
+  const source = document.createElement('div');
+  source.innerHTML = html;
+  const slides = [...source.childNodes].filter(node => node.nodeType === 1 || node.textContent.trim());
+  if (!slides.length) slides.push(document.createTextNode('No content available.'));
+  const container = document.getElementById('lessonContent');
+  container.innerHTML = '<div class="lesson-slide rounded-2xl border border-blue-100 overflow-hidden flex flex-col shadow-sm"><div class="bg-slate-900 text-white px-6 py-4 flex items-center justify-between gap-4"><span class="text-xs font-black tracking-widest uppercase text-teal-300">Skillspot · Lesson</span><span id="slideCount" class="text-xs font-bold text-slate-300"></span></div><div class="flex-1 px-7 py-9 sm:px-12 sm:py-12"><h2 id="slideTitle" class="text-2xl sm:text-3xl font-black text-slate-900 mb-8"></h2><div id="slideBody" class="lesson-slide-body"></div></div><div class="flex items-center justify-between gap-4 border-t border-blue-100 px-6 py-4 bg-white"><button id="slidePrevious" type="button" class="font-bold text-brand-700 disabled:text-gray-400">← Previous</button><span id="slideDots" class="text-xs font-semibold text-gray-500" aria-live="polite"></span><button id="slideNext" type="button" class="font-bold text-brand-700 disabled:text-gray-400">Next →</button></div></div>';
+  container.querySelector('#slideTitle').textContent = title;
+  let index = 0;
+  const showSlide = () => {
+    const body = container.querySelector('#slideBody');
+    body.replaceChildren(slides[index]);
+    container.querySelector('#slideCount').textContent = `${index + 1} / ${slides.length}`;
+    container.querySelector('#slideDots').textContent = `Slide ${index + 1} of ${slides.length}`;
+    container.querySelector('#slidePrevious').disabled = index === 0;
+    container.querySelector('#slideNext').disabled = index === slides.length - 1;
+  };
+  container.querySelector('#slidePrevious').addEventListener('click', () => { index--; showSlide(); });
+  container.querySelector('#slideNext').addEventListener('click', () => { index++; showSlide(); });
+  showSlide();
   document.getElementById('contentWrap').classList.remove('hidden');
 }
 
@@ -419,8 +444,12 @@ function renderPdf(url) {
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('Unsupported PDF URL');
     document.getElementById('pdfWrap').classList.remove('hidden');
     renderPdfPages(parsed.href, document.getElementById('pdfPages'));
-    document.getElementById('pdfOpen').href = parsed.href;
     const localMedia = parsed.origin === location.origin && /^\/media\/file\/[a-f0-9-]+$/.test(parsed.pathname);
+    const open = document.getElementById('pdfOpen');
+    open.dataset.title = document.getElementById('lessonTitle').textContent || 'Course handout';
+    open.dataset.type = 'pdf';
+    open.dataset.url = parsed.href;
+    open.dataset.downloadUrl = localMedia ? parsed.pathname + '/download' : '';
     document.getElementById('pdfDownload').classList.toggle('hidden', !localMedia);
     if (localMedia) document.getElementById('pdfDownload').href = parsed.pathname + '/download';
   } catch (e) { renderContent('<p>PDF link is unavailable.</p>'); }
