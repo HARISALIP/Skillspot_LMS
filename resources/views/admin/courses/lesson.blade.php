@@ -320,7 +320,7 @@
             </div>
             <input type="text" id="pdfUrlInput"
                    value="{{ old('content',$lesson->content) }}"
-                   placeholder="https://… or R2 path"
+                   placeholder="https://…"
                    oninput="document.getElementById('pdfContentInput').value=this.value;updatePdfPreview(this.value)"
                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           </div>
@@ -334,7 +334,7 @@
             <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
               <div id="pdfUploadBar" class="bg-brand-500 h-full rounded-full transition-all duration-300" style="width:0%"></div>
             </div>
-            <div id="pdfUploadStatus" class="text-xs text-gray-400 mt-1">Uploading to R2…</div>
+            <div id="pdfUploadStatus" class="text-xs text-gray-400 mt-1">Uploading PDF…</div>
           </div>
 
           {{-- Preview uploaded PDF --}}
@@ -482,7 +482,7 @@
       <div class="space-y-2 text-xs text-gray-600">
         <div class="flex items-start gap-2"><span>🎬</span><div><strong>Video</strong> — Upload to R2 (secure) or link YouTube/Vimeo</div></div>
         <div class="flex items-start gap-2"><span>📖</span><div><strong>Text</strong> — Written article or HTML content</div></div>
-        <div class="flex items-start gap-2"><span>📄</span><div><strong>PDF</strong> — Upload PDF to R2 or link URL</div></div>
+        <div class="flex items-start gap-2"><span>📄</span><div><strong>PDF</strong> — Upload a PDF or link a URL</div></div>
         <div class="flex items-start gap-2"><span>📝</span><div><strong>Quiz</strong> — Multiple choice assessment</div></div>
         <div class="flex items-start gap-2"><span>📡</span><div><strong>Live</strong> — Scheduled live session link</div></div>
       </div>
@@ -798,7 +798,7 @@ async function uploadPdfFile(file) {
         bar.style.width           = '100%';
         bar.classList.replace('bg-brand-500','bg-green-500');
         pct.textContent           = '100%';
-        status.textContent        = '✅ Uploaded to R2 successfully!';
+        status.textContent        = '✅ PDF uploaded successfully!';
         status.className          = 'text-xs text-green-600 font-semibold mt-1';
 
         // Set hidden input + URL input
