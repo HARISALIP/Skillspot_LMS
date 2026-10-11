@@ -52,7 +52,7 @@ class CoursesController extends Controller
     // ── List courses ───────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $query = Course::withCount('enrollments')->latest();
+        $query = Course::with('sections')->withCount('enrollments')->latest();
 
         if ($s = $request->search) {
             $query->where(function($q) use ($s) {
