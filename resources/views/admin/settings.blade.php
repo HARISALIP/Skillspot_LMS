@@ -1,18 +1,28 @@
 @extends('layouts.admin')
 @section('title', 'Settings — Skillspot.in Admin')
-@section('page-title', 'Platform Settings')
-@section('page-sub', 'Manage branding, domain, mail, storage, payments, license & security')
+@section('page-title', 'Settings')
+@section('page-sub', 'Configure your learning platform')
+
+@push('styles')
+<style>
+  .settings-workspace { min-height: min(780px, calc(100vh - 8rem)); }
+  .settings-sidebar { scrollbar-width: thin; }
+  body[data-theme="dark"] .settings-shell { background: #202020 !important; border-color: #383838 !important; }
+  body[data-theme="dark"] .settings-sidebar { background: #272727 !important; border-color: #383838 !important; }
+  body[data-theme="dark"] .settings-panel-head, body[data-theme="dark"] .settings-save-bar { background: #242424 !important; border-color: #383838 !important; }
+</style>
+@endpush
 
 @section('admin-content')
 
 @php
 $tabs = [
-  'branding' => ['fa'=>'fa-solid fa-palette',           'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'Branding & Domain'],
-  'mail'     => ['fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP'],
-  'storage'  => ['fa'=>'fa-solid fa-cloud',              'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Storage (R2)'],
-  'payment'  => ['fa'=>'fa-solid fa-credit-card',        'color'=>'text-emerald-600','bg'=>'bg-emerald-100','label'=>'Payments'],
-  'license'  => ['fa'=>'fa-solid fa-key',                'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'License'],
-  'security' => ['fa'=>'fa-solid fa-shield-halved',      'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Security & OTP'],
+  'branding' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Academy identity, domain, branding and contact details'],
+  'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup & Access', 'description'=>'Registration, verification, sessions and maintenance'],
+  'mail'     => ['group'=>'Communication',        'fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP',    'description'=>'Delivery settings and the member-invitation test'],
+  'storage'  => ['group'=>'Storage',              'fa'=>'fa-solid fa-cloud',              'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Media & Storage', 'description'=>'Cloudflare R2 storage, keys and upload limits'],
+  'payment'  => ['group'=>'Payment',              'fa'=>'fa-solid fa-credit-card',        'color'=>'text-emerald-600','bg'=>'bg-emerald-100','label'=>'Configuration',  'description'=>'Razorpay mode, credentials and course pricing'],
+  'license'  => ['group'=>'Platform',             'fa'=>'fa-solid fa-key',                'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'License',        'description'=>'Plan, capacity and platform limits'],
 ];
 @endphp
 
@@ -29,10 +39,10 @@ $tabs = [
 </div>
 @endif
 
-<div class="flex flex-col lg:flex-row gap-6">
+<div class="settings-workspace settings-shell mx-auto flex max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl lg:flex-row">
 
   {{-- Sidebar tabs --}}
-  <div class="lg:w-60 flex-shrink-0">
+  <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-64 lg:border-b-0 lg:border-r overflow-y-auto">
     <div class="lg:hidden flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1">
       @foreach($tabs as $key => $tab)
       <a href="{{ route('admin.settings', ['tab' => $key]) }}"
@@ -42,16 +52,21 @@ $tabs = [
       </a>
       @endforeach
     </div>
-    <div class="hidden lg:block bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-6">
-      <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-        <p class="text-xs font-black text-gray-400 uppercase tracking-wider">Settings</p>
+    <div class="hidden lg:block">
+      <div class="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+        <p class="text-sm font-semibold text-gray-900">System settings</p>
       </div>
       <nav class="p-2 space-y-0.5">
+        @php $lastGroup = null; @endphp
         @foreach($tabs as $key => $tab)
+        @if($lastGroup !== $tab['group'])
+          <p class="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ $tab['group'] }}</p>
+          @php $lastGroup = $tab['group']; @endphp
+        @endif
         <a href="{{ route('admin.settings', ['tab' => $key]) }}"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition font-medium
-                  {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
-          <span class="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all {{ $activeTab === $key ? 'bg-white/20 text-white' : $tab['bg'] . ' ' . $tab['color'] }}">
+           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition font-medium
+                  {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/70 hover:text-gray-900' }}">
+          <span class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all {{ $activeTab === $key ? 'bg-white/20 text-white' : $tab['bg'] . ' ' . $tab['color'] }}">
             <i class="{{ $tab['fa'] }} text-xs"></i>
           </span>
           <span>{{ $tab['label'] }}</span>
@@ -65,27 +80,19 @@ $tabs = [
   </div>
 
   {{-- Main panel --}}
-  <div class="flex-1 min-w-0">
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+  <div class="flex-1 min-w-0 overflow-y-auto">
+    <div class="min-h-full overflow-hidden">
 
-      <div class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+      <div class="settings-panel-head px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white text-lg shadow-md shadow-brand-500/20">
             <i class="{{ $tabs[$activeTab]['fa'] }}"></i>
           </div>
           <div>
             <h2 class="text-base font-black text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
-            <p class="text-xs text-gray-400 mt-0.5">
-              @switch($activeTab)
-                @case('branding')  Domain URL, academy name, logo, colors @break
-                @case('mail')      SMTP server config for sending emails @break
-                @case('storage')   Cloudflare R2 bucket, keys & limits @break
-                @case('payment')   Gateway, mode, live/test keys @break
-                @case('license')   License key, plan, usage limits @break
-                @case('security')  Registration, OTP, sessions, maintenance @break
-              @endswitch
-            </p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ $tabs[$activeTab]['description'] }}</p>
           </div>
+          <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="ml-auto rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
         </div>
       </div>
 
@@ -514,7 +521,7 @@ $tabs = [
         </div>
 
         {{-- Save bar --}}
-        <div class="px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div class="settings-save-bar px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p class="text-xs text-gray-400">
             💡 Changes take effect <strong>immediately</strong> — no restart needed.
             @if($activeTab === 'branding') Domain & name also write to <code class="font-mono bg-gray-100 px-1 rounded">.env</code>. @endif
