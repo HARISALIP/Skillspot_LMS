@@ -12,16 +12,16 @@
 
 @push('styles')
 <style>
-  body:has(.courses-workspace) { background: #151515; }
-  body:has(.courses-workspace) header { background: #151515; border-color: #282828; }
+  body:has(.courses-workspace) { background: #1b1b1b; }
+  body:has(.courses-workspace) header { background: #1b1b1b; border-color: #303030; }
   body:has(.courses-workspace) header h1 { color: #f5f5f5; }
-  body:has(.courses-workspace) main { background: #151515; }
-  .course-tab-active { background: #393939; color: #fff; box-shadow: inset 0 0 0 1px #4a4a4a; }
+  body:has(.courses-workspace) main { background: #1b1b1b; }
+  .course-tab-active { background: #444; color: #fff; box-shadow: inset 0 0 0 1px #555; }
 </style>
 @endpush
 
 @section('admin-content')
-<div class="courses-workspace -m-4 min-h-[calc(100vh-4rem)] bg-[#151515] px-5 py-3 text-[#f5f5f5] md:-m-6 md:px-5">
+<div class="courses-workspace -m-4 min-h-[calc(100vh-4rem)] bg-[#1b1b1b] px-5 py-3 text-[#f5f5f5] md:-m-6 md:px-5">
   @if(session('success'))
   <div class="flex items-center gap-3 rounded-lg border border-emerald-800 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-200">
     {{ session('success') }}
@@ -32,7 +32,7 @@
   <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
     <h3 class="text-base font-bold">All Courses</h3>
     <form method="GET" action="{{ route('admin.courses') }}" class="flex flex-wrap items-center gap-3">
-      <div class="flex rounded-lg bg-[#252525] p-1 text-sm text-[#858585]">
+      <div class="flex rounded-lg bg-[#303030] p-1 text-sm text-[#a0a0a0]">
         @foreach([
           'published' => 'Published',
           'upcoming' => 'Upcoming',
@@ -46,12 +46,12 @@
         @endforeach
       </div>
 
-      <label class="flex h-7 w-44 items-center gap-2 rounded-lg bg-[#292929] px-3 text-sm text-[#8d8d8d]">
+      <label class="flex h-7 w-44 items-center gap-2 rounded-lg bg-[#303030] px-3 text-sm text-[#a0a0a0]">
         <i class="fa-solid fa-magnifying-glass text-xs"></i>
         <input name="search" value="{{ request('search') }}" placeholder="Search" class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[#8d8d8d]">
       </label>
 
-      <select name="category" onchange="this.form.submit()" class="h-7 w-44 rounded-lg border-0 bg-[#292929] px-3 text-sm text-[#8d8d8d] outline-none">
+      <select name="category" onchange="this.form.submit()" class="h-7 w-44 rounded-lg border-0 bg-[#303030] px-3 text-sm text-[#a0a0a0] outline-none">
         <option value="">Category</option>
         @foreach($categories as $category)
         <option value="{{ $category }}" {{ request('category') === $category ? 'selected' : '' }}>{{ $category }}</option>
@@ -73,7 +73,7 @@
       $lessonCount = $course->sections->sum(fn ($section) => $section->lessons->count());
       $rating = $course->reviews_avg_rating ? number_format($course->reviews_avg_rating, 1) : '—';
     @endphp
-    <article class="overflow-hidden rounded-lg border border-[#282828] bg-[#202020] transition hover:border-[#3e3e3e]">
+    <article class="overflow-hidden rounded-lg border border-[#353535] bg-[#262626] transition hover:border-[#4a4a4a]">
       <a href="{{ route('admin.courses.edit', $course) }}" class="block aspect-[16/7] overflow-hidden bg-[#f5f1e6]">
         @if($course->thumbnail)
         <img src="{{ $course->thumbnail }}" alt="" class="h-full w-full object-cover" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
