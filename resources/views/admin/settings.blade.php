@@ -96,7 +96,7 @@ $tabs = [
   <div class="flex-1 min-w-0 overflow-y-auto">
     <div class="min-h-full overflow-hidden">
 
-      @if($activeTab !== 'general')
+      @if(!in_array($activeTab, ['general', 'categories']))
       <div class="settings-panel-head px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
         <div class="flex items-center gap-3">
           <div class="w-11 h-11 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white text-lg shadow-md shadow-brand-500/20">
@@ -130,15 +130,21 @@ $tabs = [
 
           {{-- CATEGORIES --}}
           @elseif($activeTab === 'categories')
-          <section class="category-settings space-y-5">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <div class="relative w-full max-w-xs">
-                <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
-                <input id="categorySearch" type="search" placeholder="Search" class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
-              </div>
+          @if(request()->boolean('embed'))
+            <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
+          @else
+            <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
+          @endif
+          <section class="category-settings space-y-5 pr-10">
+            <div class="flex items-center justify-between gap-3">
+              <h2 class="text-lg font-bold text-gray-900">Categories</h2>
               <button type="button" onclick="document.getElementById('newCategoryDialog').showModal()" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-800 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-50">
                 <i class="fa-solid fa-plus"></i> New
               </button>
+            </div>
+            <div class="relative w-full max-w-xs">
+                <i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+                <input id="categorySearch" type="search" placeholder="Search" class="w-full rounded-lg border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
             </div>
 
             <div class="overflow-hidden">
