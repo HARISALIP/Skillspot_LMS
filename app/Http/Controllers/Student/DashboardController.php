@@ -52,7 +52,7 @@ class DashboardController extends Controller
             ->take(3)->get();
 
         // Only recommend PUBLIC courses
-        $recommended = Course::where('is_published',1)
+        $recommended = Course::marketplaceLive()
             ->where('visibility','public')
             ->whereNotIn('id', $enrolledCourseIds)
             ->withCount('enrollments')
@@ -84,7 +84,7 @@ class DashboardController extends Controller
     public function browse(Request $request)
     {
         $user  = Auth::user();
-        $query = Course::where('is_published',1)->withCount('enrollments');
+        $query = Course::marketplaceLive()->withCount('enrollments');
 
         // Only show public courses on browse + restricted courses this student is allowed in
         $query->where(function($q) use ($user) {

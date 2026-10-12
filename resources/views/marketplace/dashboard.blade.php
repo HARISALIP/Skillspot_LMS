@@ -1,0 +1,13 @@
+@extends('layouts.student')
+@section('title','Instructor dashboard')
+@section('page-title','Instructor dashboard')
+@section('page-sub','Course reviews, sales, and payout availability.')
+@section('student-content')
+<div class="space-y-6">
+ @if(session('success'))<div class="rounded-xl bg-green-50 border border-green-200 p-4 text-green-700 text-sm">{{ session('success') }}</div>@endif
+ @if(!$profile || $profile->status !== 'approved')<div class="rounded-2xl border border-amber-200 bg-amber-50 p-5"><h2 class="font-bold text-amber-900">{{ $profile ? 'Instructor review in progress' : 'Apply to teach' }}</h2><p class="mt-1 text-sm text-amber-800">You can keep learning while Skillspot checks your profile. Paid courses can only be submitted after approval.</p><a class="inline-block mt-3 text-sm font-bold text-brand-700" href="{{ route('marketplace.apply') }}">{{ $profile ? 'Update application →' : 'Apply now →' }}</a></div>@endif
+ <div class="grid md:grid-cols-3 gap-4">@foreach(['Pending'=>$balances['pending'],'Available'=>$balances['available'],'Paid'=>$balances['paid']] as $label=>$amount)<div class="bg-white border border-gray-100 rounded-2xl p-5"><p class="text-xs font-bold uppercase tracking-wide text-gray-400">{{ $label }}</p><p class="mt-2 text-2xl font-black text-gray-900">₹{{ number_format($amount,2) }}</p></div>@endforeach</div>
+ <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden"><div class="p-5 border-b border-gray-100"><h2 class="font-bold text-gray-900">Your courses</h2></div><div class="divide-y divide-gray-100">@forelse($courses as $course)<div class="p-5 flex justify-between gap-4"><div><p class="font-semibold text-gray-900">{{ $course->title }}</p><p class="text-xs text-gray-500 mt-1">{{ ucfirst(str_replace('_',' ', $course->marketplace_status)) }}{{ $course->review_feedback ? ' — '.$course->review_feedback : '' }}</p></div><a class="text-sm font-semibold text-brand-700" href="{{ route('admin.courses.edit',$course) }}">Edit</a></div>@empty<div class="p-8 text-sm text-gray-500">No courses assigned to you yet.</div>@endforelse</div></div>
+ <div class="bg-white rounded-2xl border border-gray-100 overflow-hidden"><div class="p-5 border-b border-gray-100"><h2 class="font-bold text-gray-900">Recent sales</h2></div><div class="divide-y divide-gray-100">@forelse($sales as $sale)<div class="p-4 flex justify-between text-sm"><span>{{ $sale->course->title }}</span><span class="font-semibold">₹{{ number_format($sale->seller_share,2) }} · {{ ucfirst($sale->status) }}</span></div>@empty<div class="p-8 text-sm text-gray-500">No individual marketplace sales yet.</div>@endforelse</div></div>
+</div>
+@endsection

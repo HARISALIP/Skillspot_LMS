@@ -7,6 +7,7 @@ use App\Models\PaymentOrder;
 use App\Models\WebhookLog;
 use App\Models\Enrollment;
 use App\Models\Course;
+use App\Services\MarketplaceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -35,6 +36,7 @@ class PaymentController extends Controller
 
         $course = Course::findOrFail($request->course_id);
         $user   = Auth::user();
+        abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for purchase.');
 
         // Already enrolled?
         if (Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->exists()) {
@@ -116,6 +118,9 @@ class PaymentController extends Controller
         if (!$order) {
             return response()->json(['error' => 'Order not found.'], 404);
         }
+        if ($order->user_id !== $request->user()->id) {
+            return response()->json(['error' => 'Order not found.'], 404);
+        }
 
         if (!hash_equals($generated, $request->razorpay_signature)) {
             $order->update(['status' => 'failed']);
@@ -133,7 +138,7 @@ class PaymentController extends Controller
             Enrollment::firstOrCreate(
                 ['user_id' => $order->user_id, 'course_id' => $order->course_id],
                 [
-                    'vendor_id'      => 1,
+                    'vendor_id'      => $order->course->vendor_id,
                     'amount_paid'    => $order->amount,
                     'payment_method' => 'razorpay',
                     'transaction_id' => $request->razorpay_payment_id,
@@ -141,6 +146,7 @@ class PaymentController extends Controller
                     'progress'       => 0,
                 ]
             );
+            MarketplaceService::recordPaidSale($order->fresh(['course']));
         });
 
         return response()->json([
@@ -203,20 +209,22 @@ class PaymentController extends Controller
         if (!$orderId) return;
 
         $order = PaymentOrder::where('razorpay_order_id', $orderId)->first();
-        if (!$order || $order->status === 'paid') return;
+        if (!$order) return;
 
         DB::transaction(function () use ($order, $payment) {
-            $order->update([
-                'razorpay_payment_id' => $payment['id'],
-                'status'              => 'paid',
-                'paid_at'             => now(),
-                'webhook_payload'     => json_encode($payment),
-            ]);
+            if ($order->status !== 'paid') {
+                $order->update([
+                    'razorpay_payment_id' => $payment['id'],
+                    'status'              => 'paid',
+                    'paid_at'             => now(),
+                    'webhook_payload'     => $payment,
+                ]);
+            }
 
             Enrollment::firstOrCreate(
                 ['user_id' => $order->user_id, 'course_id' => $order->course_id],
                 [
-                    'vendor_id'      => 1,
+                    'vendor_id'      => $order->course->vendor_id,
                     'amount_paid'    => $order->amount,
                     'payment_method' => 'razorpay',
                     'transaction_id' => $payment['id'],
@@ -224,6 +232,7 @@ class PaymentController extends Controller
                     'progress'       => 0,
                 ]
             );
+            MarketplaceService::recordPaidSale($order->fresh(['course']));
         });
     }
 
@@ -250,6 +259,7 @@ class PaymentController extends Controller
         if (!$order) return;
 
         $order->update(['status' => 'refunded']);
+        MarketplaceService::reverseSale($order);
 
         Enrollment::where('user_id', $order->user_id)
             ->where('course_id', $order->course_id)

@@ -1,7 +1,8 @@
 @php
   $title = \App\Models\Setting::get('certificate_title', 'Certificate of Completion');
   $intro = \App\Models\Setting::get('certificate_intro', 'This certifies that');
-  $completion = str_replace('{{course_title}}', $certificate->course?->title ?? 'this course', \App\Models\Setting::get('certificate_completion_text', 'has successfully completed {{course_title}}'));
+  $courseToken = '{' . '{course_title}}';
+  $completion = str_replace([$courseToken, '{}'], $certificate->course?->title ?? 'this course', \App\Models\Setting::get('certificate_completion_text', 'has successfully completed ' . $courseToken));
   $signatory = \App\Models\Setting::get('certificate_signatory', 'Skillspot Academy');
   $footer = \App\Models\Setting::get('certificate_footer', 'Issued by Skillspot LMS');
 @endphp
@@ -18,6 +19,7 @@
     .actions { display: flex; justify-content: center; gap: .75rem; padding: 1.5rem; font-family: Arial, sans-serif; }
     button, a { border: 0; border-radius: .5rem; background: #1d4ed8; color: #fff; cursor: pointer; font: 600 .875rem Arial, sans-serif; padding: .75rem 1rem; text-decoration: none; }
     .sheet { width: min(1120px, calc(100vw - 2rem)); min-height: min(790px, calc(100vh - 7rem)); margin: 0 auto 2rem; padding: 3rem; display: grid; place-items: center; background: #fffdf5; border: 18px solid #b5892c; outline: 2px solid #ead9a7; outline-offset: -30px; text-align: center; }
+    .revoked { margin: 0 auto 1.25rem; max-width: 1120px; border: 1px solid #dc2626; border-radius: .5rem; background: #fef2f2; color: #991b1b; font: 700 .9rem Arial, sans-serif; padding: .9rem 1rem; text-align: center; }
     .mark { color: #a16d11; font: 700 1rem Arial, sans-serif; letter-spacing: .2em; text-transform: uppercase; }
     h1 { margin: 1.5rem 0 .75rem; color: #172033; font-size: clamp(2.2rem, 5vw, 4.5rem); font-weight: 500; }
     .intro, .completion { font-size: clamp(1rem, 2vw, 1.3rem); }
@@ -29,7 +31,8 @@
   </style>
 </head>
 <body>
-  <div class="actions"><button onclick="window.print()">Print / Save as PDF</button><a href="{{ route('student.certs') }}">Back to certificates</a></div>
+  <div class="actions">@unless($certificate->revoked_at)<button onclick="window.print()">Print / Save as PDF</button>@endunless<a href="{{ route('student.certs') }}">Back to certificates</a></div>
+  @if($certificate->revoked_at)<p class="revoked">This certificate was revoked on {{ $certificate->revoked_at->format('d M Y') }} and is no longer valid.</p>@endif
   <main class="sheet">
     <div>
       <div class="mark">Skillspot LMS</div>

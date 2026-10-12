@@ -132,7 +132,7 @@ class SettingsWorkspaceTest extends TestCase
             ->assertSeeText('Certificate design')
             ->assertSeeText('Automatically issue certificates')
             ->assertSeeText('Jane Learner')
-            ->assertDontSee(route('admin.certs.issue'), false);
+            ->assertDontSee('Issue Certificate');
 
         $this->actingAs($admin)->post(route('admin.settings.save', 'certificates'), [
             'certificate_auto_issue' => '1',

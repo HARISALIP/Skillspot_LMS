@@ -21,7 +21,7 @@ class CourseController extends Controller
     public function detail(string $slug)
     {
         $course = Course::where('slug',$slug)
-            ->where('is_published',1)
+            ->marketplaceLive()
             ->with(['sections.lessons'])
             ->withCount('enrollments')
             ->firstOrFail();
@@ -70,6 +70,7 @@ class CourseController extends Controller
     // ── Free enroll ────────────────────────────────────────────────────
     public function enrollFree(Request $request, Course $course)
     {
+        abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for enrollment.');
         if (!$course->is_free && $course->price > 0) {
             return response()->json(['error'=>'This course requires payment.'], 422);
         }
@@ -87,6 +88,7 @@ class CourseController extends Controller
     public function createOrder(Request $request, Course $course)
     {
         $user = Auth::user();
+        abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for purchase.');
 
         if (CourseService::hasAccess($user, $course)) {
             return response()->json(['error'=>'Already enrolled.'], 422);
@@ -157,6 +159,7 @@ class CourseController extends Controller
         }
 
         $paymentOrder = \App\Models\PaymentOrder::where('razorpay_order_id',$request->razorpay_order_id)->first();
+        abort_unless($paymentOrder && $paymentOrder->user_id === Auth::id() && $paymentOrder->course_id === $course->id, 404);
         if ($paymentOrder) {
             $paymentOrder->update([
                 'razorpay_payment_id' => $request->razorpay_payment_id,
@@ -171,6 +174,7 @@ class CourseController extends Controller
             (float)($course->sale_price ?? $course->price),
             $request->razorpay_payment_id
         );
+        \App\Services\MarketplaceService::recordPaidSale($paymentOrder->fresh(['course']));
 
         return response()->json([
             'success'  => true,

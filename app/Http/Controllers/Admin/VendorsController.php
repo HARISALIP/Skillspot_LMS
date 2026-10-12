@@ -46,6 +46,9 @@ class VendorsController extends Controller
             'logo'          => 'nullable|image|max:2048',
             'banner_image'  => 'nullable|image|max:4096',
             'favicon'       => 'nullable|image|max:512',
+            'payout_account_name' => 'nullable|string|max:255',
+            'payout_account_number' => 'nullable|string|max:80',
+            'payout_ifsc' => 'nullable|string|max:30',
         ]);
 
         foreach (['logo','banner_image','favicon'] as $field) {
@@ -55,6 +58,7 @@ class VendorsController extends Controller
         }
 
         $data['slug'] = Vendor::uniqueSlug($data['brand_name']);
+        $data['marketplace_verified_at'] = $data['status'] === 'active' && filled($data['payout_account_name']) && filled($data['payout_account_number']) && filled($data['payout_ifsc']) ? now() : null;
         $vendor = Vendor::create($data);
 
         // Auto-assign vendor role
@@ -93,6 +97,9 @@ class VendorsController extends Controller
             'logo'          => 'nullable|image|max:2048',
             'banner_image'  => 'nullable|image|max:4096',
             'favicon'       => 'nullable|image|max:512',
+            'payout_account_name' => 'nullable|string|max:255',
+            'payout_account_number' => 'nullable|string|max:80',
+            'payout_ifsc' => 'nullable|string|max:30',
         ]);
 
         foreach (['logo','banner_image','favicon'] as $field) {
@@ -109,6 +116,7 @@ class VendorsController extends Controller
             }
         }
 
+        $data['marketplace_verified_at'] = $data['status'] === 'active' && filled($data['payout_account_name']) && filled($data['payout_account_number']) && filled($data['payout_ifsc']) ? ($vendor->marketplace_verified_at ?: now()) : null;
         $vendor->update($data);
         return redirect()->route('admin.vendors')->with('success', "Vendor updated ✅");
     }

@@ -236,11 +236,11 @@
         {{-- Save --}}
         <div class="flex items-center justify-between pt-3 border-t border-gray-100">
           <a href="{{ route('admin.courses') }}" class="text-sm text-gray-500 hover:text-gray-700 transition">← Back to Courses</a>
-          <button type="submit" id="saveBtn"
+          <div class="flex gap-2"><button type="submit" id="saveBtn"
                   class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-black px-7 py-2.5 rounded-xl transition shadow-md text-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
             {{ $isEdit ? 'Save Changes' : 'Create Course' }}
-          </button>
+          </button></div>
         </div>
       </form>
     </div>
@@ -375,6 +375,14 @@
   <div class="space-y-5">
     {{-- Visibility card --}}
     @if($isEdit)
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <h4 class="font-bold text-gray-900 text-sm">Marketplace review</h4>
+      <p class="mt-2 text-sm text-gray-500">Status: <strong>{{ ucfirst(str_replace('_',' ', $course->marketplace_status ?? 'draft')) }}</strong></p>
+      @if($course->review_feedback)<p class="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">{{ $course->review_feedback }}</p>@endif
+      @if(in_array($course->marketplace_status, ['draft','needs_changes','rejected'], true))
+      <form class="mt-3" method="POST" action="{{ route('admin.courses.submit-review',$course) }}">@csrf<button class="w-full rounded-xl bg-purple-600 px-3 py-2 text-sm font-bold text-white">Submit for review</button></form>
+      @endif
+    </div>
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <h4 class="font-bold text-gray-900 text-sm mb-3">Visibility</h4>
       @php $vis = $course->visibility ?? 'draft'; @endphp

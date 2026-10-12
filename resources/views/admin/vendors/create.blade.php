@@ -1,14 +1,20 @@
 @extends('layouts.admin')
-@section('title', (isset($vendor) ? 'Edit' : 'Add') . ' Vendor — Skillspot.in LMS')
+@section('title', (isset($vendor) ? 'Edit' : 'Add') . ' Organization — Skillspot.in LMS')
 @section('admin-content')
 <div class="p-6 max-w-3xl mx-auto">
   <div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">{{ isset($vendor) ? 'Edit Vendor' : 'Add Vendor' }}</h1>
+    <h1 class="text-2xl font-bold text-gray-900">{{ isset($vendor) ? 'Edit Organization' : 'Add Organization' }}</h1>
   </div>
 
   @if($errors->any())
     <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-800">
       <ul class="list-disc list-inside space-y-1">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+      <h2 class="font-semibold text-gray-900 text-base">Organization payout verification</h2>
+      <p class="text-sm text-gray-500">Required before an organization-owned course can be approved for marketplace sale. These details are encrypted.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Payee name</label><input name="payout_account_name" value="{{old('payout_account_name',$vendor->payout_account_name ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Account number</label><input name="payout_account_number" value="{{old('payout_account_number',$vendor->payout_account_number ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">IFSC code</label><input name="payout_ifsc" value="{{old('payout_ifsc',$vendor->payout_ifsc ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div></div>
     </div>
   @endif
 
@@ -109,7 +115,7 @@
 
     <div class="flex items-center gap-3">
       <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition">
-        {{ isset($vendor) ? 'Update Vendor' : 'Create Vendor' }}
+        {{ isset($vendor) ? 'Update Organization' : 'Create Organization' }}
       </button>
       <a href="{{ route('admin.vendors') }}" class="text-gray-500 hover:text-gray-700 text-sm font-medium">Cancel</a>
     </div>

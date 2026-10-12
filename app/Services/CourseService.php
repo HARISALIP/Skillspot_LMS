@@ -137,7 +137,7 @@ class CourseService
             ->where('course_id',$course->id)->first();
         if ($existing) return $existing;
 
-        return Certificate::create([
+        $certificate = Certificate::create([
             'user_id'            => $user->id,
             'course_id'          => $course->id,
             'vendor_id'          => $course->vendor_id,
@@ -145,6 +145,15 @@ class CourseService
             'certificate_number' => 'ITF-' . strtoupper(Str::random(6)) . '-' . now()->format('Y'),
             'issued_at'          => now(),
         ]);
+        \DB::table('certificate_audits')->insert([
+            'certificate_id' => $certificate->id,
+            'actor_id' => null,
+            'action' => 'automatically_issued',
+            'note' => 'Issued after the learner completed every lesson.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return $certificate;
     }
 
     // ── Check if student has valid access ─────────────────────────────

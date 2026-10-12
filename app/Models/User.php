@@ -41,6 +41,16 @@ class User extends Authenticatable
             ->withPivot('added_by','created_at');
     }
 
+    public function instructorProfile()
+    {
+        return $this->hasOne(InstructorProfile::class);
+    }
+
+    public function individualMarketplaceSales()
+    {
+        return $this->hasMany(MarketplaceSale::class, 'seller_user_id');
+    }
+
     /** Check if student has access to a specific vendor */
     public function hasVendorAccess(int $vendorId): bool
     {

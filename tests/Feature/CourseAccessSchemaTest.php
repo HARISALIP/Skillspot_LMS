@@ -30,6 +30,7 @@ class CourseAccessSchemaTest extends TestCase
             'title' => 'Demo Course',
             'slug' => 'demo-course',
             'category' => 'Web Development',
+            'primary_instructor_id' => $teacher->id,
         ]);
 
         $this->actingAs($teacher)

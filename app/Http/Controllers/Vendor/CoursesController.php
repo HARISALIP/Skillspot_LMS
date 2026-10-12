@@ -61,6 +61,11 @@ class CoursesController extends Controller
         $vendor = $this->vendor();
         $data   = $this->validateCourse($request);
         $data['vendor_id'] = $vendor->id;
+        $data['primary_instructor_id'] = auth()->id();
+        $data['marketplace_status'] = 'draft';
+        $data['marketplace_visible'] = false;
+        $data['visibility'] = 'draft';
+        $data['is_published'] = false;
         $course = Course::create($data);
         return redirect()->route('vendor.courses.edit', $course->id)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
@@ -98,15 +103,9 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
-        $next = match($course->visibility) {
-            'draft'      => 'public',
-            'public'     => 'draft',
-            'restricted' => 'draft',
-            default      => 'public',
-        };
-        $course->update(['visibility' => $next, 'is_published' => $next !== 'draft' ? 1 : 0]);
-        $msg = ['draft' => 'set to Draft', 'public' => 'Published ✅', 'restricted' => 'set to Restricted'];
-        return back()->with('success', "\"{$course->title}\" " . $msg[$next]);
+        if (!$course->isMarketplaceLive()) return back()->with('error', 'Submit this course for marketplace review before publishing it.');
+        $course->update(['visibility' => 'public', 'is_published' => true]);
+        return back()->with('success', "\"{$course->title}\" is live in the Skillspot marketplace.");
     }
 
     // ── Delete ───────────────────────────────────────────────────────────

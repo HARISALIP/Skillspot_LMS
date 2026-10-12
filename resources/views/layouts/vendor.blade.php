@@ -93,6 +93,7 @@
               ['icon'=>'📡','label'=>'Live Classes', 'route'=>'vendor.live_classes.index', 'href'=>route('vendor.live_classes.index')],
               ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.live_classes.my_courses', 'href'=>route('vendor.live_classes.my_courses')],
               ['icon'=>'👥','label'=>'Students',     'route'=>'vendor.students*',  'href'=>route('vendor.students')],
+              ['icon'=>'💰','label'=>'Earnings',      'route'=>'vendor.earnings',   'href'=>route('vendor.earnings')],
           ];
       } else {
           // Teacher / Admin: full access
@@ -103,6 +104,7 @@
               ['icon'=>'📡','label'=>'Live Classes', 'route'=>'vendor.live_classes.index', 'href'=>route('vendor.live_classes.index')],
               ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.live_classes.my_courses', 'href'=>route('vendor.live_classes.my_courses')],
               ['icon'=>'👥','label'=>'Students',     'route'=>'vendor.students*',   'href'=>route('vendor.students')],
+              ['icon'=>'💰','label'=>'Earnings',      'route'=>'vendor.earnings',    'href'=>route('vendor.earnings')],
               ...($isAdminRole ? [['icon'=>'👩‍🏫','label'=>'Teachers','route'=>'vendor.teachers','href'=>route('vendor.teachers')]] : []),
               ...(!$isTeacherOnly ? [['icon'=>'🎨','label'=>'Branding','route'=>'vendor.profile*','href'=>route('vendor.profile')]] : []),
               ['icon'=>'👤','label'=>'My Profile',   'route'=>'vendor.my-profile*', 'href'=>route('vendor.my-profile')],

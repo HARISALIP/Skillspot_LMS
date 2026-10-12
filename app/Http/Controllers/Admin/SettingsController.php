@@ -40,7 +40,7 @@ class SettingsController extends Controller
             'certificate_auto_issue' => ['label' => 'Automatically issue certificates', 'type' => 'boolean', 'default' => '1'],
             'certificate_title' => ['label' => 'Certificate title', 'type' => 'text', 'default' => 'Certificate of Completion'],
             'certificate_intro' => ['label' => 'Introduction', 'type' => 'text', 'default' => 'This certifies that'],
-            'certificate_completion_text' => ['label' => 'Completion text', 'type' => 'text', 'default' => 'has successfully completed {{course_title}}'],
+            'certificate_completion_text' => ['label' => 'Completion text', 'type' => 'text', 'default' => 'has successfully completed ' . '{' . '{course_title}}'],
             'certificate_signatory' => ['label' => 'Authorized signatory', 'type' => 'text', 'default' => 'Skillspot Academy'],
             'certificate_footer' => ['label' => 'Footer text', 'type' => 'text', 'default' => 'Issued by Skillspot LMS'],
         ],

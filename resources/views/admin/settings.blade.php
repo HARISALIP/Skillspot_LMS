@@ -179,7 +179,7 @@ $tabs = [
             $previewTitle = $certificateValue('certificate_title');
             $previewIntro = $certificateValue('certificate_intro');
             $certificateToken = '{' . '{course_title}}';
-            $previewCompletion = str_replace($certificateToken, 'Modern Web Development', $certificateValue('certificate_completion_text'));
+            $previewCompletion = str_replace([$certificateToken, '{}'], 'Modern Web Development', $certificateValue('certificate_completion_text'));
           @endphp
           <section class="space-y-5 pr-10">
             <div>

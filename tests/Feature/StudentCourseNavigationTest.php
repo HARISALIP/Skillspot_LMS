@@ -23,6 +23,7 @@ class StudentCourseNavigationTest extends TestCase
             'title' => 'Web Development', 'slug' => 'web-development',
             'category' => 'Web Development', 'level' => 'beginner',
             'visibility' => 'public', 'is_published' => true,
+            'primary_instructor_id' => $teacher->id, 'marketplace_status' => 'live', 'marketplace_visible' => true,
         ]);
 
         $this->actingAs($teacher)->put(route('admin.courses.update', $course), [
@@ -48,6 +49,7 @@ class StudentCourseNavigationTest extends TestCase
             'visibility' => 'public',
             'is_published' => true,
             'is_free' => true,
+            'marketplace_status' => 'live', 'marketplace_visible' => true,
         ]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Getting Started']);
         $lesson = $section->lessons()->create([
@@ -102,6 +104,7 @@ class StudentCourseNavigationTest extends TestCase
             'title' => 'Computer Programming', 'slug' => 'computer-programming',
             'category' => 'Computer Science & Coding', 'visibility' => 'public',
             'is_published' => true, 'is_free' => true,
+            'marketplace_status' => 'live', 'marketplace_visible' => true,
         ]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Check your learning']);
         $lesson = $section->lessons()->create(['title' => 'Python checkpoint', 'type' => 'quiz']);
@@ -136,7 +139,7 @@ class StudentCourseNavigationTest extends TestCase
         Role::findOrCreate('teacher', 'web');
         $teacher = User::factory()->create();
         $teacher->assignRole('teacher');
-        $course = Course::create(['title' => 'Robotics & IoT', 'slug' => 'robotics-iot', 'category' => 'Robotics & IoT']);
+        $course = Course::create(['title' => 'Robotics & IoT', 'slug' => 'robotics-iot', 'category' => 'Robotics & IoT', 'primary_instructor_id' => $teacher->id]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Sensors']);
         $this->actingAs($teacher)->get(route('admin.courses.lessons.create', [$course, $section]))
             ->assertOk()->assertSee('Graded quiz');

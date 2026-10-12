@@ -34,7 +34,12 @@
     ['icon'=>'fa-user-graduate','label'=>'Enrollments','route'=>'admin.enrollments*','href'=>route('admin.enrollments'),'teacher'=>true],
     ['icon'=>'fa-video','label'=>'Live Classes','route'=>'admin.live*','href'=>route('admin.live'),'teacher'=>true],
     ['icon'=>'fa-photo-film','label'=>'Media','route'=>'admin.media*','href'=>route('admin.media'),'teacher'=>true],
-    ['icon'=>'fa-store','label'=>'Vendors','route'=>'admin.vendors*','href'=>route('admin.vendors'),'teacher'=>false],
+    ['icon'=>'fa-chart-line','label'=>'Instructor Earnings','route'=>'marketplace.dashboard','href'=>route('marketplace.dashboard'),'teacher'=>true],
+    ['icon'=>'fa-store','label'=>'Organizations','route'=>'admin.vendors*','href'=>route('admin.vendors'),'teacher'=>false],
+    ['icon'=>'fa-user-check','label'=>'Instructor Applications','route'=>'admin.marketplace.instructors*','href'=>route('admin.marketplace.instructors'),'teacher'=>false],
+    ['icon'=>'fa-clipboard-check','label'=>'Course Reviews','route'=>'admin.marketplace.reviews*','href'=>route('admin.marketplace.reviews'),'teacher'=>false],
+    ['icon'=>'fa-percent','label'=>'Commissions','route'=>'admin.marketplace.commissions*','href'=>route('admin.marketplace.commissions'),'teacher'=>false],
+    ['icon'=>'fa-money-bill-transfer','label'=>'Payouts','route'=>'admin.marketplace.payouts*','href'=>route('admin.marketplace.payouts'),'teacher'=>false],
     ['icon'=>'fa-users','label'=>'Users','route'=>'admin.users*','href'=>route('admin.users'),'teacher'=>false],
   ];
 @endphp

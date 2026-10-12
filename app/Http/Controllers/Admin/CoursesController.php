@@ -143,6 +143,7 @@ class CoursesController extends Controller
             'is_free' => true,
             'visibility' => 'draft',
             'is_published' => false,
+            'primary_instructor_id' => auth()->id(),
         ]);
 
         $course->teachers()->syncWithoutDetaching([auth()->id() => ['added_by' => auth()->id()]]);
@@ -175,8 +176,15 @@ class CoursesController extends Controller
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
         }
         $course = DB::transaction(function () use ($data, $request) {
-            $course = Course::create($data);
             $teacherIds = $request->input('instructor_ids', [auth()->id()]);
+            $data['primary_instructor_id'] = auth()->user()->hasRole(['admin', 'super-admin'])
+                ? ($teacherIds[0] ?? auth()->id())
+                : auth()->id();
+            $data['marketplace_status'] = 'draft';
+            $data['marketplace_visible'] = false;
+            $data['visibility'] = 'draft';
+            $data['is_published'] = false;
+            $course = Course::create($data);
             $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
             return $course;
         });
@@ -237,6 +245,7 @@ class CoursesController extends Controller
     // ── Edit form ──────────────────────────────────────────────────────
     public function edit(Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $course->load('sections.lessons','allowedUsers');
         $materialUploads = Upload::whereIn('id', collect($course->resources ?? [])
             ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])->filter())
@@ -256,8 +265,13 @@ class CoursesController extends Controller
     // ── Update ─────────────────────────────────────────────────────────
     public function update(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $request->merge(['visibility' => $request->input('visibility') ?: $course->visibility]);
         $data = $this->validateCourse($request, $course->id);
+        if (!$course->isMarketplaceLive()) {
+            $data['visibility'] = 'draft';
+            $data['is_published'] = false;
+        }
         $course->update($data);
         return back()->with('success', "Course updated ✅");
     }
@@ -265,20 +279,16 @@ class CoursesController extends Controller
     // ── Toggle publish ─────────────────────────────────────────────────
     public function togglePublish(Course $course)
     {
-        $next = match($course->visibility) {
-            'draft'      => 'public',
-            'public'     => 'draft',
-            'restricted' => 'draft',
-            default      => 'public',
-        };
-        $course->update(['visibility'=>$next,'is_published'=>$next!=='draft'?1:0]);
-        $msg = ['draft'=>'set to Draft','public'=>'Published (Public)','restricted'=>'set to Restricted'];
-        return back()->with('success', "\"\" ".$msg[$next]." ✅");
+        $this->authorizeCourseOwner($course);
+        if (!$course->isMarketplaceLive()) return back()->with('error', 'Submit this course for marketplace review before publishing it.');
+        $course->update(['visibility' => 'public', 'is_published' => true]);
+        return back()->with('success', 'Course is live in the Skillspot marketplace.');
     }
 
     // Grant restricted access to specific user
     public function grantAccess(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $request->validate(['user_id'=>'required|exists:users,id']);
         $course->allowedUsers()->syncWithoutDetaching([
             $request->user_id => ['added_by'=>auth()->id(),'note'=>$request->input('note'),'created_at'=>now()]
@@ -290,6 +300,7 @@ class CoursesController extends Controller
     // Revoke restricted access
     public function revokeAccess(Request $request, Course $course, $userId)
     {
+        $this->authorizeCourseOwner($course);
         $course->allowedUsers()->detach($userId);
         return back()->with('success', 'Access revoked.');
     }
@@ -297,6 +308,7 @@ class CoursesController extends Controller
     // ── Delete ─────────────────────────────────────────────────────────
     public function destroy(Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $title = $course->title;
         $course->delete();
         return redirect()->route('admin.courses')
@@ -306,6 +318,7 @@ class CoursesController extends Controller
     // ── Section: store ─────────────────────────────────────────────────
     public function storeSection(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $request->validate(['title' => 'required|string|max:255']);
         $order = $course->sections()->max('order') + 1;
         $course->sections()->create([
@@ -318,6 +331,7 @@ class CoursesController extends Controller
     // ── Section: update ────────────────────────────────────────────────
     public function updateSection(Request $request, Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         $request->validate(['title' => 'required|string|max:255']);
         $section->update(['title' => $request->title]);
         return back()->with('success', 'Section updated ✅');
@@ -326,6 +340,7 @@ class CoursesController extends Controller
     // ── Section: delete ────────────────────────────────────────────────
     public function destroySection(Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         $section->delete();
         return back()->with('success', 'Section deleted.');
     }
@@ -333,6 +348,7 @@ class CoursesController extends Controller
     // ── Section: reorder ───────────────────────────────────────────────
     public function reorderSections(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
         foreach ($request->order ?? [] as $pos => $sectionId) {
             Section::where('id', $sectionId)->where('course_id', $course->id)
                    ->update(['order' => $pos + 1]);
@@ -343,6 +359,7 @@ class CoursesController extends Controller
     // ── Lesson: create form ────────────────────────────────────────────
     public function createLesson(Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         return view('admin.courses.lesson', [
             'course'  => $course,
             'section' => $section,
@@ -355,6 +372,7 @@ class CoursesController extends Controller
     // ── Lesson: store ──────────────────────────────────────────────────
     public function storeLesson(Request $request, Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id, 404);
         $data = $this->validateLesson($request);
         $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
@@ -371,6 +389,7 @@ class CoursesController extends Controller
     // ── Lesson: edit form ──────────────────────────────────────────────
     public function editLesson(Course $course, Section $section, Lesson $lesson)
     {
+        $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $lesson->load('quiz.questions');
         $materialUploads = Upload::whereIn('id', collect($lesson->resources ?? [])
@@ -388,6 +407,7 @@ class CoursesController extends Controller
     // ── Lesson: update ─────────────────────────────────────────────────
     public function updateLesson(Request $request, Course $course, Section $section, Lesson $lesson)
     {
+        $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $data = $this->validateLesson($request);
         $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
@@ -402,6 +422,7 @@ class CoursesController extends Controller
     // ── Lesson: delete ─────────────────────────────────────────────────
     public function destroyLesson(Course $course, Section $section, Lesson $lesson)
     {
+        $this->authorizeCourseOwner($course);
         $lesson->delete();
         return back()->with('success', 'Lesson deleted.');
     }
@@ -409,6 +430,7 @@ class CoursesController extends Controller
     // ── Lesson: reorder ────────────────────────────────────────────────
     public function reorderLessons(Request $request, Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         foreach ($request->order ?? [] as $pos => $lessonId) {
             Lesson::where('id', $lessonId)->where('section_id', $section->id)
                   ->update(['order' => $pos + 1]);
@@ -471,6 +493,13 @@ class CoursesController extends Controller
         }
 
         return $data;
+    }
+
+    private function authorizeCourseOwner(Course $course): void
+    {
+        $user = auth()->user();
+        if ($user->hasRole(['admin', 'super-admin'])) return;
+        abort_unless($course->primary_instructor_id === $user->id || $course->teachers()->where('users.id', $user->id)->exists(), 403);
     }
 
     private function sanitizeRichText(string $html): string
