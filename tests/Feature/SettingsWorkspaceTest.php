@@ -21,10 +21,12 @@ class SettingsWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.settings'))
             ->assertOk()
-            ->assertSeeText('System settings')
             ->assertSeeText('System Configuration')
             ->assertSeeText('General')
             ->assertSeeText('Course Configuration')
+            ->assertSeeText('Progress')
+            ->assertSeeText('Badges')
+            ->assertSeeText('Badge Assignments')
             ->assertSeeText('User Management')
             ->assertSeeText('Payment')
             ->assertSeeText('Integrations')
@@ -33,10 +35,10 @@ class SettingsWorkspaceTest extends TestCase
             ->assertSeeText('Access & Availability')
             ->assertSeeText('Signup')
             ->assertSeeText('Communication')
-            ->assertSeeText('Email / SMTP')
+            ->assertSeeText('Email Accounts')
             ->assertSeeText('Services')
             ->assertSeeText('Configuration')
-            ->assertSeeText('License');
+            ->assertSeeText('SEO');
     }
 
     public function test_settings_can_render_inside_the_workspace_overlay(): void
@@ -52,7 +54,7 @@ class SettingsWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
             ->assertOk()
-            ->assertSeeText('System settings')
+            ->assertSeeText('System Configuration')
             ->assertDontSeeText('Configure your learning platform')
             ->assertDontSee('Main navigation');
     }
@@ -85,6 +87,27 @@ class SettingsWorkspaceTest extends TestCase
 
         $this->assertDatabaseHas('settings', ['key' => 'system_timezone', 'value' => 'UTC']);
         $this->assertDatabaseHas('settings', ['key' => 'text_direction', 'value' => 'ltr']);
+    }
+
+    public function test_frappe_style_signup_and_progress_preferences_are_saved(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'signup'), [
+            'disable_signup' => '1',
+            'custom_signup_content' => '<p>Invite only</p>',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'signup']));
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'course-progress'), [
+            'lesson_dwell_time' => '30',
+            'enforce_video_completion' => '1',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'course-progress']));
+
+        $this->assertDatabaseHas('settings', ['key' => 'disable_signup', 'value' => '1']);
+        $this->assertDatabaseHas('settings', ['key' => 'lesson_dwell_time', 'value' => '30']);
+        $this->assertDatabaseHas('settings', ['key' => 'enforce_video_completion', 'value' => '1']);
     }
 
     public function test_guest_access_setting_protects_the_public_homepage(): void

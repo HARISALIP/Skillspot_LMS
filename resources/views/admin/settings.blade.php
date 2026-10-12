@@ -5,17 +5,20 @@
 
 @push('styles')
 <style>
-  .settings-workspace { min-height: min(780px, calc(100vh - 8rem)); }
-  .settings-sidebar { scrollbar-width: thin; }
-  body[data-theme="dark"] .settings-shell { background: #202020 !important; }
-  body[data-theme="dark"] .settings-sidebar { background: #272727 !important; border-color: #383838 !important; }
-  body[data-theme="dark"] .settings-panel-head, body[data-theme="dark"] .settings-save-bar { background: #242424 !important; border-color: #383838 !important; }
-  body[data-theme="dark"] .category-settings, body[data-theme="dark"] .category-settings input { color: #d1d1d1; }
-  body[data-theme="dark"] .category-settings input { background: #292929; border-color: #3d3d3d; }
-  body[data-theme="dark"] .category-settings [data-category-row], body[data-theme="dark"] .category-settings .category-head { border-color: #303030; }
-  body[data-theme="dark"] .category-settings [data-category-row] button:first-child { color: #d1d1d1; }
-  body[data-theme="dark"] .category-settings details > div, body[data-theme="dark"] dialog { background: #242424; color: #d1d1d1; }
-  body[data-theme="dark"] .category-settings details button { color: #d1d1d1; }
+  .settings-workspace { min-height: min(860px, calc(100vh - 4rem)); background:#202020; color:#d0d0d0; }
+  .settings-sidebar { scrollbar-width: thin; background:#242424; border-color:#383838; }
+  .settings-workspace .text-gray-900 { color:#e4e4e4!important; }
+  .settings-workspace .text-gray-800,.settings-workspace .text-gray-700 { color:#d0d0d0!important; }
+  .settings-workspace .text-gray-600,.settings-workspace .text-gray-500,.settings-workspace .text-gray-400 { color:#a3a3a3!important; }
+  .settings-workspace .border-gray-100,.settings-workspace .border-gray-200 { border-color:#383838!important; }
+  .settings-workspace .bg-white,.settings-workspace .bg-gray-50,.settings-workspace .bg-gray-100 { background-color:#292929!important; }
+  .settings-workspace input,.settings-workspace select,.settings-workspace textarea { background:#2a2a2a!important; border-color:#3e3e3e!important; color:#e4e4e4!important; }
+  .settings-workspace option { background:#2a2a2a; color:#e4e4e4; }
+  .settings-workspace .settings-nav-item { color:#d0d0d0; }
+  .settings-workspace .settings-nav-item:hover { background:#303030; color:#fff; }
+  .settings-workspace .settings-nav-item.is-active { background:#414141; color:#fff; }
+  .settings-workspace .settings-panel-head,.settings-workspace .settings-save-bar { background:#202020!important; border-color:#383838!important; }
+  .settings-workspace dialog { background:#242424; color:#e4e4e4; }
 </style>
 @endpush
 
@@ -25,17 +28,28 @@
 $embedded = request()->boolean('embed');
 $settingsQuery = $embedded ? ['embed' => 1] : [];
 $tabs = [
-  'general'  => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-sliders',            'color'=>'text-purple-600', 'bg'=>'bg-purple-100', 'label'=>'General',         'description'=>'Language, timezone, direction and guest access'],
-  'security' => ['group'=>'System Configuration', 'fa'=>'fa-solid fa-right-to-bracket',   'color'=>'text-rose-600',   'bg'=>'bg-rose-100',   'label'=>'Signup',          'description'=>'Registration, verification, sessions and maintenance'],
-  'categories'=>['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired',       'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'Categories',      'description'=>'Create and manage course categories'],
-  'communication'=>['group'=>'Communication',     'fa'=>'fa-solid fa-sliders',            'color'=>'text-sky-600',    'bg'=>'bg-sky-100',    'label'=>'General',         'description'=>'Contact details displayed to learners'],
-  'mail'     => ['group'=>'Communication',        'fa'=>'fa-solid fa-envelope-open-text', 'color'=>'text-blue-600',   'bg'=>'bg-blue-100',   'label'=>'Email / SMTP',    'description'=>'Delivery settings and the member-invitation test'],
-  'members'  => ['group'=>'User Management',      'fa'=>'fa-solid fa-user',                'color'=>'text-indigo-600', 'bg'=>'bg-indigo-100', 'label'=>'Users',           'description'=>'Manage members, roles and access', 'shortcut'=>route('admin.users')],
-  'payment'  => ['group'=>'Payment',              'fa'=>'fa-solid fa-credit-card',        'color'=>'text-emerald-600','bg'=>'bg-emerald-100','label'=>'Configuration',  'description'=>'Razorpay mode, credentials and course pricing'],
-  'transactions'=>['group'=>'Payment',            'fa'=>'fa-solid fa-building-columns',   'color'=>'text-green-600',  'bg'=>'bg-green-100',  'label'=>'Transactions',    'description'=>'Review payments and issue refunds', 'shortcut'=>route('admin.payments')],
-  'storage'  => ['group'=>'Integrations',          'fa'=>'fa-solid fa-key',                'color'=>'text-cyan-600',   'bg'=>'bg-cyan-100',   'label'=>'Services',        'description'=>'Cloud storage, keys and upload limits'],
-  'license'  => ['group'=>'Platform',             'fa'=>'fa-solid fa-key',                'color'=>'text-amber-600',  'bg'=>'bg-amber-100',  'label'=>'License',        'description'=>'Plan, capacity and platform limits'],
-  'branding' => ['group'=>'Customization',         'fa'=>'fa-solid fa-palette',            'color'=>'text-violet-600', 'bg'=>'bg-violet-100', 'label'=>'Branding',        'description'=>'Academy identity, domain, branding and contact details'],
+  'general' => ['group'=>'System Configuration','fa'=>'fa-sliders','label'=>'General','description'=>'Platform preferences'],
+  'signup' => ['group'=>'System Configuration','fa'=>'fa-right-to-bracket','label'=>'Signup','description'=>'Registration and consent'],
+  'course-progress' => ['group'=>'Course Configuration','fa'=>'fa-chart-line','label'=>'Progress','description'=>'Course completion rules'],
+  'badges' => ['group'=>'Course Configuration','fa'=>'fa-award','label'=>'Badges','description'=>'Recognition settings'],
+  'badge-assignments' => ['group'=>'Course Configuration','fa'=>'fa-certificate','label'=>'Badge Assignments','description'=>'Badge assignment settings'],
+  'categories' => ['group'=>'Course Configuration','fa'=>'fa-network-wired','label'=>'Categories','description'=>'Create and manage course categories'],
+  'communication' => ['group'=>'Communication','fa'=>'fa-sliders','label'=>'General','description'=>'Contact and notification preferences'],
+  'email-template' => ['group'=>'Communication','fa'=>'fa-envelope-open-text','label'=>'Email Template','description'=>'Email template management'],
+  'mail' => ['group'=>'Communication','fa'=>'fa-envelope','label'=>'Email Accounts','description'=>'SMTP and invitation delivery'],
+  'members' => ['group'=>'User Management','fa'=>'fa-user','label'=>'Users','description'=>'Member roles and access'],
+  'payment' => ['group'=>'Payment','fa'=>'fa-credit-card','label'=>'Configuration','description'=>'Course pricing and payment settings'],
+  'payment-gateways' => ['group'=>'Payment','fa'=>'fa-dollar-sign','label'=>'Gateways','description'=>'Payment gateway management'],
+  'transactions' => ['group'=>'Payment','fa'=>'fa-building-columns','label'=>'Transactions','description'=>'Payment transaction history'],
+  'coupons' => ['group'=>'Payment','fa'=>'fa-ticket','label'=>'Coupons','description'=>'Course discount codes'],
+  'storage' => ['group'=>'Integrations','fa'=>'fa-key','label'=>'Services','description'=>'Storage and service credentials'],
+  'google-calendar' => ['group'=>'Integrations','fa'=>'fa-calendar','label'=>'Google Calendar','description'=>'Calendar integration'],
+  'google-meet' => ['group'=>'Integrations','fa'=>'fa-person-chalkboard','label'=>'Google Meet','description'=>'Meeting integration'],
+  'zoom' => ['group'=>'Integrations','fa'=>'fa-video','label'=>'Zoom','description'=>'Zoom integration'],
+  'raven' => ['group'=>'Integrations','fa'=>'fa-comments','label'=>'Raven','description'=>'Messaging integration'],
+  'branding' => ['group'=>'Customization','fa'=>'fa-palette','label'=>'Branding','description'=>'Academy identity and visual settings'],
+  'sidebar' => ['group'=>'Customization','fa'=>'fa-table-columns','label'=>'Sidebar','description'=>'Navigation appearance'],
+  'seo' => ['group'=>'Customization','fa'=>'fa-magnifying-glass','label'=>'SEO','description'=>'Search and social metadata'],
 ];
 @endphp
 
@@ -52,7 +66,7 @@ $tabs = [
 </div>
 @endif
 
-<div class="settings-workspace settings-shell mx-auto flex max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl lg:flex-row">
+<div class="settings-workspace settings-shell mx-auto flex max-w-6xl flex-col overflow-hidden rounded-2xl shadow-2xl lg:flex-row">
 
   {{-- Sidebar tabs --}}
   <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-64 lg:border-b-0 lg:border-r overflow-y-auto">
@@ -66,20 +80,16 @@ $tabs = [
       @endforeach
     </div>
     <div class="hidden lg:block">
-      <div class="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-        <p class="text-sm font-semibold text-gray-900">System settings</p>
-      </div>
-      <nav class="p-2 space-y-0.5">
+      <nav class="px-2 pb-4 pt-3 space-y-0.5">
         @php $lastGroup = null; @endphp
         @foreach($tabs as $key => $tab)
         @if($lastGroup !== $tab['group'])
-          <p class="px-2 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">{{ $tab['group'] }}</p>
+          <p class="px-2 pt-3 pb-1 text-xs font-medium text-gray-400">{{ $tab['group'] }}</p>
           @php $lastGroup = $tab['group']; @endphp
         @endif
         <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
-           class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition font-medium
-                  {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200/70 hover:text-gray-900' }}">
-          <span class="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 transition-all {{ $activeTab === $key ? 'bg-white/20 text-white' : $tab['bg'] . ' ' . $tab['color'] }}">
+           class="settings-nav-item {{ $activeTab === $key ? 'is-active' : '' }} flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition font-medium">
+          <span class="w-5 text-center text-gray-400">
             <i class="{{ $tab['fa'] }} text-xs"></i>
           </span>
           <span>{{ $tab['label'] }}</span>
@@ -96,26 +106,15 @@ $tabs = [
   <div class="flex-1 min-w-0 overflow-y-auto">
     <div class="min-h-full overflow-hidden">
 
-      @if(!in_array($activeTab, ['general', 'categories']))
-      <div class="settings-panel-head px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-        <div class="flex items-center gap-3">
-          <div class="w-11 h-11 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white text-lg shadow-md shadow-brand-500/20">
-            <i class="{{ $tabs[$activeTab]['fa'] }}"></i>
-          </div>
-          <div>
-            <h2 class="text-base font-black text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
-            <p class="text-xs text-gray-400 mt-0.5">{{ $tabs[$activeTab]['description'] }}</p>
-          </div>
-          @if(request()->boolean('embed'))
-            <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="ml-auto rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
-          @else
-            <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="ml-auto rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
-          @endif
-        </div>
+      <div class="absolute right-4 top-4 z-10">
+        @if(request()->boolean('embed'))
+          <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="rounded-lg p-2 text-gray-400 transition hover:bg-gray-700 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        @else
+          <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="rounded-lg p-2 text-gray-400 transition hover:bg-gray-700 hover:text-white"><i class="fa-solid fa-xmark"></i></a>
+        @endif
       </div>
-      @endif
 
-      @php $managedPanel = $activeTab === 'categories' || isset($tabs[$activeTab]['shortcut']); @endphp
+      @php $managedPanel = $activeTab === 'categories' || !array_key_exists($activeTab, $schema); @endphp
       @if($managedPanel)
       <div id="settingsForm">
       @else
@@ -125,16 +124,7 @@ $tabs = [
         <div class="relative p-6 space-y-5">
 
           {{-- LINKED MANAGEMENT AREA --}}
-          @if(isset($tabs[$activeTab]['shortcut']))
-          <iframe title="{{ $tabs[$activeTab]['label'] }}" src="{{ $tabs[$activeTab]['shortcut'] }}?embed=1" class="h-[calc(100vh-13rem)] min-h-[34rem] w-full border-0"></iframe>
-
-          {{-- CATEGORIES --}}
-          @elseif($activeTab === 'categories')
-          @if(request()->boolean('embed'))
-            <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
-          @else
-            <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
-          @endif
+          @if($activeTab === 'categories')
           <section class="category-settings space-y-5 pr-10">
             <div class="flex items-center justify-between gap-3">
               <h2 class="text-lg font-bold text-gray-900">Categories</h2>
@@ -177,11 +167,6 @@ $tabs = [
 
           {{-- GENERAL --}}
           @elseif($activeTab === 'general')
-          @if(request()->boolean('embed'))
-            <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></button>
-          @else
-            <a href="{{ route('admin.dashboard') }}" aria-label="Close settings" class="absolute right-5 top-5 rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"><i class="fa-solid fa-xmark"></i></a>
-          @endif
           <section class="space-y-4 pr-10">
             <h2 class="text-lg font-bold text-gray-900">Preferences</h2>
             <div class="divide-y divide-gray-200">
@@ -200,19 +185,18 @@ $tabs = [
           <section class="space-y-4 pt-5">
             <h2 class="text-lg font-bold text-gray-900">Access &amp; Availability</h2>
             <div class="divide-y divide-gray-200">
+              @foreach(['allow_guest_access' => 'If enabled, visitors can access the course and batch lists without logging in.', 'disable_pwa' => 'If checked, users will not be able to install the application as a Progressive Web App.', 'allow_job_posting' => 'If enabled, users can post job openings on the job board. Else only admins can post jobs.'] as $key => $description)
               <label class="flex cursor-pointer items-center justify-between gap-6 py-4">
-                <div>
-                  <p class="text-sm font-semibold text-gray-900">Allow Guest Access</p>
-                  <p class="mt-1 text-xs text-gray-500">Keep the public catalogue available to visitors who are not signed in.</p>
-                </div>
-                <span class="relative shrink-0">
-                  <input type="checkbox" name="allow_guest_access" class="peer sr-only" {{ ($settings['allow_guest_access'] ?? '1') === '1' ? 'checked' : '' }}>
-                  <span class="block h-5 w-9 rounded-full bg-gray-300 transition peer-checked:bg-brand-600"></span>
-                  <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4"></span>
-                </span>
+                <div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div>
+                <span class="relative shrink-0"><input type="checkbox" name="{{ $key }}" class="peer sr-only" {{ ($settings[$key] ?? $schema['general'][$key]['default']) === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span>
               </label>
+              @endforeach
             </div>
           </section>
+
+          <section class="space-y-4 pt-5"><h2 class="text-lg font-bold text-gray-900">Evaluations</h2><div class="divide-y divide-gray-200"><label class="flex cursor-pointer items-center justify-between gap-6 py-4"><div><p class="text-sm font-semibold text-gray-900">Send calendar invite for evaluations</p><p class="mt-1 text-xs text-gray-500">If enabled, sends a calendar invite to the student for evaluations.</p></div><span class="relative shrink-0"><input type="checkbox" name="send_evaluation_invites" class="peer sr-only" {{ ($settings['send_evaluation_invites'] ?? '0') === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label></div></section>
+
+          <section class="space-y-4 pt-5"><h2 class="text-lg font-bold text-gray-900">Notifications</h2><div class="divide-y divide-gray-200">@foreach(['published_course_notification' => 'Notify members when a new course is published.', 'published_batch_notification' => 'Notify members when a new batch is published.'] as $key => $description)<div class="grid gap-3 py-4 md:grid-cols-[1fr_12rem] md:items-center"><div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div><x-settings-field :field="$key" :meta="$schema['general'][$key]" :value="$settings[$key] ?? $schema['general'][$key]['default']"/></div>@endforeach</div></section>
 
           {{-- COMMUNICATION --}}
           @elseif($activeTab === 'communication')
@@ -642,6 +626,24 @@ $tabs = [
               </button>
             </div>
           </div>
+          @elseif(in_array($activeTab, ['signup', 'course-progress', 'seo']))
+          <section class="space-y-5 pt-2">
+            <h2 class="text-lg font-bold text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
+            <div class="divide-y divide-gray-200">
+              @foreach($schema[$activeTab] as $key => $meta)
+                @if($meta['type'] === 'boolean')
+                <label class="flex cursor-pointer items-center justify-between gap-6 py-4"><p class="text-sm font-semibold text-gray-900">{{ $meta['label'] }}</p><span class="relative shrink-0"><input type="checkbox" name="{{ $key }}" class="peer sr-only" {{ ($settings[$key] ?? $meta['default']) === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label>
+                @else
+                <div class="py-4"><x-settings-field :field="$key" :meta="$meta" :value="$settings[$key] ?? $meta['default']"/></div>
+                @endif
+              @endforeach
+            </div>
+          </section>
+          @else
+          <section class="min-h-[28rem] space-y-3 pt-2">
+            <h2 class="text-lg font-bold text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
+            <p class="max-w-xl text-sm leading-6 text-gray-500">{{ $tabs[$activeTab]['description'] }}. Skillspot does not yet have the matching data model from Frappe LMS, so this panel stays inside Settings instead of sending you to an unrelated legacy page.</p>
+          </section>
           @endif
 
         </div>

@@ -18,6 +18,28 @@ class SettingsController extends Controller
             'system_timezone'  => ['label' => 'System Timezone', 'type' => 'select',  'default' => 'Asia/Kolkata', 'options' => ['Asia/Kolkata' => 'Asia/Kolkata', 'UTC' => 'UTC', 'Europe/London' => 'Europe/London', 'America/New_York' => 'America/New_York']],
             'text_direction'   => ['label' => 'Text Direction',  'type' => 'select',  'default' => 'auto',         'options' => ['auto' => 'Auto', 'ltr' => 'Left to right', 'rtl' => 'Right to left']],
             'allow_guest_access' => ['label' => 'Allow Guest Access', 'type' => 'boolean', 'default' => '1'],
+            'disable_pwa' => ['label' => 'Disable PWA', 'type' => 'boolean', 'default' => '0'],
+            'allow_job_posting' => ['label' => 'Allow Job Posting', 'type' => 'boolean', 'default' => '0'],
+            'send_evaluation_invites' => ['label' => 'Send calendar invite for evaluations', 'type' => 'boolean', 'default' => '0'],
+            'published_course_notification' => ['label' => 'Send Notification for Published Courses', 'type' => 'select', 'options' => ['' => 'Select option', 'all' => 'All members', 'enrolled' => 'Enrolled members'], 'default' => ''],
+            'published_batch_notification' => ['label' => 'Send Notification for Published Batches', 'type' => 'select', 'options' => ['' => 'Select option', 'all' => 'All members', 'enrolled' => 'Enrolled members'], 'default' => ''],
+        ],
+        'signup' => [
+            'user_category' => ['label' => 'Identify User Category', 'type' => 'boolean', 'default' => '0'],
+            'disable_signup' => ['label' => 'Disable signup', 'type' => 'boolean', 'default' => '1'],
+            'custom_signup_content' => ['label' => 'Signup Consent HTML', 'type' => 'textarea', 'default' => ''],
+        ],
+        'course-progress' => [
+            'lesson_dwell_time' => ['label' => 'Lesson Completion Time (seconds)', 'type' => 'text', 'default' => '1'],
+            'enforce_video_completion' => ['label' => 'Enforce video completion', 'type' => 'boolean', 'default' => '0'],
+            'enforce_assignment_completion' => ['label' => 'Enforce assignment completion', 'type' => 'boolean', 'default' => '0'],
+            'enforce_quiz_completion' => ['label' => 'Enforce quiz completion', 'type' => 'boolean', 'default' => '0'],
+            'prevent_skipping_videos' => ['label' => 'Prevent Skipping Videos', 'type' => 'boolean', 'default' => '0'],
+        ],
+        'seo' => [
+            'meta_description' => ['label' => 'Meta Description', 'type' => 'textarea', 'default' => ''],
+            'meta_keywords' => ['label' => 'Meta Keywords', 'type' => 'textarea', 'default' => ''],
+            'meta_image' => ['label' => 'Meta Image URL', 'type' => 'text', 'default' => ''],
         ],
         'communication' => [
             'site_email'    => ['label' => 'Contact Email',       'type' => 'text', 'default' => ''],
@@ -97,6 +119,8 @@ class SettingsController extends Controller
     public function index(Request $request)
     {
         $activeTab = $request->get('tab', 'general');
+        $knownTabs = ['general', 'signup', 'course-progress', 'badges', 'badge-assignments', 'categories', 'communication', 'email-template', 'mail', 'members', 'payment', 'payment-gateways', 'transactions', 'coupons', 'storage', 'google-calendar', 'google-meet', 'zoom', 'raven', 'branding', 'sidebar', 'seo'];
+        if (!in_array($activeTab, $knownTabs, true)) $activeTab = 'general';
         $settings  = Setting::allKeyed();
         $schema    = $this->schema;
         $categories = $activeTab === 'categories'
