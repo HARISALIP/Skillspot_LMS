@@ -45,6 +45,8 @@ class CourseManagementIndexTest extends TestCase
             ->assertSee('title="Image / Gallery"', false)
             ->assertSee('id="courseEditorImage"', false)
             ->assertSee('id="courseEditorVideo"', false)
+            ->assertSee('id="courseEditorUrlPopover"', false)
+            ->assertDontSee('window.prompt', false)
             ->assertSeeText('Import via ZIP')
             ->assertSeeText('Learning')
             ->assertSeeText('Administrator')
@@ -110,7 +112,7 @@ class CourseManagementIndexTest extends TestCase
             'modal_create' => 1,
             'title' => 'Modal Course',
             'short_introduction' => 'A short introduction',
-            'description' => '<p>Course details</p><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><script>alert(1)</script>',
+            'description' => '<p>Course details</p><p style="text-align: center;">Centered</p><font color="#ff0000">Red</font><strike>Removed text</strike><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><script>alert(1)</script>',
             'new_category' => 'Framework',
             'level' => 'beginner',
             'language' => 'en',
@@ -126,6 +128,9 @@ class CourseManagementIndexTest extends TestCase
         $this->assertStringContainsString('<p>Course details</p>', $course->description);
         $this->assertStringContainsString('<video', $course->description);
         $this->assertStringContainsString('<iframe', $course->description);
+        $this->assertStringContainsString('style="text-align: center;"', $course->description);
+        $this->assertStringContainsString('<font color="#ff0000">Red</font>', $course->description);
+        $this->assertStringContainsString('<strike>Removed text</strike>', $course->description);
         $this->assertStringNotContainsString('<script>', $course->description);
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
     }

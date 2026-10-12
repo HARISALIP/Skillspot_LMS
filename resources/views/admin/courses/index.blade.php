@@ -26,12 +26,16 @@
   .frappe-rich-editor { --editor-bg:#fff; --editor-border:#d1d5db; --editor-text:#374151; --editor-muted:#6b7280; --editor-hover:#f3f4f6; --editor-focus:#2563eb; overflow:hidden; border:1px solid var(--editor-border); border-radius:12px; background:var(--editor-bg); color:var(--editor-text); }
   body[data-theme="dark"] .frappe-rich-editor { --editor-bg:#171717; --editor-border:#444; --editor-text:#d4d4d4; --editor-muted:#a3a3a3; --editor-hover:#292929; --editor-focus:#f5f5f5; }
   .frappe-rich-editor:focus-within { border-color:var(--editor-focus); box-shadow:0 0 0 1px var(--editor-focus); }
-  .frappe-rich-editor__toolbar { display:flex; min-height:60px; flex-wrap:wrap; align-items:center; gap:2px; border-bottom:1px solid var(--editor-border); padding:5px 8px; }
+  .frappe-rich-editor__toolbar { position:relative; display:flex; min-height:60px; flex-wrap:wrap; align-items:center; gap:2px; border-bottom:1px solid var(--editor-border); padding:5px 8px; }
   .frappe-rich-editor__tool { display:inline-flex; height:24px; min-width:24px; align-items:center; justify-content:center; border-radius:4px; padding:0 5px; color:var(--editor-muted); font-size:12px; line-height:1; }
   .frappe-rich-editor__tool:hover, .frappe-rich-editor__tool:focus-visible { background:var(--editor-hover); color:var(--editor-focus); outline:none; }
   .frappe-rich-editor__heading { min-width:auto; font-size:13px; font-weight:600; }
   .frappe-rich-editor__divider { width:1px; height:16px; margin:0 3px; background:var(--editor-border); }
   .frappe-rich-editor__history { display:flex; flex-basis:100%; gap:2px; }
+  .frappe-rich-editor__popover { position:absolute; z-index:20; display:flex; width:240px; gap:4px; border:1px solid var(--editor-border); border-radius:8px; background:var(--editor-bg); padding:4px; box-shadow:0 8px 24px rgb(0 0 0 / .22); }
+  .frappe-rich-editor__popover[hidden] { display:none; }
+  .frappe-rich-editor__popover input { min-width:0; flex:1; border:1px solid var(--editor-border); border-radius:6px; background:var(--editor-bg); color:var(--editor-text); padding:5px 8px; font-size:12px; outline:none; }
+  .frappe-rich-editor__popover input:focus { border-color:var(--editor-focus); }
   .frappe-rich-editor__content { min-height:160px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
   .frappe-rich-editor__content:empty::before { content:attr(data-placeholder); color:var(--editor-muted); pointer-events:none; }
   .frappe-rich-editor__content :where(img, video, iframe) { max-width:100%; margin:.75rem 0; }
@@ -230,6 +234,10 @@
             <span class="frappe-rich-editor__divider"></span>
             <button type="button" class="frappe-rich-editor__tool" data-editor-action="rule" title="Horizontal Rule"><i class="fa-solid fa-minus"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="table" title="Table"><i class="fa-solid fa-table"></i></button>
             <div class="frappe-rich-editor__history"><button type="button" class="frappe-rich-editor__tool" data-editor-command="undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button></div>
+            <div id="courseEditorUrlPopover" class="frappe-rich-editor__popover" role="dialog" aria-label="Edit link" hidden>
+              <input id="courseEditorUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com" aria-label="URL">
+              <button id="courseEditorUrlApply" type="button" class="frappe-rich-editor__tool" aria-label="Apply URL"><i class="fa-solid fa-check"></i></button>
+            </div>
           </div>
           <div id="courseEditor" contenteditable="true" class="frappe-rich-editor__content" data-placeholder="Write a detailed description of your course" aria-labelledby="courseDescriptionLabel"></div>
           <input id="courseEditorImage" type="file" accept="image/*" multiple class="sr-only">
@@ -414,12 +422,28 @@
   const courseEditorColor = document.getElementById('courseEditorColor');
   const courseEditorImage = document.getElementById('courseEditorImage');
   const courseEditorVideo = document.getElementById('courseEditorVideo');
+  const courseEditorUrlPopover = document.getElementById('courseEditorUrlPopover');
+  const courseEditorUrl = document.getElementById('courseEditorUrl');
+  const courseEditorUrlApply = document.getElementById('courseEditorUrlApply');
+  let editorRange = null;
+  let editorUrlAction = null;
+  const saveEditorRange = () => {
+    const selection = window.getSelection();
+    if (selection.rangeCount && courseEditor.contains(selection.anchorNode)) editorRange = selection.getRangeAt(0).cloneRange();
+  };
+  const restoreEditorRange = () => {
+    if (!editorRange) return;
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(editorRange);
+  };
   const runEditorCommand = (command, value = null) => {
+    restoreEditorRange();
     courseEditor.focus();
     document.execCommand(command, false, value);
+    saveEditorRange();
   };
-  const editorUrl = (message) => {
-    const value = window.prompt(message);
+  const editorUrl = (value) => {
     if (!value) return null;
     try {
       const url = new URL(value, window.location.origin);
@@ -427,6 +451,21 @@
     } catch (_) {
       return null;
     }
+  };
+  const openEditorUrlPopover = (action, button) => {
+    saveEditorRange();
+    editorUrlAction = action;
+    courseEditorUrlPopover.setAttribute('aria-label', action === 'link' ? 'Edit link' : 'Insert embed');
+    courseEditorUrl.placeholder = action === 'link' ? 'https://example.com' : 'https://youtube.com/watch?v=…';
+    courseEditorUrl.value = '';
+    courseEditorUrlPopover.hidden = false;
+    courseEditorUrlPopover.style.left = `${Math.min(button.offsetLeft, button.parentElement.clientWidth - 248)}px`;
+    courseEditorUrlPopover.style.top = `${button.offsetTop + button.offsetHeight + 4}px`;
+    courseEditorUrl.focus();
+  };
+  const closeEditorUrlPopover = () => {
+    courseEditorUrlPopover.hidden = true;
+    editorUrlAction = null;
   };
   const insertEditorFrame = (url) => {
     const parsed = new URL(url);
@@ -469,24 +508,43 @@
     button.addEventListener('click', () => {
     const command = button.dataset.editorCommand;
     const action = button.dataset.editorAction;
-    if (action === 'link') {
-      const url = editorUrl('Paste the link URL');
-      if (url) runEditorCommand('createLink', url);
-      return;
-    }
+    if (action === 'link' || action === 'embed') return openEditorUrlPopover(action, button);
     if (action === 'color') return courseEditorColor.click();
     if (action === 'image') return courseEditorImage.click();
     if (action === 'video') return courseEditorVideo.click();
-    if (action === 'embed') {
-      const url = editorUrl('Paste the embed URL');
-      if (url) insertEditorFrame(url);
-      return;
-    }
     if (action === 'rule') return runEditorCommand('insertHTML', '<hr>');
     if (action === 'table') return runEditorCommand('insertHTML', '<table><tbody><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></tbody></table>');
     runEditorCommand(command, button.dataset.editorValue || null);
     });
-  }));
+  });
+  document.addEventListener('selectionchange', saveEditorRange);
+  const applyEditorUrl = () => {
+    const url = editorUrl(courseEditorUrl.value.trim());
+    if (!url) {
+      courseEditorUrl.setCustomValidity('Enter a valid http or https URL.');
+      courseEditorUrl.reportValidity();
+      return;
+    }
+    courseEditorUrl.setCustomValidity('');
+    if (editorUrlAction === 'link') runEditorCommand('createLink', url);
+    else insertEditorFrame(url);
+    closeEditorUrlPopover();
+  };
+  courseEditorUrlApply?.addEventListener('click', applyEditorUrl);
+  courseEditorUrl?.addEventListener('input', () => courseEditorUrl.setCustomValidity(''));
+  courseEditorUrl?.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyEditorUrl();
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeEditorUrlPopover();
+      restoreEditorRange();
+      courseEditor.focus();
+    }
+  });
   courseEditorColor?.addEventListener('input', () => runEditorCommand('foreColor', courseEditorColor.value));
   courseEditorImage?.addEventListener('change', async () => {
     try { await uploadEditorFiles([...courseEditorImage.files], 'image'); } catch (error) { window.alert(error.message); }
