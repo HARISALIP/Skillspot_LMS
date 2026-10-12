@@ -74,7 +74,7 @@ $tabs = [
 <div class="settings-workspace settings-shell flex flex-col overflow-hidden lg:flex-row">
 
   {{-- Sidebar tabs --}}
-  <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-64 lg:border-b-0 lg:border-r overflow-y-auto">
+  <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-[220px] lg:border-b-0 lg:border-r overflow-y-auto">
     <div class="lg:hidden flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1">
       @foreach($tabs as $key => $tab)
       <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
@@ -85,16 +85,16 @@ $tabs = [
       @endforeach
     </div>
     <div class="hidden lg:block">
-      <nav class="px-2 pb-4 pt-3 space-y-0.5">
+      <nav class="space-y-4 p-2">
         @php $lastGroup = null; @endphp
         @foreach($tabs as $key => $tab)
         @if($lastGroup !== $tab['group'])
-          <p class="px-2 pt-3 pb-1 text-xs font-medium text-gray-400">{{ $tab['group'] }}</p>
+          <p class="px-2 text-xs font-medium text-gray-400">{{ $tab['group'] }}</p>
           @php $lastGroup = $tab['group']; @endphp
         @endif
         <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
-           class="settings-nav-item {{ $activeTab === $key ? 'is-active' : '' }} flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition font-medium">
-          <span class="w-5 text-center text-gray-400">
+           class="settings-nav-item {{ $activeTab === $key ? 'is-active' : '' }} flex h-7 items-center gap-2 rounded-md px-2 text-[14px] transition font-medium">
+          <span class="w-4 text-center text-gray-400">
             <i class="{{ $tab['fa'] }} text-xs"></i>
           </span>
           <span>{{ $tab['label'] }}</span>
@@ -111,7 +111,7 @@ $tabs = [
   <div class="settings-content relative flex-1 min-w-0">
     <div class="min-h-full overflow-hidden">
 
-      <div class="absolute right-4 top-4 z-10">
+      <div class="absolute right-1 top-1 z-10">
         @if(request()->boolean('embed'))
           <button type="button" onclick="window.parent.postMessage('skillspot:close-settings', window.location.origin)" aria-label="Close settings" class="rounded-lg p-2 text-gray-400 transition hover:bg-gray-700 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
         @else
@@ -126,7 +126,7 @@ $tabs = [
       <form method="POST" action="{{ route('admin.settings.save', array_merge(['group' => $activeTab], $settingsQuery)) }}" id="settingsForm">
         @csrf
       @endif
-        <div class="relative p-6 space-y-5">
+        <div class="relative space-y-6 p-8">
 
           {{-- LINKED MANAGEMENT AREA --}}
           @if($activeTab === 'categories')
@@ -173,10 +173,10 @@ $tabs = [
           {{-- GENERAL --}}
           @elseif($activeTab === 'general')
           <section class="space-y-4 pr-10">
-            <h2 class="text-lg font-bold text-gray-900">Preferences</h2>
+            <h2 class="text-base font-semibold text-gray-900">Preferences</h2>
             <div class="divide-y divide-gray-200">
               @foreach(['system_language', 'system_timezone', 'text_direction'] as $key)
-              <div class="grid gap-3 py-4 md:grid-cols-[1fr_12rem] md:items-center">
+              <div class="grid gap-4 py-3 md:grid-cols-[1fr_12rem] md:items-center">
                 <div>
                   <p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p>
                   <p class="mt-1 text-xs text-gray-500">{{ match($key) {'system_language' => 'The language this site falls back to.', 'system_timezone' => 'The timezone new courses and batches start from.', default => 'Auto follows the language of the site.'} }}</p>
@@ -187,11 +187,11 @@ $tabs = [
             </div>
           </section>
 
-          <section class="space-y-4 pt-5">
-            <h2 class="text-lg font-bold text-gray-900">Access &amp; Availability</h2>
+          <section class="space-y-4 pt-6">
+            <h2 class="text-base font-semibold text-gray-900">Access &amp; Availability</h2>
             <div class="divide-y divide-gray-200">
               @foreach(['allow_guest_access' => 'If enabled, visitors can access the course and batch lists without logging in.', 'disable_pwa' => 'If checked, users will not be able to install the application as a Progressive Web App.', 'allow_job_posting' => 'If enabled, users can post job openings on the job board. Else only admins can post jobs.'] as $key => $description)
-              <label class="flex cursor-pointer items-center justify-between gap-6 py-4">
+              <label class="flex cursor-pointer items-center justify-between gap-4 py-3">
                 <div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div>
                 <span class="relative shrink-0"><input type="checkbox" name="{{ $key }}" class="peer sr-only" {{ ($settings[$key] ?? $schema['general'][$key]['default']) === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span>
               </label>
@@ -199,9 +199,9 @@ $tabs = [
             </div>
           </section>
 
-          <section class="space-y-4 pt-5"><h2 class="text-lg font-bold text-gray-900">Evaluations</h2><div class="divide-y divide-gray-200"><label class="flex cursor-pointer items-center justify-between gap-6 py-4"><div><p class="text-sm font-semibold text-gray-900">Send calendar invite for evaluations</p><p class="mt-1 text-xs text-gray-500">If enabled, sends a calendar invite to the student for evaluations.</p></div><span class="relative shrink-0"><input type="checkbox" name="send_evaluation_invites" class="peer sr-only" {{ ($settings['send_evaluation_invites'] ?? '0') === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label></div></section>
+          <section class="space-y-4 pt-6"><h2 class="text-base font-semibold text-gray-900">Evaluations</h2><div class="divide-y divide-gray-200"><label class="flex cursor-pointer items-center justify-between gap-4 py-3"><div><p class="text-sm font-semibold text-gray-900">Send calendar invite for evaluations</p><p class="mt-1 text-xs text-gray-500">If enabled, sends a calendar invite to the student for evaluations.</p></div><span class="relative shrink-0"><input type="checkbox" name="send_evaluation_invites" class="peer sr-only" {{ ($settings['send_evaluation_invites'] ?? '0') === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label></div></section>
 
-          <section class="space-y-4 pt-5"><h2 class="text-lg font-bold text-gray-900">Notifications</h2><div class="divide-y divide-gray-200">@foreach(['published_course_notification' => 'Notify members when a new course is published.', 'published_batch_notification' => 'Notify members when a new batch is published.'] as $key => $description)<div class="grid gap-3 py-4 md:grid-cols-[1fr_12rem] md:items-center"><div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div><x-settings-field :field="$key" :meta="$schema['general'][$key]" :value="$settings[$key] ?? $schema['general'][$key]['default']"/></div>@endforeach</div></section>
+          <section class="space-y-4 pt-6"><h2 class="text-base font-semibold text-gray-900">Notifications</h2><div class="divide-y divide-gray-200">@foreach(['published_course_notification' => 'Notify members when a new course is published.', 'published_batch_notification' => 'Notify members when a new batch is published.'] as $key => $description)<div class="grid gap-4 py-3 md:grid-cols-[1fr_12rem] md:items-center"><div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div><x-settings-field :field="$key" :meta="$schema['general'][$key]" :value="$settings[$key] ?? $schema['general'][$key]['default']"/></div>@endforeach</div></section>
 
           {{-- COMMUNICATION --}}
           @elseif($activeTab === 'communication')
