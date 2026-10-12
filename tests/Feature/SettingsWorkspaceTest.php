@@ -60,7 +60,12 @@ class SettingsWorkspaceTest extends TestCase
             ->assertDontSeeText('Configure your learning platform')
             ->assertDontSee('Main navigation')
             ->assertSee('data-settings-tab="signup"', false)
-            ->assertSee('skillspot:navigate-settings', false);
+            ->assertSee('skillspot:navigate-settings', false)
+            ->assertSee('data-theme="dark"', false);
+
+        $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1, 'theme' => 'light']))
+            ->assertOk()
+            ->assertSee('data-theme="light"', false);
     }
 
     public function test_management_panels_can_render_without_the_main_sidebar(): void

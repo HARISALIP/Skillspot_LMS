@@ -5,25 +5,27 @@
 
 @push('styles')
 <style>
-  html,body,main { height:100%; background:#202020!important; }
+  html,body,main { height:100%; background:#fff!important; }
   main { padding:0!important; overflow:hidden!important; }
-  .settings-workspace { height:100vh; min-height:0; background:#202020; color:#d0d0d0; }
+  .settings-workspace { height:100vh; min-height:0; background:#fff; color:#1f2937; }
   .settings-sidebar,.settings-content { scrollbar-width:none; -ms-overflow-style:none; }
   .settings-sidebar::-webkit-scrollbar,.settings-content::-webkit-scrollbar { display:none; }
-  .settings-sidebar { height:100%; min-height:0; background:#242424; border-color:#383838; overflow-y:auto; }
+  .settings-sidebar { height:100%; min-height:0; overflow-y:auto; }
   .settings-content { min-height:0; overflow-y:auto; }
-  .settings-workspace .text-gray-900 { color:#e4e4e4!important; }
-  .settings-workspace .text-gray-800,.settings-workspace .text-gray-700 { color:#d0d0d0!important; }
-  .settings-workspace .text-gray-600,.settings-workspace .text-gray-500,.settings-workspace .text-gray-400 { color:#a3a3a3!important; }
-  .settings-workspace .border-gray-100,.settings-workspace .border-gray-200 { border-color:#383838!important; }
-  .settings-workspace .bg-white,.settings-workspace .bg-gray-50,.settings-workspace .bg-gray-100 { background-color:#292929!important; }
-  .settings-workspace input,.settings-workspace select,.settings-workspace textarea { background:#2a2a2a!important; border-color:#3e3e3e!important; color:#e4e4e4!important; }
-  .settings-workspace option { background:#2a2a2a; color:#e4e4e4; }
-  .settings-workspace .settings-nav-item { color:#d0d0d0; }
-  .settings-workspace .settings-nav-item:hover { background:#303030; color:#fff; }
-  .settings-workspace .settings-nav-item.is-active { background:#414141; color:#fff; }
-  .settings-workspace .settings-panel-head,.settings-workspace .settings-save-bar { background:#202020!important; border-color:#383838!important; }
-  .settings-workspace dialog { background:#242424; color:#e4e4e4; }
+  .settings-workspace[data-theme="dark"] { background:#202020; color:#d0d0d0; }
+  .settings-workspace[data-theme="dark"] .settings-sidebar { background:#242424; border-color:#383838; }
+  .settings-workspace[data-theme="dark"] .text-gray-900 { color:#e4e4e4!important; }
+  .settings-workspace[data-theme="dark"] .text-gray-800,.settings-workspace[data-theme="dark"] .text-gray-700 { color:#d0d0d0!important; }
+  .settings-workspace[data-theme="dark"] .text-gray-600,.settings-workspace[data-theme="dark"] .text-gray-500,.settings-workspace[data-theme="dark"] .text-gray-400 { color:#a3a3a3!important; }
+  .settings-workspace[data-theme="dark"] .border-gray-100,.settings-workspace[data-theme="dark"] .border-gray-200 { border-color:#383838!important; }
+  .settings-workspace[data-theme="dark"] .bg-white,.settings-workspace[data-theme="dark"] .bg-gray-50,.settings-workspace[data-theme="dark"] .bg-gray-100 { background-color:#292929!important; }
+  .settings-workspace[data-theme="dark"] input,.settings-workspace[data-theme="dark"] select,.settings-workspace[data-theme="dark"] textarea { background:#2a2a2a!important; border-color:#3e3e3e!important; color:#e4e4e4!important; }
+  .settings-workspace[data-theme="dark"] option { background:#2a2a2a; color:#e4e4e4; }
+  .settings-workspace[data-theme="dark"] .settings-nav-item { color:#d0d0d0; }
+  .settings-workspace[data-theme="dark"] .settings-nav-item:hover { background:#303030; color:#fff; }
+  .settings-workspace[data-theme="dark"] .settings-nav-item.is-active { background:#414141; color:#fff; }
+  .settings-workspace[data-theme="dark"] .settings-panel-head,.settings-workspace[data-theme="dark"] .settings-save-bar { background:#202020!important; border-color:#383838!important; }
+  .settings-workspace[data-theme="dark"] dialog { background:#242424; color:#e4e4e4; }
 </style>
 @endpush
 
@@ -71,7 +73,7 @@ $tabs = [
 </div>
 @endif
 
-<div class="settings-workspace settings-shell flex flex-col overflow-hidden lg:flex-row">
+<div class="settings-workspace settings-shell flex flex-col overflow-hidden lg:flex-row" data-theme="{{ request('theme') === 'light' ? 'light' : 'dark' }}">
 
   {{-- Sidebar tabs --}}
   <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-[220px] lg:border-b-0 lg:border-r overflow-y-auto">
@@ -172,36 +174,40 @@ $tabs = [
 
           {{-- GENERAL --}}
           @elseif($activeTab === 'general')
-          <section class="space-y-4 pr-10">
-            <h2 class="text-base font-semibold text-gray-900">Preferences</h2>
+          <section class="space-y-2 pr-10">
+            <h2 class="text-sm font-semibold text-gray-900">Preferences</h2>
             <div class="divide-y divide-gray-200">
               @foreach(['system_language', 'system_timezone', 'text_direction'] as $key)
-              <div class="grid gap-4 py-3 md:grid-cols-[1fr_12rem] md:items-center">
+              <div class="grid gap-3 py-2 md:grid-cols-[1fr_12rem] md:items-center">
                 <div>
-                  <p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p>
-                  <p class="mt-1 text-xs text-gray-500">{{ match($key) {'system_language' => 'The language this site falls back to.', 'system_timezone' => 'The timezone new courses and batches start from.', default => 'Auto follows the language of the site.'} }}</p>
+                  <p class="text-xs font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p>
+                  <p class="mt-0.5 text-[11px] leading-tight text-gray-500">{{ match($key) {'system_language' => 'The language this site falls back to.', 'system_timezone' => 'The timezone new courses and batches start from.', default => 'Auto follows the language of the site.'} }}</p>
                 </div>
-                <x-settings-field :field="$key" :meta="$schema['general'][$key]" :value="$settings[$key] ?? $schema['general'][$key]['default']"/>
+                <select name="{{ $key }}" class="w-48 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                  @foreach($schema['general'][$key]['options'] as $optionValue => $optionLabel)
+                  <option value="{{ $optionValue }}" @selected(old($key, $settings[$key] ?? $schema['general'][$key]['default']) === $optionValue)>{{ $optionLabel }}</option>
+                  @endforeach
+                </select>
               </div>
               @endforeach
             </div>
           </section>
 
-          <section class="space-y-4 pt-6">
-            <h2 class="text-base font-semibold text-gray-900">Access &amp; Availability</h2>
+          <section class="space-y-2 pt-4">
+            <h2 class="text-sm font-semibold text-gray-900">Access &amp; Availability</h2>
             <div class="divide-y divide-gray-200">
               @foreach(['allow_guest_access' => 'If enabled, visitors can access the course and batch lists without logging in.', 'disable_pwa' => 'If checked, users will not be able to install the application as a Progressive Web App.', 'allow_job_posting' => 'If enabled, users can post job openings on the job board. Else only admins can post jobs.'] as $key => $description)
-              <label class="flex cursor-pointer items-center justify-between gap-4 py-3">
-                <div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div>
+              <label class="flex cursor-pointer items-center justify-between gap-3 py-2">
+                <div><p class="text-xs font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-0.5 text-[11px] leading-tight text-gray-500">{{ $description }}</p></div>
                 <span class="relative shrink-0"><input type="checkbox" name="{{ $key }}" class="peer sr-only" {{ ($settings[$key] ?? $schema['general'][$key]['default']) === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span>
               </label>
               @endforeach
             </div>
           </section>
 
-          <section class="space-y-4 pt-6"><h2 class="text-base font-semibold text-gray-900">Evaluations</h2><div class="divide-y divide-gray-200"><label class="flex cursor-pointer items-center justify-between gap-4 py-3"><div><p class="text-sm font-semibold text-gray-900">Send calendar invite for evaluations</p><p class="mt-1 text-xs text-gray-500">If enabled, sends a calendar invite to the student for evaluations.</p></div><span class="relative shrink-0"><input type="checkbox" name="send_evaluation_invites" class="peer sr-only" {{ ($settings['send_evaluation_invites'] ?? '0') === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label></div></section>
+          <section class="space-y-2 pt-4"><h2 class="text-sm font-semibold text-gray-900">Evaluations</h2><div class="divide-y divide-gray-200"><label class="flex cursor-pointer items-center justify-between gap-3 py-2"><div><p class="text-xs font-semibold text-gray-900">Send calendar invite for evaluations</p><p class="mt-0.5 text-[11px] leading-tight text-gray-500">If enabled, sends a calendar invite to the student for evaluations.</p></div><span class="relative shrink-0"><input type="checkbox" name="send_evaluation_invites" class="peer sr-only" {{ ($settings['send_evaluation_invites'] ?? '0') === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label></div></section>
 
-          <section class="space-y-4 pt-6"><h2 class="text-base font-semibold text-gray-900">Notifications</h2><div class="divide-y divide-gray-200">@foreach(['published_course_notification' => 'Notify members when a new course is published.', 'published_batch_notification' => 'Notify members when a new batch is published.'] as $key => $description)<div class="grid gap-4 py-3 md:grid-cols-[1fr_12rem] md:items-center"><div><p class="text-sm font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-1 text-xs text-gray-500">{{ $description }}</p></div><x-settings-field :field="$key" :meta="$schema['general'][$key]" :value="$settings[$key] ?? $schema['general'][$key]['default']"/></div>@endforeach</div></section>
+          <section class="space-y-2 pt-4"><h2 class="text-sm font-semibold text-gray-900">Notifications</h2><div class="divide-y divide-gray-200">@foreach(['published_course_notification' => 'Notify members when a new course is published.', 'published_batch_notification' => 'Notify members when a new batch is published.'] as $key => $description)<div class="grid gap-3 py-2 md:grid-cols-[1fr_12rem] md:items-center"><div><p class="text-xs font-semibold text-gray-900">{{ $schema['general'][$key]['label'] }}</p><p class="mt-0.5 text-[11px] leading-tight text-gray-500">{{ $description }}</p></div><select name="{{ $key }}" class="w-48 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500">@foreach($schema['general'][$key]['options'] as $optionValue => $optionLabel)<option value="{{ $optionValue }}" @selected(old($key, $settings[$key] ?? $schema['general'][$key]['default']) === $optionValue)>{{ $optionLabel }}</option>@endforeach</select></div>@endforeach</div></section>
 
           {{-- COMMUNICATION --}}
           @elseif($activeTab === 'communication')
