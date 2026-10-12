@@ -510,7 +510,7 @@ class CoursesController extends Controller
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
-        $allowedTags = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 's', 'strike', 'font', 'ul', 'ol', 'li', 'a', 'img', 'video', 'iframe', 'blockquote', 'pre', 'hr', 'table', 'tbody', 'tr', 'td', 'div'];
+        $allowedTags = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 's', 'strike', 'font', 'span', 'mark', 'code', 'ul', 'ol', 'li', 'a', 'img', 'video', 'iframe', 'blockquote', 'pre', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div'];
         foreach (iterator_to_array($document->getElementsByTagName('*')) as $node) {
             if ($node->getAttribute('id') === 'course-description') continue;
             if (!in_array($node->tagName, $allowedTags, true)) {
@@ -523,18 +523,24 @@ class CoursesController extends Controller
                     && !preg_match('/^(?:javascript|data|vbscript):/i', $attribute->value);
                 $isSafeColor = $node->tagName === 'font' && $attribute->name === 'color'
                     && preg_match('/^#[0-9a-f]{6}$/i', $attribute->value);
-                $isSafeAlignment = $attribute->name === 'style'
-                    && preg_match('/^text-align:\s*(?:left|center|right);?$/i', trim($attribute->value));
-                if (!in_array($attribute->name, ['alt', 'target', 'rel', 'title', 'loading', 'allowfullscreen', 'controls', 'preload'], true) && !$isSafeUrl && !$isSafeColor && !$isSafeAlignment) $node->removeAttribute($attribute->name);
+                $styleRules = array_values(array_filter(array_map('trim', explode(';', $attribute->value))));
+                $isSafeStyle = $attribute->name === 'style' && $styleRules !== [] && collect($styleRules)->every(fn ($rule) =>
+                    preg_match('/^text-align:\s*(?:left|center|right)$/i', $rule)
+                    || preg_match('/^(?:color|background-color):\s*(?:#[0-9a-f]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i', $rule)
+                );
+                if (!in_array($attribute->name, ['alt', 'target', 'rel', 'title', 'loading', 'allowfullscreen', 'controls', 'preload'], true) && !$isSafeUrl && !$isSafeColor && !$isSafeStyle) $node->removeAttribute($attribute->name);
             }
             if ($node->tagName === 'a' && $node->hasAttribute('target')) $node->setAttribute('rel', 'noopener');
             if ($node->tagName === 'iframe') {
-                if (!$node->hasAttribute('src')) {
+                $host = strtolower(parse_url($node->getAttribute('src'), PHP_URL_HOST) ?: '');
+                $allowedEmbedHosts = ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'vimeo.com', 'player.vimeo.com', 'codepen.io', 'codesandbox.io', 'figma.com', 'embed.figma.com', 'docs.google.com', 'drive.google.com', 'notion.so'];
+                $allowedHost = collect($allowedEmbedHosts)->contains(fn ($domain) => $host === $domain || str_ends_with($host, '.'.$domain));
+                if (!$node->hasAttribute('src') || !$allowedHost) {
                     $node->parentNode?->removeChild($node);
                     continue;
                 }
                 $node->setAttribute('loading', 'lazy');
-                $node->setAttribute('sandbox', 'allow-scripts allow-popups allow-presentation');
+                $node->setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation');
             }
         }
 

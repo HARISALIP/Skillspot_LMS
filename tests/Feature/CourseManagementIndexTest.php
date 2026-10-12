@@ -46,6 +46,12 @@ class CourseManagementIndexTest extends TestCase
             ->assertSee('id="courseEditorImage"', false)
             ->assertSee('id="courseEditorVideo"', false)
             ->assertSee('id="courseEditorUrlPopover"', false)
+            ->assertSee('id="courseEditorColorPopover"', false)
+            ->assertSee('id="courseEditorTableGrid"', false)
+            ->assertSee('id="courseEditorEmbedModal"', false)
+            ->assertSeeText('Insert Embed')
+            ->assertSeeText('Text Color')
+            ->assertSeeText('Background Color')
             ->assertDontSee('window.prompt', false)
             ->assertSeeText('Import via ZIP')
             ->assertSeeText('Learning')
@@ -112,7 +118,7 @@ class CourseManagementIndexTest extends TestCase
             'modal_create' => 1,
             'title' => 'Modal Course',
             'short_introduction' => 'A short introduction',
-            'description' => '<p>Course details</p><p style="text-align: center;">Centered</p><font color="#ff0000">Red</font><strike>Removed text</strike><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><script>alert(1)</script>',
+            'description' => '<p>Course details</p><p style="text-align: center;">Centered</p><font color="#ff0000">Red</font><span style="background-color: rgb(254, 202, 202);">Highlighted</span><code>inline()</code><strike>Removed text</strike><table><thead><tr><th>Heading</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><iframe src="https://evil.example.test/embed"></iframe><script>alert(1)</script>',
             'new_category' => 'Framework',
             'level' => 'beginner',
             'language' => 'en',
@@ -130,7 +136,11 @@ class CourseManagementIndexTest extends TestCase
         $this->assertStringContainsString('<iframe', $course->description);
         $this->assertStringContainsString('style="text-align: center;"', $course->description);
         $this->assertStringContainsString('<font color="#ff0000">Red</font>', $course->description);
+        $this->assertStringContainsString('background-color: rgb(254, 202, 202)', $course->description);
+        $this->assertStringContainsString('<code>inline()</code>', $course->description);
+        $this->assertStringContainsString('<thead><tr><th>Heading</th></tr></thead>', $course->description);
         $this->assertStringContainsString('<strike>Removed text</strike>', $course->description);
+        $this->assertStringNotContainsString('evil.example.test', $course->description);
         $this->assertStringNotContainsString('<script>', $course->description);
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
     }

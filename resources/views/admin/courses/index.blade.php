@@ -23,12 +23,12 @@
 @push('styles')
 <style>
   .course-tab-active { background: #fff; color: #111827; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
-  .frappe-rich-editor { --editor-bg:#fff; --editor-border:#d1d5db; --editor-text:#374151; --editor-muted:#6b7280; --editor-hover:#f3f4f6; --editor-focus:#2563eb; overflow:hidden; border:1px solid var(--editor-border); border-radius:12px; background:var(--editor-bg); color:var(--editor-text); }
+  .frappe-rich-editor { --editor-bg:#fff; --editor-border:#d1d5db; --editor-text:#374151; --editor-muted:#6b7280; --editor-hover:#f3f4f6; --editor-focus:#2563eb; overflow:visible; border:1px solid var(--editor-border); border-radius:12px; background:var(--editor-bg); color:var(--editor-text); }
   body[data-theme="dark"] .frappe-rich-editor { --editor-bg:#171717; --editor-border:#444; --editor-text:#d4d4d4; --editor-muted:#a3a3a3; --editor-hover:#292929; --editor-focus:#f5f5f5; }
   .frappe-rich-editor:focus-within { border-color:var(--editor-focus); box-shadow:0 0 0 1px var(--editor-focus); }
   .frappe-rich-editor__toolbar { position:relative; display:flex; min-height:60px; flex-wrap:wrap; align-items:center; gap:2px; border-bottom:1px solid var(--editor-border); padding:5px 8px; }
   .frappe-rich-editor__tool { display:inline-flex; height:24px; min-width:24px; align-items:center; justify-content:center; border-radius:4px; padding:0 5px; color:var(--editor-muted); font-size:12px; line-height:1; }
-  .frappe-rich-editor__tool:hover, .frappe-rich-editor__tool:focus-visible { background:var(--editor-hover); color:var(--editor-focus); outline:none; }
+  .frappe-rich-editor__tool:hover, .frappe-rich-editor__tool:focus-visible, .frappe-rich-editor__tool.is-active { background:var(--editor-hover); color:var(--editor-focus); outline:none; }
   .frappe-rich-editor__heading { min-width:auto; font-size:13px; font-weight:600; }
   .frappe-rich-editor__divider { width:1px; height:16px; margin:0 3px; background:var(--editor-border); }
   .frappe-rich-editor__history { display:flex; flex-basis:100%; gap:2px; }
@@ -36,12 +36,31 @@
   .frappe-rich-editor__popover[hidden] { display:none; }
   .frappe-rich-editor__popover input { min-width:0; flex:1; border:1px solid var(--editor-border); border-radius:6px; background:var(--editor-bg); color:var(--editor-text); padding:5px 8px; font-size:12px; outline:none; }
   .frappe-rich-editor__popover input:focus { border-color:var(--editor-focus); }
+  .frappe-rich-editor__palette { display:block; width:206px; padding:10px; }
+  .frappe-rich-editor__palette-label { margin-bottom:8px; color:var(--editor-muted); font-size:12px; font-weight:400; }
+  .frappe-rich-editor__swatches { display:grid; grid-template-columns:repeat(6, 24px); gap:8px; }
+  .frappe-rich-editor__swatch { display:flex; width:24px; height:24px; align-items:center; justify-content:center; border:1px solid transparent; border-radius:4px; font-size:14px; }
+  .frappe-rich-editor__swatch:hover, .frappe-rich-editor__swatch:focus-visible { outline:2px solid var(--editor-muted); outline-offset:1px; }
+  .frappe-rich-editor__swatch[data-default] { border-color:var(--editor-border); color:var(--editor-text); }
+  .frappe-rich-editor__table-picker { display:block; width:178px; padding:10px; }
+  .frappe-rich-editor__table-grid { display:grid; grid-template-columns:repeat(8, 16px); gap:4px; }
+  .frappe-rich-editor__table-cell { width:16px; height:16px; border:1px solid var(--editor-border); border-radius:3px; background:var(--editor-bg); }
+  .frappe-rich-editor__table-cell.is-selected { border-color:var(--editor-muted); background:var(--editor-muted); }
+  .frappe-rich-editor__table-size { margin-top:10px; text-align:center; color:var(--editor-muted); font-size:12px; }
   .frappe-rich-editor__content { min-height:160px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
   .frappe-rich-editor__content:empty::before { content:attr(data-placeholder); color:var(--editor-muted); pointer-events:none; }
   .frappe-rich-editor__content :where(img, video, iframe) { max-width:100%; margin:.75rem 0; }
   .frappe-rich-editor__content iframe { min-height:220px; width:100%; border:0; }
-  .frappe-rich-editor__content table { width:100%; border-collapse:collapse; }
-  .frappe-rich-editor__content td { min-width:4rem; border:1px solid var(--editor-border); padding:.35rem; }
+  .frappe-rich-editor__content :where(ul, ol) { margin:.5rem 0; padding-left:1.5rem; }
+  .frappe-rich-editor__content ul { list-style:disc; }
+  .frappe-rich-editor__content ol { list-style:decimal; }
+  .frappe-rich-editor__content blockquote { margin:.75rem 0; border-left:2px solid var(--editor-border); padding-left:1rem; font-style:italic; }
+  .frappe-rich-editor__content code { border-radius:3px; background:var(--editor-hover); padding:2px 4px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .frappe-rich-editor__content hr { margin:1rem 0; border:0; border-top:1px solid var(--editor-border); }
+  .frappe-rich-editor__content table { width:100%; table-layout:fixed; border-collapse:collapse; }
+  .frappe-rich-editor__content :where(th, td) { min-width:4rem; border:1px solid var(--editor-border); padding:.5rem; text-align:left; }
+  .frappe-rich-editor__content th { background:var(--editor-hover); font-weight:600; }
+  .frappe-embed-modal[hidden] { display:none; }
 </style>
 @endpush
 
@@ -224,19 +243,24 @@
             <button type="button" class="frappe-rich-editor__tool frappe-rich-editor__heading" data-editor-command="formatBlock" data-editor-value="p" title="Heading">Heading</button>
             <button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="h2" title="Heading 2">H₂</button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="h3" title="Heading 3">H₃</button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="h4" title="Heading 4">H₄</button>
             <span class="frappe-rich-editor__divider"></span>
-            <button type="button" class="frappe-rich-editor__tool" data-editor-command="bold" title="Bold"><b>B</b></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="italic" title="Italic"><i>I</i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="strikeThrough" title="Strike"><s>S</s></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="link" title="Link"><i class="fa-solid fa-link"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="color" title="Font Color"><i class="fa-solid fa-a"></i></button><input id="courseEditorColor" type="color" value="#d4d4d4" class="sr-only" aria-label="Font color">
+            <button type="button" class="frappe-rich-editor__tool" data-editor-command="bold" title="Bold" aria-pressed="false"><b>B</b></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="italic" title="Italic" aria-pressed="false"><i>I</i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="strikeThrough" title="Strike" aria-pressed="false"><s>S</s></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="link" title="Link"><i class="fa-solid fa-link"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="color" title="Text and background color"><i class="fa-solid fa-a"></i></button>
             <span class="frappe-rich-editor__divider"></span>
             <button type="button" class="frappe-rich-editor__tool" data-editor-command="insertUnorderedList" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="insertOrderedList" title="Ordered List"><i class="fa-solid fa-list-ol"></i></button>
             <span class="frappe-rich-editor__divider"></span>
             <button type="button" class="frappe-rich-editor__tool" data-editor-command="justifyLeft" title="Align Left"><i class="fa-solid fa-align-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="justifyCenter" title="Align Center"><i class="fa-solid fa-align-center"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="justifyRight" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
             <span class="frappe-rich-editor__divider"></span>
-            <button type="button" class="frappe-rich-editor__tool" data-editor-action="image" title="Image / Gallery"><i class="fa-regular fa-image"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="video" title="Video"><i class="fa-solid fa-video"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="blockquote" title="Blockquote"><i class="fa-solid fa-quote-right"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="pre" title="Code"><i class="fa-solid fa-code"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="embed" title="Embed"><i class="fa-solid fa-code"></i></button>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-action="image" title="Image / Gallery"><i class="fa-regular fa-image"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="video" title="Video"><i class="fa-solid fa-video"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="blockquote" title="Blockquote"><i class="fa-solid fa-quote-right"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="code" title="Inline Code"><i class="fa-solid fa-code"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="embed" title="Embed"><i class="fa-solid fa-window-maximize"></i></button>
             <span class="frappe-rich-editor__divider"></span>
             <button type="button" class="frappe-rich-editor__tool" data-editor-action="rule" title="Horizontal Rule"><i class="fa-solid fa-minus"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="table" title="Table"><i class="fa-solid fa-table"></i></button>
             <div class="frappe-rich-editor__history"><button type="button" class="frappe-rich-editor__tool" data-editor-command="undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button></div>
             <div id="courseEditorUrlPopover" class="frappe-rich-editor__popover" role="dialog" aria-label="Edit link" hidden>
               <input id="courseEditorUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com" aria-label="URL">
               <button id="courseEditorUrlApply" type="button" class="frappe-rich-editor__tool" aria-label="Apply URL"><i class="fa-solid fa-check"></i></button>
+            </div>
+            <div id="courseEditorColorPopover" class="frappe-rich-editor__popover frappe-rich-editor__palette" role="dialog" aria-label="Text and background color" hidden></div>
+            <div id="courseEditorTablePopover" class="frappe-rich-editor__popover frappe-rich-editor__table-picker" role="dialog" aria-label="Table size, 3 rows by 3 columns" hidden>
+              <div id="courseEditorTableGrid" class="frappe-rich-editor__table-grid" role="grid"></div>
+              <div id="courseEditorTableSize" class="frappe-rich-editor__table-size">3 × 3</div>
             </div>
           </div>
           <div id="courseEditor" contenteditable="true" class="frappe-rich-editor__content" data-placeholder="Write a detailed description of your course" aria-labelledby="courseDescriptionLabel"></div>
@@ -250,6 +274,23 @@
       <button type="submit" class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700">Save</button>
     </div>
   </form>
+</div>
+
+<div id="courseEditorEmbedModal" class="frappe-embed-modal fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="courseEditorEmbedTitle" hidden>
+  <div class="w-full max-w-md rounded-2xl border border-gray-700 bg-[#202020] p-6 text-gray-100 shadow-2xl">
+    <div class="flex items-center justify-between">
+      <h3 id="courseEditorEmbedTitle" class="text-lg font-semibold">Insert Embed</h3>
+      <button id="courseEditorEmbedClose" type="button" class="rounded p-1 text-gray-300 hover:bg-white/10" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <label class="mt-6 block text-sm text-gray-400">URL or Embed Code
+      <textarea id="courseEditorEmbedInput" rows="3" class="mt-2 w-full resize-y rounded-lg border border-gray-600 bg-[#171717] px-3 py-2 text-sm text-gray-100 outline-none focus:border-gray-400" placeholder="https://youtube.com/watch?v=… or <iframe src=…>"></textarea>
+    </label>
+    <p id="courseEditorEmbedError" class="mt-2 hidden text-xs text-red-400">Please enter a supported URL or iframe embed code</p>
+    <div class="mt-6 flex justify-end gap-2">
+      <button id="courseEditorEmbedCancel" type="button" class="rounded-lg bg-gray-700 px-3 py-2 text-sm">Cancel</button>
+      <button id="courseEditorEmbedApply" type="button" disabled class="rounded-lg bg-gray-700 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:text-gray-500 enabled:bg-white enabled:text-gray-900">Insert Embed</button>
+    </div>
+  </div>
 </div>
 
 <div id="newInstructorModal" class="fixed inset-0 z-[60] hidden overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="newInstructorModalTitle">
@@ -419,14 +460,20 @@
 
   const courseEditor = document.getElementById('courseEditor');
   const courseDescription = document.getElementById('courseDescription');
-  const courseEditorColor = document.getElementById('courseEditorColor');
   const courseEditorImage = document.getElementById('courseEditorImage');
   const courseEditorVideo = document.getElementById('courseEditorVideo');
   const courseEditorUrlPopover = document.getElementById('courseEditorUrlPopover');
   const courseEditorUrl = document.getElementById('courseEditorUrl');
   const courseEditorUrlApply = document.getElementById('courseEditorUrlApply');
+  const courseEditorColorPopover = document.getElementById('courseEditorColorPopover');
+  const courseEditorTablePopover = document.getElementById('courseEditorTablePopover');
+  const courseEditorTableGrid = document.getElementById('courseEditorTableGrid');
+  const courseEditorTableSize = document.getElementById('courseEditorTableSize');
+  const courseEditorEmbedModal = document.getElementById('courseEditorEmbedModal');
+  const courseEditorEmbedInput = document.getElementById('courseEditorEmbedInput');
+  const courseEditorEmbedApply = document.getElementById('courseEditorEmbedApply');
+  const courseEditorEmbedError = document.getElementById('courseEditorEmbedError');
   let editorRange = null;
-  let editorUrlAction = null;
   const saveEditorRange = () => {
     const selection = window.getSelection();
     if (selection.rangeCount && courseEditor.contains(selection.anchorNode)) editorRange = selection.getRangeAt(0).cloneRange();
@@ -442,42 +489,135 @@
     courseEditor.focus();
     document.execCommand(command, false, value);
     saveEditorRange();
+    updateEditorToolbar();
   };
   const editorUrl = (value) => {
     if (!value) return null;
     try {
-      const url = new URL(value, window.location.origin);
-      return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+      const normalized = /^[a-z][a-z\d+.-]*:/i.test(value) ? value : `https://${value}`;
+      const url = new URL(normalized);
+      if (!['http:', 'https:', 'mailto:', 'tel:'].includes(url.protocol)) return null;
+      if (['http:', 'https:'].includes(url.protocol) && url.hostname !== 'localhost' && !url.hostname.includes('.')) return null;
+      return url.href;
     } catch (_) {
       return null;
     }
   };
-  const openEditorUrlPopover = (action, button) => {
+  const positionEditorPopover = (popover, button, width) => {
+    document.querySelectorAll('.frappe-rich-editor__popover').forEach((item) => { if (item !== popover) item.hidden = true; });
+    popover.hidden = false;
+    popover.style.left = `${Math.max(0, Math.min(button.offsetLeft, button.parentElement.clientWidth - width))}px`;
+    popover.style.top = `${button.offsetTop + button.offsetHeight + 4}px`;
+  };
+  const openEditorUrlPopover = (button) => {
     saveEditorRange();
-    editorUrlAction = action;
-    courseEditorUrlPopover.setAttribute('aria-label', action === 'link' ? 'Edit link' : 'Insert embed');
-    courseEditorUrl.placeholder = action === 'link' ? 'https://example.com' : 'https://youtube.com/watch?v=…';
+    courseEditorUrl.placeholder = 'https://example.com';
     courseEditorUrl.value = '';
-    courseEditorUrlPopover.hidden = false;
-    courseEditorUrlPopover.style.left = `${Math.min(button.offsetLeft, button.parentElement.clientWidth - 248)}px`;
-    courseEditorUrlPopover.style.top = `${button.offsetTop + button.offsetHeight + 4}px`;
+    positionEditorPopover(courseEditorUrlPopover, button, 248);
     courseEditorUrl.focus();
   };
   const closeEditorUrlPopover = () => {
     courseEditorUrlPopover.hidden = true;
-    editorUrlAction = null;
+  };
+  const embedHosts = ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'vimeo.com', 'player.vimeo.com', 'codepen.io', 'codesandbox.io', 'figma.com', 'embed.figma.com', 'docs.google.com', 'drive.google.com', 'notion.so'];
+  const editorEmbedUrl = (input) => {
+    const documentFragment = new DOMParser().parseFromString(input, 'text/html');
+    const value = documentFragment.querySelector('iframe')?.getAttribute('src') || input.trim();
+    try {
+      const parsed = new URL(value);
+      if (!['http:', 'https:'].includes(parsed.protocol) || !embedHosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`))) return null;
+      if ((parsed.hostname === 'youtube.com' || parsed.hostname.endsWith('.youtube.com')) && parsed.pathname === '/watch' && parsed.searchParams.get('v')) {
+        const videoId = parsed.searchParams.get('v');
+        const list = parsed.searchParams.get('list');
+        const start = (parsed.searchParams.get('t') || parsed.searchParams.get('start') || '').replace(/s$/, '');
+        parsed.href = `https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1${list ? `&list=${encodeURIComponent(list)}` : ''}${start ? `&start=${encodeURIComponent(start)}` : ''}`;
+      } else if (parsed.hostname === 'youtu.be' && parsed.pathname.length > 1) {
+        parsed.href = `https://www.youtube.com/embed/${parsed.pathname.slice(1).split('/')[0]}?rel=0&modestbranding=1`;
+      } else if ((parsed.hostname === 'vimeo.com' || parsed.hostname === 'www.vimeo.com') && parsed.pathname.match(/\d+/)) {
+        parsed.href = `https://player.vimeo.com/video/${parsed.pathname.match(/\d+/)[0]}?title=0&byline=0&portrait=0`;
+      }
+      return parsed.href;
+    } catch (_) {
+      return null;
+    }
   };
   const insertEditorFrame = (url) => {
-    const parsed = new URL(url);
-    if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(parsed.hostname) && parsed.pathname === '/watch' && parsed.searchParams.get('v')) parsed.href = `https://www.youtube.com/embed/${parsed.searchParams.get('v')}`;
-    if (parsed.hostname === 'youtu.be' && parsed.pathname.length > 1) parsed.href = `https://www.youtube.com/embed${parsed.pathname}`;
-    if (['vimeo.com', 'www.vimeo.com'].includes(parsed.hostname) && /^\/\d+$/.test(parsed.pathname)) parsed.href = `https://player.vimeo.com/video${parsed.pathname}`;
     const frame = document.createElement('iframe');
-    frame.src = parsed.href;
+    frame.src = url;
     frame.title = 'Embedded course content';
     frame.loading = 'lazy';
     frame.allowFullscreen = true;
     runEditorCommand('insertHTML', frame.outerHTML);
+  };
+  const escapeEditorText = (value) => value.replace(/[&<>"']/g, (character) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character]));
+  const toggleInlineCode = () => {
+    restoreEditorRange();
+    const selection = window.getSelection();
+    const code = selection.anchorNode?.parentElement?.closest('code');
+    if (code && courseEditor.contains(code)) {
+      code.replaceWith(...code.childNodes);
+      courseEditor.focus();
+      return;
+    }
+    const text = selection.toString();
+    runEditorCommand('insertHTML', `<code>${text ? escapeEditorText(text) : '&#8203;'}</code>`);
+  };
+  const courseEditorPalette = {
+    text: { red:'#dc2626', orange:'#ea580c', yellow:'#ca8a04', green:'#16a34a', teal:'#0d9488', cyan:'#06b6d4', blue:'#1579d0', indigo:'#5f46c7', purple:'#9333ea', pink:'#db2777', gray:'#6b7280' },
+    highlight: { red:'#fecaca', orange:'#fed7aa', yellow:'#fef08a', green:'#bbf7d0', teal:'#99f6e4', cyan:'#a5f3fc', blue:'#bfdbfe', indigo:'#dbd5ff', purple:'#e9d5ff', pink:'#fbcfe8', gray:'#e5e7eb' },
+  };
+  const colorSection = (label, type, colors) => `<div class="frappe-rich-editor__palette-label${type === 'highlight' ? ' mt-4' : ''}">${label}</div><div class="frappe-rich-editor__swatches"><button type="button" class="frappe-rich-editor__swatch" data-editor-color="default" data-color-type="${type}" data-default aria-label="Default">A</button>${Object.entries(colors).map(([name, value]) => `<button type="button" class="frappe-rich-editor__swatch" data-editor-color="${value}" data-color-type="${type}" aria-label="${name[0].toUpperCase() + name.slice(1)}" style="${type === 'text' ? `color:${value}` : `background:${value};color:#1f2937`}">A</button>`).join('')}</div>`;
+  courseEditorColorPopover.innerHTML = colorSection('Text Color', 'text', courseEditorPalette.text) + colorSection('Background Color', 'highlight', courseEditorPalette.highlight);
+  const clearEditorColor = (type) => {
+    restoreEditorRange();
+    const selection = window.getSelection();
+    const element = selection.anchorNode?.parentElement?.closest(type === 'text' ? 'font,[style*="color"]' : '[style*="background-color"]');
+    if (!element || !courseEditor.contains(element)) return;
+    if (type === 'text') element.removeAttribute('color');
+    element.style.removeProperty(type === 'text' ? 'color' : 'background-color');
+    if (!element.getAttribute('style') && !element.attributes.length) element.replaceWith(...element.childNodes);
+  };
+  const applyEditorColor = (type, value) => {
+    if (value === 'default') clearEditorColor(type);
+    else runEditorCommand(type === 'text' ? 'foreColor' : 'hiliteColor', value);
+    courseEditorColorPopover.hidden = true;
+  };
+  const setTableSelection = (rows, columns) => {
+    courseEditorTablePopover.dataset.rows = rows;
+    courseEditorTablePopover.dataset.columns = columns;
+    courseEditorTablePopover.setAttribute('aria-label', `Table size, ${rows} rows by ${columns} columns`);
+    courseEditorTableSize.textContent = `${rows} × ${columns}`;
+    courseEditorTableGrid.querySelectorAll('button').forEach((cell) => cell.classList.toggle('is-selected', Number(cell.dataset.row) <= rows && Number(cell.dataset.column) <= columns));
+  };
+  for (let row = 1; row <= 6; row++) for (let column = 1; column <= 8; column++) {
+    const cell = document.createElement('button');
+    cell.type = 'button';
+    cell.className = 'frappe-rich-editor__table-cell';
+    cell.dataset.row = row;
+    cell.dataset.column = column;
+    cell.setAttribute('role', 'gridcell');
+    cell.setAttribute('aria-label', `${row} rows by ${column} columns`);
+    cell.addEventListener('mouseenter', () => setTableSelection(row, column));
+    cell.addEventListener('focus', () => setTableSelection(row, column));
+    cell.addEventListener('click', () => {
+      const head = `<thead><tr>${'<th><br></th>'.repeat(column)}</tr></thead>`;
+      const body = `<tbody>${`<tr>${'<td><br></td>'.repeat(column)}</tr>`.repeat(Math.max(0, row - 1))}</tbody>`;
+      courseEditorTablePopover.hidden = true;
+      runEditorCommand('insertHTML', `<table>${head}${body}</table><p><br></p>`);
+    });
+    courseEditorTableGrid.appendChild(cell);
+  }
+  setTableSelection(3, 3);
+  const updateEditorToolbar = () => {
+    if (!courseEditor.contains(window.getSelection()?.anchorNode)) return;
+    document.querySelectorAll('[data-editor-command]').forEach((button) => {
+      const command = button.dataset.editorCommand;
+      const active = command === 'formatBlock'
+        ? document.queryCommandValue(command).toLowerCase() === button.dataset.editorValue
+        : document.queryCommandState(command);
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
   };
   const uploadEditorFiles = async (files, type) => {
     for (const file of files) {
@@ -506,18 +646,41 @@
   document.querySelectorAll('[data-editor-command], [data-editor-action]').forEach((button) => {
     button.addEventListener('mousedown', (event) => event.preventDefault());
     button.addEventListener('click', () => {
-    const command = button.dataset.editorCommand;
-    const action = button.dataset.editorAction;
-    if (action === 'link' || action === 'embed') return openEditorUrlPopover(action, button);
-    if (action === 'color') return courseEditorColor.click();
-    if (action === 'image') return courseEditorImage.click();
-    if (action === 'video') return courseEditorVideo.click();
-    if (action === 'rule') return runEditorCommand('insertHTML', '<hr>');
-    if (action === 'table') return runEditorCommand('insertHTML', '<table><tbody><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></tbody></table>');
-    runEditorCommand(command, button.dataset.editorValue || null);
+      const command = button.dataset.editorCommand;
+      const action = button.dataset.editorAction;
+      if (action === 'link') return openEditorUrlPopover(button);
+      if (action === 'color') { saveEditorRange(); positionEditorPopover(courseEditorColorPopover, button, 214); return; }
+      if (action === 'image') return courseEditorImage.click();
+      if (action === 'video') return courseEditorVideo.click();
+      if (action === 'code') return toggleInlineCode();
+      if (action === 'embed') {
+        saveEditorRange();
+        courseEditorEmbedInput.value = '';
+        courseEditorEmbedApply.disabled = true;
+        courseEditorEmbedError.classList.add('hidden');
+        courseEditorEmbedModal.hidden = false;
+        courseEditorEmbedInput.focus();
+        return;
+      }
+      if (action === 'rule') return runEditorCommand('insertHTML', '<hr>');
+      if (action === 'table') { saveEditorRange(); setTableSelection(3, 3); positionEditorPopover(courseEditorTablePopover, button, 186); courseEditorTableGrid.querySelector('button[data-row="3"][data-column="3"]')?.focus(); return; }
+      runEditorCommand(command, button.dataset.editorValue || null);
     });
   });
-  document.addEventListener('selectionchange', saveEditorRange);
+  document.addEventListener('selectionchange', () => { saveEditorRange(); updateEditorToolbar(); });
+  courseEditorColorPopover?.addEventListener('mousedown', (event) => event.preventDefault());
+  courseEditorColorPopover?.addEventListener('click', (event) => {
+    const swatch = event.target.closest('[data-editor-color]');
+    if (swatch) applyEditorColor(swatch.dataset.colorType, swatch.dataset.editorColor);
+  });
+  courseEditorTableGrid?.addEventListener('keydown', (event) => {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'Enter') return document.activeElement.click();
+    const row = Math.max(1, Math.min(6, Number(courseEditorTablePopover.dataset.rows) + (event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0)));
+    const column = Math.max(1, Math.min(8, Number(courseEditorTablePopover.dataset.columns) + (event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0)));
+    courseEditorTableGrid.querySelector(`button[data-row="${row}"][data-column="${column}"]`)?.focus();
+  });
   const applyEditorUrl = () => {
     const url = editorUrl(courseEditorUrl.value.trim());
     if (!url) {
@@ -526,8 +689,7 @@
       return;
     }
     courseEditorUrl.setCustomValidity('');
-    if (editorUrlAction === 'link') runEditorCommand('createLink', url);
-    else insertEditorFrame(url);
+    runEditorCommand('createLink', url);
     closeEditorUrlPopover();
   };
   courseEditorUrlApply?.addEventListener('click', applyEditorUrl);
@@ -545,7 +707,22 @@
       courseEditor.focus();
     }
   });
-  courseEditorColor?.addEventListener('input', () => runEditorCommand('foreColor', courseEditorColor.value));
+  const closeEmbedModal = () => { courseEditorEmbedModal.hidden = true; restoreEditorRange(); courseEditor.focus(); };
+  courseEditorEmbedInput?.addEventListener('input', () => {
+    const valid = Boolean(editorEmbedUrl(courseEditorEmbedInput.value));
+    courseEditorEmbedApply.disabled = !valid;
+    courseEditorEmbedError.classList.toggle('hidden', !courseEditorEmbedInput.value || valid);
+  });
+  courseEditorEmbedApply?.addEventListener('click', () => {
+    const url = editorEmbedUrl(courseEditorEmbedInput.value);
+    if (!url) { courseEditorEmbedError.classList.remove('hidden'); return; }
+    courseEditorEmbedModal.hidden = true;
+    insertEditorFrame(url);
+  });
+  document.getElementById('courseEditorEmbedCancel')?.addEventListener('click', closeEmbedModal);
+  document.getElementById('courseEditorEmbedClose')?.addEventListener('click', closeEmbedModal);
+  courseEditorEmbedModal?.addEventListener('click', (event) => { if (event.target === courseEditorEmbedModal) closeEmbedModal(); });
+  courseEditorEmbedInput?.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeEmbedModal(); });
   courseEditorImage?.addEventListener('change', async () => {
     try { await uploadEditorFiles([...courseEditorImage.files], 'image'); } catch (error) { window.alert(error.message); }
     courseEditorImage.value = '';
