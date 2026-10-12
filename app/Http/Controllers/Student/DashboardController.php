@@ -116,6 +116,14 @@ class DashboardController extends Controller
         return view('student.certs', compact('certificates'));
     }
 
+    public function showCertificate(Certificate $certificate)
+    {
+        abort_unless($certificate->user_id === Auth::id(), 403);
+
+        $certificate->load(['course', 'user']);
+        return view('student.certificate', compact('certificate'));
+    }
+
     public function profile()
     {
         $user = Auth::user();

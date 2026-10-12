@@ -18,11 +18,8 @@
     <p class="text-xs text-gray-400 font-mono mb-4">ID: {{ $cert->certificate_number }}</p>
     @endif
     <div class="flex gap-2">
-      <a href="#" class="flex-1 text-center py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-xl text-xs transition">
-        ⬇️ Download
-      </a>
-      <a href="#" class="flex-1 text-center py-2 bg-white border border-yellow-300 text-yellow-700 font-bold rounded-xl text-xs hover:bg-yellow-50 transition">
-        🔗 Share
+      <a href="{{ route('student.certs.show', $cert) }}" class="flex-1 text-center py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-xl text-xs transition">
+        📜 View / Print
       </a>
     </div>
   </div>

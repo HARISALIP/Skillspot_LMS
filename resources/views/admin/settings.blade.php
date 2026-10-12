@@ -38,7 +38,7 @@ $tabs = [
   'general' => ['group'=>'System Configuration','fa'=>'fa-solid fa-sliders','label'=>'General','description'=>'Platform preferences'],
   'signup' => ['group'=>'System Configuration','fa'=>'fa-solid fa-right-to-bracket','label'=>'Signup','description'=>'Registration and consent'],
   'course-progress' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-chart-line','label'=>'Progress','description'=>'Course completion rules'],
-  'badges' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-certificate','label'=>'Certificates','description'=>'Issue and revoke learner certificates'],
+  'certificates' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-certificate','label'=>'Certificates','description'=>'Automatic certificate design and delivery'],
   'badge-assignments' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-certificate','label'=>'Badge Assignments','description'=>'Badge assignment settings'],
   'categories' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired','label'=>'Categories','description'=>'Create and manage course categories'],
   'communication' => ['group'=>'Communication','fa'=>'fa-solid fa-sliders','label'=>'General','description'=>'Contact and notification preferences'],
@@ -121,7 +121,7 @@ $tabs = [
         @endif
       </div>
 
-      @php $managedPanel = in_array($activeTab, ['categories', 'badges']) || !array_key_exists($activeTab, $schema); @endphp
+      @php $managedPanel = $activeTab === 'categories' || !array_key_exists($activeTab, $schema); @endphp
       @if($managedPanel)
       <div id="settingsForm">
       @else
@@ -173,16 +173,42 @@ $tabs = [
           </section>
 
           {{-- CERTIFICATES --}}
-          @elseif($activeTab === 'badges')
+          @elseif($activeTab === 'certificates')
+          @php
+            $certificateValue = fn ($key) => old($key, $settings[$key] ?? $schema['certificates'][$key]['default']);
+            $previewTitle = $certificateValue('certificate_title');
+            $previewIntro = $certificateValue('certificate_intro');
+            $certificateToken = '{' . '{course_title}}';
+            $previewCompletion = str_replace($certificateToken, 'Modern Web Development', $certificateValue('certificate_completion_text'));
+          @endphp
           <section class="space-y-5 pr-10">
-            <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-bold text-gray-900">Certificates</h2><span class="text-xs text-gray-500">{{ $certificates->count() }} issued</span></div>
-            <form method="POST" action="{{ route('admin.certs.issue') }}" class="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-              @csrf
-              <label class="block text-xs font-semibold text-gray-600">Learner<select name="user_id" required class="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"><option value="">Select learner</option>@foreach($certificateUsers as $user)<option value="{{ $user->id }}">{{ $user->name }} — {{ $user->email }}</option>@endforeach</select></label>
-              <label class="block text-xs font-semibold text-gray-600">Course<select name="course_id" required class="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"><option value="">Select course</option>@foreach($certificateCourses as $course)<option value="{{ $course->id }}">{{ $course->title }}</option>@endforeach</select></label>
-              <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"><i class="fa-solid fa-certificate"></i> Issue</button>
-            </form>
-            <div class="overflow-hidden rounded-xl border border-gray-200"><div class="grid grid-cols-[1fr_1fr_7rem_4rem] gap-3 border-b border-gray-200 px-4 py-3 text-xs font-medium text-gray-400"><span>Learner</span><span>Course</span><span>Issued</span><span></span></div>@forelse($certificates as $certificate)<div class="grid grid-cols-[1fr_1fr_7rem_4rem] items-center gap-3 border-b border-gray-100 px-4 py-3 text-sm last:border-0"><span class="truncate font-medium text-gray-800">{{ $certificate->user->name ?? '—' }}</span><span class="truncate text-gray-600">{{ $certificate->course->title ?? '—' }}</span><span class="text-xs text-gray-500">{{ ($certificate->issued_at ?? $certificate->created_at)?->format('d M Y') }}</span><form method="POST" action="{{ route('admin.certs.revoke', $certificate) }}" onsubmit="return confirm('Revoke this certificate?')">@csrf @method('DELETE')<button class="text-xs font-semibold text-red-600 hover:underline">Revoke</button></form></div>@empty<div class="px-4 py-10 text-center text-sm text-gray-400">No certificates issued yet.</div>@endforelse</div>
+            <div>
+              <h2 class="text-lg font-bold text-gray-900">Certificate design</h2>
+              <p class="mt-1 text-sm text-gray-500">Certificates are issued automatically after a learner completes every lesson in a course.</p>
+            </div>
+            <label class="flex cursor-pointer items-center justify-between gap-4 border-y border-gray-200 py-3">
+              <div><p class="text-sm font-semibold text-gray-900">Automatically issue certificates</p><p class="mt-0.5 text-xs text-gray-500">Create one verified certificate when course completion is reached.</p></div>
+              <span class="relative shrink-0"><input type="checkbox" name="certificate_auto_issue" class="peer sr-only" {{ $certificateValue('certificate_auto_issue') === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span>
+            </label>
+            <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)]">
+              <div class="space-y-4">
+                @foreach(['certificate_title', 'certificate_intro', 'certificate_completion_text', 'certificate_signatory', 'certificate_footer'] as $key)
+                <label class="block text-xs font-semibold text-gray-700">{{ $schema['certificates'][$key]['label'] }}
+                  <input name="{{ $key }}" value="{{ $certificateValue($key) }}" class="mt-1.5 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                </label>
+                @endforeach
+                <p class="text-xs text-gray-400">Use <code class="rounded bg-gray-100 px-1">&#123;&#123;course_title&#125;&#125;</code> to insert the completed course name.</p>
+              </div>
+              <div class="rounded-xl border-4 border-amber-500/70 bg-amber-50 p-5 text-center shadow-sm">
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-700">Skillspot LMS</p>
+                <h3 class="mt-4 font-serif text-2xl text-gray-900">{{ $previewTitle }}</h3>
+                <p class="mt-4 text-xs text-gray-600">{{ $previewIntro }}</p>
+                <p class="mt-2 font-serif text-xl italic text-brand-700">Jane Learner</p>
+                <p class="mt-3 text-sm text-gray-700">{{ $previewCompletion }}</p>
+                <div class="mt-7 flex items-end justify-between gap-3 border-t border-amber-200 pt-3 text-[10px] text-gray-500"><span>Certificate ID: ITF-PREVIEW-2026</span><span class="border-t border-amber-400 pt-1">{{ $certificateValue('certificate_signatory') }}</span></div>
+                <p class="mt-3 text-[10px] text-gray-500">{{ $certificateValue('certificate_footer') }}</p>
+              </div>
+            </div>
           </section>
 
           {{-- GENERAL --}}

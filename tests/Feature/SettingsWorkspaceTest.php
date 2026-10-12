@@ -5,8 +5,9 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Setting;
 use App\Models\CourseCategory;
-use App\Models\Certificate;
 use App\Models\Course;
+use App\Models\Section;
+use App\Services\CourseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -121,22 +122,44 @@ class SettingsWorkspaceTest extends TestCase
         $this->assertDatabaseHas('settings', ['key' => 'enforce_video_completion', 'value' => '1']);
     }
 
-    public function test_certificates_are_managed_inside_the_settings_workspace(): void
+    public function test_certificate_design_is_saved_inside_the_settings_workspace(): void
     {
         Role::findOrCreate('super-admin', 'web');
         $admin = User::factory()->create();
         $admin->assignRole('super-admin');
-        $learner = User::factory()->create(['name' => 'Certificate Learner']);
-        $course = Course::create(['title' => 'Certificate Course', 'category' => 'Design', 'is_published' => true]);
-        Certificate::create(['user_id' => $learner->id, 'course_id' => $course->id, 'certificate_number' => 'ITF-TEST-2026', 'issued_at' => now()]);
-
-        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'badges', 'embed' => 1]))
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'certificates', 'embed' => 1]))
             ->assertOk()
-            ->assertSeeText('Issue')
-            ->assertSeeText('Certificate Learner')
-            ->assertSeeText('Certificate Course')
-            ->assertSeeText('Revoke')
-            ->assertDontSeeText('does not yet have the matching data model');
+            ->assertSeeText('Certificate design')
+            ->assertSeeText('Automatically issue certificates')
+            ->assertSeeText('Jane Learner')
+            ->assertDontSee(route('admin.certs.issue'), false);
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'certificates'), [
+            'certificate_auto_issue' => '1',
+            'certificate_title' => 'Completion Certificate',
+            'certificate_intro' => 'Awarded to',
+            'certificate_completion_text' => 'completed {{course_title}}',
+            'certificate_signatory' => 'Academy Director',
+            'certificate_footer' => 'Verified by Skillspot',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'certificates']));
+
+        $this->assertDatabaseHas('settings', ['key' => 'certificate_title', 'value' => 'Completion Certificate']);
+        $this->assertDatabaseHas('settings', ['key' => 'certificate_auto_issue', 'value' => '1']);
+    }
+
+    public function test_disabling_automatic_certificates_keeps_completed_courses_certificate_free(): void
+    {
+        $learner = User::factory()->create();
+        $course = Course::create(['title' => 'Certificate Rules', 'category' => 'Design']);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Finish']);
+        $lesson = $section->lessons()->create(['title' => 'Final lesson', 'type' => 'text']);
+        $enrollment = CourseService::enrollFree($learner, $course);
+        Setting::set('certificate_auto_issue', '0', 'certificates', 'boolean', 'Automatically issue certificates');
+
+        CourseService::updateLessonProgress($learner, $lesson, 100);
+
+        $this->assertDatabaseHas('enrollments', ['id' => $enrollment->id, 'status' => 'completed']);
+        $this->assertDatabaseMissing('certificates', ['user_id' => $learner->id, 'course_id' => $course->id]);
     }
 
     public function test_guest_access_setting_protects_the_public_homepage(): void

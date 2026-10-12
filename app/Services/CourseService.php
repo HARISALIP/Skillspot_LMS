@@ -6,6 +6,7 @@ use App\Models\Enrollment;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Models\Lesson;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -118,7 +119,7 @@ class CourseService
 
         // Auto-issue certificate if just completed
         $certificate = null;
-        if ($courseCompleted) {
+        if ($courseCompleted && Setting::get('certificate_auto_issue', '1') === '1') {
             $certificate = self::issueCertificate($user, $course, $enrollment);
         }
 

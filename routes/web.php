@@ -210,6 +210,7 @@ Route::prefix('dashboard')->name('student.')->middleware(['auth','portal.access'
     Route::get('/courses',          [StudentDash::class,'courses'])->name('courses');
     Route::get('/browse',           [StudentDash::class,'browse'])->name('browse');
     Route::get('/certs',            [StudentDash::class,'certificates'])->name('certs');
+    Route::get('/certs/{certificate}', [StudentDash::class,'showCertificate'])->name('certs.show');
     Route::get('/profile',          [StudentDash::class,'profile'])->name('profile');
     Route::put('/profile',          [StudentDash::class,'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [StudentDash::class,'updatePassword'])->name('profile.password');

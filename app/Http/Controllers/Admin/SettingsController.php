@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
-use App\Models\Certificate;
 use App\Models\Setting;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -37,6 +35,14 @@ class SettingsController extends Controller
             'enforce_assignment_completion' => ['label' => 'Enforce assignment completion', 'type' => 'boolean', 'default' => '0'],
             'enforce_quiz_completion' => ['label' => 'Enforce quiz completion', 'type' => 'boolean', 'default' => '0'],
             'prevent_skipping_videos' => ['label' => 'Prevent Skipping Videos', 'type' => 'boolean', 'default' => '0'],
+        ],
+        'certificates' => [
+            'certificate_auto_issue' => ['label' => 'Automatically issue certificates', 'type' => 'boolean', 'default' => '1'],
+            'certificate_title' => ['label' => 'Certificate title', 'type' => 'text', 'default' => 'Certificate of Completion'],
+            'certificate_intro' => ['label' => 'Introduction', 'type' => 'text', 'default' => 'This certifies that'],
+            'certificate_completion_text' => ['label' => 'Completion text', 'type' => 'text', 'default' => 'has successfully completed {{course_title}}'],
+            'certificate_signatory' => ['label' => 'Authorized signatory', 'type' => 'text', 'default' => 'Skillspot Academy'],
+            'certificate_footer' => ['label' => 'Footer text', 'type' => 'text', 'default' => 'Issued by Skillspot LMS'],
         ],
         'seo' => [
             'meta_description' => ['label' => 'Meta Description', 'type' => 'textarea', 'default' => ''],
@@ -121,24 +127,15 @@ class SettingsController extends Controller
     public function index(Request $request)
     {
         $activeTab = $request->get('tab', 'general');
-        $knownTabs = ['general', 'signup', 'course-progress', 'badges', 'badge-assignments', 'categories', 'communication', 'email-template', 'mail', 'members', 'payment', 'payment-gateways', 'transactions', 'coupons', 'storage', 'google-calendar', 'google-meet', 'zoom', 'raven', 'branding', 'sidebar', 'seo'];
+        if ($activeTab === 'badges') $activeTab = 'certificates';
+        $knownTabs = ['general', 'signup', 'course-progress', 'certificates', 'badge-assignments', 'categories', 'communication', 'email-template', 'mail', 'members', 'payment', 'payment-gateways', 'transactions', 'coupons', 'storage', 'google-calendar', 'google-meet', 'zoom', 'raven', 'branding', 'sidebar', 'seo'];
         if (!in_array($activeTab, $knownTabs, true)) $activeTab = 'general';
         $settings  = Setting::allKeyed();
         $schema    = $this->schema;
         $categories = $activeTab === 'categories'
             ? CourseCategory::latest()->get()
             : collect();
-        $certificates = $activeTab === 'badges'
-            ? Certificate::with(['user', 'course'])->latest()->limit(20)->get()
-            : collect();
-        $certificateCourses = $activeTab === 'badges'
-            ? Course::where('is_published', 1)->orderBy('title')->get(['id', 'title'])
-            : collect();
-        $certificateUsers = $activeTab === 'badges'
-            ? User::orderBy('name')->limit(100)->get(['id', 'name', 'email'])
-            : collect();
-
-        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories', 'certificates', 'certificateCourses', 'certificateUsers'));
+        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories'));
     }
 
     public function storeCategory(Request $request)
