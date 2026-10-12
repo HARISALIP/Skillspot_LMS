@@ -510,7 +510,7 @@ class CoursesController extends Controller
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
-        $allowedTags = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 's', 'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'pre', 'hr', 'table', 'tbody', 'tr', 'td', 'div'];
+        $allowedTags = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 's', 'ul', 'ol', 'li', 'a', 'img', 'iframe', 'blockquote', 'pre', 'hr', 'table', 'tbody', 'tr', 'td', 'div'];
         foreach (iterator_to_array($document->getElementsByTagName('*')) as $node) {
             if ($node->getAttribute('id') === 'course-description') continue;
             if (!in_array($node->tagName, $allowedTags, true)) {
@@ -519,10 +519,19 @@ class CoursesController extends Controller
             }
             foreach (iterator_to_array($node->attributes) as $attribute) {
                 $isSafeUrl = in_array($attribute->name, ['href', 'src'], true)
-                    && (str_starts_with($attribute->value, '/') || filter_var($attribute->value, FILTER_VALIDATE_URL));
-                if (!in_array($attribute->name, ['alt', 'target', 'rel'], true) && !$isSafeUrl) $node->removeAttribute($attribute->name);
+                    && (str_starts_with($attribute->value, '/') || filter_var($attribute->value, FILTER_VALIDATE_URL))
+                    && !preg_match('/^(?:javascript|data|vbscript):/i', $attribute->value);
+                if (!in_array($attribute->name, ['alt', 'target', 'rel', 'title', 'loading', 'allowfullscreen'], true) && !$isSafeUrl) $node->removeAttribute($attribute->name);
             }
             if ($node->tagName === 'a' && $node->hasAttribute('target')) $node->setAttribute('rel', 'noopener');
+            if ($node->tagName === 'iframe') {
+                if (!$node->hasAttribute('src')) {
+                    $node->parentNode?->removeChild($node);
+                    continue;
+                }
+                $node->setAttribute('loading', 'lazy');
+                $node->setAttribute('sandbox', 'allow-scripts allow-popups allow-presentation');
+            }
         }
 
         $root = $document->getElementById('course-description');

@@ -40,6 +40,9 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('All Courses')
             ->assertSeeText('Unpublished')
             ->assertSeeText('New Course')
+            ->assertSeeText('Course description')
+            ->assertSee('title="Heading 2"', false)
+            ->assertSee('title="Image / Gallery"', false)
             ->assertSeeText('Import via ZIP')
             ->assertSeeText('Learning')
             ->assertSeeText('Administrator')
@@ -58,6 +61,10 @@ class CourseManagementIndexTest extends TestCase
 
         $this->actingAs($teacher)->get(route('admin.courses.create'))
             ->assertRedirect(route('admin.courses', ['new' => 1]));
+
+        $this->actingAs($teacher)->get(route('admin.courses', ['new' => 1]))
+            ->assertOk()
+            ->assertSee('id="newCourseModal" class="fixed inset-0 z-50  overflow-y-auto', false);
     }
 
     public function test_teacher_can_import_a_frappe_course_zip_as_a_draft(): void
@@ -101,7 +108,7 @@ class CourseManagementIndexTest extends TestCase
             'modal_create' => 1,
             'title' => 'Modal Course',
             'short_introduction' => 'A short introduction',
-            'description' => '<p>Course details</p><script>alert(1)</script>',
+            'description' => '<p>Course details</p><iframe src="https://www.youtube.com/embed/example"></iframe><script>alert(1)</script>',
             'new_category' => 'Framework',
             'level' => 'beginner',
             'language' => 'en',
@@ -114,7 +121,9 @@ class CourseManagementIndexTest extends TestCase
         $course = Course::where('title', 'Modal Course')->firstOrFail();
         $this->assertSame('Framework', $course->category);
         $this->assertSame('A short introduction', $course->short_introduction);
-        $this->assertSame('<p>Course details</p>', $course->description);
+        $this->assertStringContainsString('<p>Course details</p>', $course->description);
+        $this->assertStringContainsString('<iframe', $course->description);
+        $this->assertStringNotContainsString('<script>', $course->description);
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
     }
 

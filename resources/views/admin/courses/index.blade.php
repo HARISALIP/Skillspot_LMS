@@ -23,8 +23,21 @@
 @push('styles')
 <style>
   .course-tab-active { background: #fff; color: #111827; box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
-  .editorButton { display: inline-flex; height: 1.75rem; min-width: 1.75rem; align-items: center; justify-content: center; border-radius: .375rem; padding: .25rem; }
-  .editorButton:hover { background: #f3f4f6; color: #2563eb; }
+  .frappe-rich-editor { --editor-bg:#fff; --editor-border:#d1d5db; --editor-text:#374151; --editor-muted:#6b7280; --editor-hover:#f3f4f6; --editor-focus:#2563eb; overflow:hidden; border:1px solid var(--editor-border); border-radius:12px; background:var(--editor-bg); color:var(--editor-text); }
+  body[data-theme="dark"] .frappe-rich-editor { --editor-bg:#171717; --editor-border:#444; --editor-text:#d4d4d4; --editor-muted:#a3a3a3; --editor-hover:#292929; --editor-focus:#f5f5f5; }
+  .frappe-rich-editor:focus-within { border-color:var(--editor-focus); box-shadow:0 0 0 1px var(--editor-focus); }
+  .frappe-rich-editor__toolbar { display:flex; min-height:60px; flex-wrap:wrap; align-items:center; gap:2px; border-bottom:1px solid var(--editor-border); padding:5px 8px; }
+  .frappe-rich-editor__tool { display:inline-flex; height:24px; min-width:24px; align-items:center; justify-content:center; border-radius:4px; padding:0 5px; color:var(--editor-muted); font-size:12px; line-height:1; }
+  .frappe-rich-editor__tool:hover, .frappe-rich-editor__tool:focus-visible { background:var(--editor-hover); color:var(--editor-focus); outline:none; }
+  .frappe-rich-editor__heading { min-width:auto; font-size:13px; font-weight:600; }
+  .frappe-rich-editor__divider { width:1px; height:16px; margin:0 3px; background:var(--editor-border); }
+  .frappe-rich-editor__history { display:flex; flex-basis:100%; gap:2px; }
+  .frappe-rich-editor__content { min-height:160px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
+  .frappe-rich-editor__content:empty::before { content:attr(data-placeholder); color:var(--editor-muted); pointer-events:none; }
+  .frappe-rich-editor__content :where(img, iframe) { max-width:100%; margin:.75rem 0; }
+  .frappe-rich-editor__content iframe { min-height:220px; width:100%; border:0; }
+  .frappe-rich-editor__content table { width:100%; border-collapse:collapse; }
+  .frappe-rich-editor__content td { min-width:4rem; border:1px solid var(--editor-border); padding:.35rem; }
 </style>
 @endpush
 
@@ -119,7 +132,7 @@
   @endif
 </div>
 
-<div id="newCourseModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="newCourseModalTitle">
+<div id="newCourseModal" class="fixed inset-0 z-50 {{ request()->has('new') ? '' : 'hidden' }} overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="newCourseModalTitle">
   <form id="newCourseForm" method="POST" action="{{ route('admin.courses.store') }}" enctype="multipart/form-data" class="mx-auto my-6 w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl md:my-12 md:p-8">
     @csrf
     <input type="hidden" name="modal_create" value="1">
@@ -200,20 +213,27 @@
       <label class="block text-sm font-medium text-gray-700">Short introduction <span class="text-red-500">*</span>
         <textarea name="short_introduction" required maxlength="1000" rows="3" class="mt-2 w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"></textarea>
       </label>
-      <label class="mt-5 block text-sm font-medium text-gray-700">Course description <span class="text-red-500">*</span>
-        <div class="mt-2 overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div class="flex flex-wrap items-center gap-1 border-b border-gray-200 p-2 text-xs text-gray-600">
-            <select data-editor-select="formatBlock" class="h-7 rounded border border-gray-200 bg-white px-1"><option value="p">Heading</option><option value="h2">H2</option><option value="h3">H3</option><option value="h4">H4</option></select>
-            <button type="button" data-editor-command="bold" class="editorButton" title="Bold"><b>B</b></button><button type="button" data-editor-command="italic" class="editorButton" title="Italic"><i>I</i></button><button type="button" data-editor-command="strikeThrough" class="editorButton" title="Strike">S</button>
-            <button type="button" data-editor-command="createLink" class="editorButton" title="Link"><i class="fa-solid fa-link"></i></button><button type="button" data-editor-command="foreColor" class="editorButton" title="Text colour"><i class="fa-solid fa-a"></i></button>
-            <button type="button" data-editor-command="insertUnorderedList" class="editorButton" title="Bullets"><i class="fa-solid fa-list-ul"></i></button><button type="button" data-editor-command="insertOrderedList" class="editorButton" title="Numbered list"><i class="fa-solid fa-list-ol"></i></button>
-            <button type="button" data-editor-command="justifyLeft" class="editorButton" title="Align left"><i class="fa-solid fa-align-left"></i></button><button type="button" data-editor-command="justifyCenter" class="editorButton" title="Align center"><i class="fa-solid fa-align-center"></i></button><button type="button" data-editor-command="justifyRight" class="editorButton" title="Align right"><i class="fa-solid fa-align-right"></i></button>
-            <button type="button" data-editor-command="insertImage" class="editorButton" title="Image"><i class="fa-regular fa-image"></i></button><button type="button" data-editor-command="insertVideo" class="editorButton" title="Video"><i class="fa-solid fa-video"></i></button><button type="button" data-editor-command="formatBlock" data-editor-value="blockquote" class="editorButton" title="Quote"><i class="fa-solid fa-quote-right"></i></button><button type="button" data-editor-command="formatBlock" data-editor-value="pre" class="editorButton" title="Code"><i class="fa-solid fa-code"></i></button><button type="button" data-editor-command="insertHorizontalRule" class="editorButton" title="Divider"><i class="fa-solid fa-minus"></i></button><button type="button" data-editor-command="insertTable" class="editorButton" title="Table"><i class="fa-solid fa-table"></i></button>
-            <button type="button" data-editor-command="undo" class="editorButton" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" data-editor-command="redo" class="editorButton" title="Redo"><i class="fa-solid fa-rotate-right"></i></button>
+      <div class="mt-5 block text-sm font-medium text-gray-700">
+        <span id="courseDescriptionLabel">Course description <span class="text-red-500">*</span></span>
+        <div class="frappe-rich-editor mt-2" data-rich-editor>
+          <div class="frappe-rich-editor__toolbar" role="toolbar" aria-label="Course description formatting">
+            <button type="button" class="frappe-rich-editor__tool frappe-rich-editor__heading" data-editor-command="formatBlock" data-editor-value="p" title="Heading">Heading</button>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="h2" title="Heading 2">H₂</button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="h3" title="Heading 3">H₃</button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="h4" title="Heading 4">H₄</button>
+            <span class="frappe-rich-editor__divider"></span>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-command="bold" title="Bold"><b>B</b></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="italic" title="Italic"><i>I</i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="strikeThrough" title="Strike"><s>S</s></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="link" title="Link"><i class="fa-solid fa-link"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="color" title="Font Color"><i class="fa-solid fa-a"></i></button><input id="courseEditorColor" type="color" value="#d4d4d4" class="sr-only" aria-label="Font color">
+            <span class="frappe-rich-editor__divider"></span>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-command="insertUnorderedList" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="insertOrderedList" title="Ordered List"><i class="fa-solid fa-list-ol"></i></button>
+            <span class="frappe-rich-editor__divider"></span>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-command="justifyLeft" title="Align Left"><i class="fa-solid fa-align-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="justifyCenter" title="Align Center"><i class="fa-solid fa-align-center"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="justifyRight" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+            <span class="frappe-rich-editor__divider"></span>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-action="image" title="Image / Gallery"><i class="fa-regular fa-image"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="video" title="Video"><i class="fa-solid fa-video"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="blockquote" title="Blockquote"><i class="fa-solid fa-quote-right"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="pre" title="Code"><i class="fa-solid fa-code"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="embed" title="Embed"><i class="fa-solid fa-code"></i></button>
+            <span class="frappe-rich-editor__divider"></span>
+            <button type="button" class="frappe-rich-editor__tool" data-editor-action="rule" title="Horizontal Rule"><i class="fa-solid fa-minus"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="table" title="Table"><i class="fa-solid fa-table"></i></button>
+            <div class="frappe-rich-editor__history"><button type="button" class="frappe-rich-editor__tool" data-editor-command="undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button></div>
           </div>
-          <div id="courseEditor" contenteditable="true" class="min-h-36 p-3 text-sm leading-6 text-gray-800 outline-none" aria-label="Course description"></div>
+          <div id="courseEditor" contenteditable="true" class="frappe-rich-editor__content" data-placeholder="Write a detailed description of your course" aria-labelledby="courseDescriptionLabel"></div>
         </div>
-      </label>
+      </div>
     </div>
 
     <div class="mt-6 flex justify-end">
@@ -389,23 +409,60 @@
 
   const courseEditor = document.getElementById('courseEditor');
   const courseDescription = document.getElementById('courseDescription');
+  const courseEditorColor = document.getElementById('courseEditorColor');
   const runEditorCommand = (command, value = null) => {
     courseEditor.focus();
     document.execCommand(command, false, value);
   };
-  document.querySelectorAll('[data-editor-command]').forEach((button) => button.addEventListener('click', () => {
-    const command = button.dataset.editorCommand;
-    if (command === 'createLink' || command === 'insertImage' || command === 'insertVideo') {
-      const url = window.prompt('Paste the URL');
-      if (!url) return;
-      if (command === 'insertVideo') return runEditorCommand('insertHTML', `<a href="${url}" target="_blank" rel="noopener">Watch video</a>`);
-      return runEditorCommand(command, url);
+  const editorUrl = (message) => {
+    const value = window.prompt(message);
+    if (!value) return null;
+    try {
+      const url = new URL(value, window.location.origin);
+      return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+    } catch (_) {
+      return null;
     }
-    if (command === 'foreColor') return runEditorCommand(command, '#2563eb');
-    if (command === 'insertTable') return runEditorCommand('insertHTML', '<table><tbody><tr><td> </td><td> </td></tr><tr><td> </td><td> </td></tr></tbody></table>');
+  };
+  const insertEditorFrame = (url) => {
+    const parsed = new URL(url);
+    if (['youtube.com', 'www.youtube.com', 'm.youtube.com'].includes(parsed.hostname) && parsed.pathname === '/watch' && parsed.searchParams.get('v')) parsed.href = `https://www.youtube.com/embed/${parsed.searchParams.get('v')}`;
+    if (parsed.hostname === 'youtu.be' && parsed.pathname.length > 1) parsed.href = `https://www.youtube.com/embed${parsed.pathname}`;
+    if (['vimeo.com', 'www.vimeo.com'].includes(parsed.hostname) && /^\/\d+$/.test(parsed.pathname)) parsed.href = `https://player.vimeo.com/video${parsed.pathname}`;
+    const frame = document.createElement('iframe');
+    frame.src = parsed.href;
+    frame.title = 'Embedded course content';
+    frame.loading = 'lazy';
+    frame.allowFullscreen = true;
+    runEditorCommand('insertHTML', frame.outerHTML);
+  };
+  document.querySelectorAll('[data-editor-command], [data-editor-action]').forEach((button) => {
+    button.addEventListener('mousedown', (event) => event.preventDefault());
+    button.addEventListener('click', () => {
+    const command = button.dataset.editorCommand;
+    const action = button.dataset.editorAction;
+    if (action === 'link') {
+      const url = editorUrl('Paste the link URL');
+      if (url) runEditorCommand('createLink', url);
+      return;
+    }
+    if (action === 'color') return courseEditorColor.click();
+    if (action === 'image') {
+      const url = editorUrl('Paste the image URL');
+      if (url) runEditorCommand('insertImage', url);
+      return;
+    }
+    if (action === 'video' || action === 'embed') {
+      const url = editorUrl(action === 'video' ? 'Paste the video URL' : 'Paste the embed URL');
+      if (url) insertEditorFrame(url);
+      return;
+    }
+    if (action === 'rule') return runEditorCommand('insertHTML', '<hr>');
+    if (action === 'table') return runEditorCommand('insertHTML', '<table><tbody><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></tbody></table>');
     runEditorCommand(command, button.dataset.editorValue || null);
+    });
   }));
-  document.querySelector('[data-editor-select]')?.addEventListener('change', (event) => runEditorCommand(event.target.dataset.editorSelect, event.target.value));
+  courseEditorColor?.addEventListener('input', () => runEditorCommand('foreColor', courseEditorColor.value));
   document.getElementById('newCourseForm')?.addEventListener('submit', (event) => {
     courseDescription.value = courseEditor.innerHTML.trim();
     const hasInstructor = document.querySelector('input[name="instructor_ids[]"]:checked');
