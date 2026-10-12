@@ -34,7 +34,7 @@
   .frappe-rich-editor__history { display:flex; flex-basis:100%; gap:2px; }
   .frappe-rich-editor__content { min-height:160px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
   .frappe-rich-editor__content:empty::before { content:attr(data-placeholder); color:var(--editor-muted); pointer-events:none; }
-  .frappe-rich-editor__content :where(img, iframe) { max-width:100%; margin:.75rem 0; }
+  .frappe-rich-editor__content :where(img, video, iframe) { max-width:100%; margin:.75rem 0; }
   .frappe-rich-editor__content iframe { min-height:220px; width:100%; border:0; }
   .frappe-rich-editor__content table { width:100%; border-collapse:collapse; }
   .frappe-rich-editor__content td { min-width:4rem; border:1px solid var(--editor-border); padding:.35rem; }
@@ -232,6 +232,8 @@
             <div class="frappe-rich-editor__history"><button type="button" class="frappe-rich-editor__tool" data-editor-command="undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button></div>
           </div>
           <div id="courseEditor" contenteditable="true" class="frappe-rich-editor__content" data-placeholder="Write a detailed description of your course" aria-labelledby="courseDescriptionLabel"></div>
+          <input id="courseEditorImage" type="file" accept="image/*" multiple class="sr-only">
+          <input id="courseEditorVideo" type="file" accept="video/*" class="sr-only">
         </div>
       </div>
     </div>
@@ -410,6 +412,8 @@
   const courseEditor = document.getElementById('courseEditor');
   const courseDescription = document.getElementById('courseDescription');
   const courseEditorColor = document.getElementById('courseEditorColor');
+  const courseEditorImage = document.getElementById('courseEditorImage');
+  const courseEditorVideo = document.getElementById('courseEditorVideo');
   const runEditorCommand = (command, value = null) => {
     courseEditor.focus();
     document.execCommand(command, false, value);
@@ -436,6 +440,30 @@
     frame.allowFullscreen = true;
     runEditorCommand('insertHTML', frame.outerHTML);
   };
+  const uploadEditorFiles = async (files, type) => {
+    for (const file of files) {
+      const data = new FormData();
+      data.append('file', file);
+      data.append('folder', 'course-descriptions');
+      data.append('is_public', '1');
+      const response = await fetch('{{ route('admin.media.upload') }}', {
+        method: 'POST',
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('#newCourseForm input[name="_token"]').value },
+        body: data,
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.url) throw new Error(payload.error || 'Upload failed.');
+      if (type === 'image') {
+        runEditorCommand('insertImage', payload.url);
+        continue;
+      }
+      const video = document.createElement('video');
+      video.src = payload.url;
+      video.controls = true;
+      video.preload = 'metadata';
+      runEditorCommand('insertHTML', video.outerHTML);
+    }
+  };
   document.querySelectorAll('[data-editor-command], [data-editor-action]').forEach((button) => {
     button.addEventListener('mousedown', (event) => event.preventDefault());
     button.addEventListener('click', () => {
@@ -447,13 +475,10 @@
       return;
     }
     if (action === 'color') return courseEditorColor.click();
-    if (action === 'image') {
-      const url = editorUrl('Paste the image URL');
-      if (url) runEditorCommand('insertImage', url);
-      return;
-    }
-    if (action === 'video' || action === 'embed') {
-      const url = editorUrl(action === 'video' ? 'Paste the video URL' : 'Paste the embed URL');
+    if (action === 'image') return courseEditorImage.click();
+    if (action === 'video') return courseEditorVideo.click();
+    if (action === 'embed') {
+      const url = editorUrl('Paste the embed URL');
       if (url) insertEditorFrame(url);
       return;
     }
@@ -463,6 +488,14 @@
     });
   }));
   courseEditorColor?.addEventListener('input', () => runEditorCommand('foreColor', courseEditorColor.value));
+  courseEditorImage?.addEventListener('change', async () => {
+    try { await uploadEditorFiles([...courseEditorImage.files], 'image'); } catch (error) { window.alert(error.message); }
+    courseEditorImage.value = '';
+  });
+  courseEditorVideo?.addEventListener('change', async () => {
+    try { await uploadEditorFiles([...courseEditorVideo.files], 'video'); } catch (error) { window.alert(error.message); }
+    courseEditorVideo.value = '';
+  });
   document.getElementById('newCourseForm')?.addEventListener('submit', (event) => {
     courseDescription.value = courseEditor.innerHTML.trim();
     const hasInstructor = document.querySelector('input[name="instructor_ids[]"]:checked');

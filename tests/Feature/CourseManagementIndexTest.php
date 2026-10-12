@@ -43,6 +43,8 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('Course description')
             ->assertSee('title="Heading 2"', false)
             ->assertSee('title="Image / Gallery"', false)
+            ->assertSee('id="courseEditorImage"', false)
+            ->assertSee('id="courseEditorVideo"', false)
             ->assertSeeText('Import via ZIP')
             ->assertSeeText('Learning')
             ->assertSeeText('Administrator')
@@ -108,7 +110,7 @@ class CourseManagementIndexTest extends TestCase
             'modal_create' => 1,
             'title' => 'Modal Course',
             'short_introduction' => 'A short introduction',
-            'description' => '<p>Course details</p><iframe src="https://www.youtube.com/embed/example"></iframe><script>alert(1)</script>',
+            'description' => '<p>Course details</p><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><script>alert(1)</script>',
             'new_category' => 'Framework',
             'level' => 'beginner',
             'language' => 'en',
@@ -122,6 +124,7 @@ class CourseManagementIndexTest extends TestCase
         $this->assertSame('Framework', $course->category);
         $this->assertSame('A short introduction', $course->short_introduction);
         $this->assertStringContainsString('<p>Course details</p>', $course->description);
+        $this->assertStringContainsString('<video', $course->description);
         $this->assertStringContainsString('<iframe', $course->description);
         $this->assertStringNotContainsString('<script>', $course->description);
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
