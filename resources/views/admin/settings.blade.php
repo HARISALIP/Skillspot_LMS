@@ -8,7 +8,9 @@
   html,body,main { height:100%; background:#202020!important; }
   main { padding:0!important; overflow:hidden!important; }
   .settings-workspace { height:100vh; min-height:0; background:#202020; color:#d0d0d0; }
-  .settings-sidebar { height:100%; min-height:0; scrollbar-width:thin; background:#242424; border-color:#383838; overflow-y:auto; }
+  .settings-sidebar,.settings-content { scrollbar-width:none; -ms-overflow-style:none; }
+  .settings-sidebar::-webkit-scrollbar,.settings-content::-webkit-scrollbar { display:none; }
+  .settings-sidebar { height:100%; min-height:0; background:#242424; border-color:#383838; overflow-y:auto; }
   .settings-content { min-height:0; overflow-y:auto; }
   .settings-workspace .text-gray-900 { color:#e4e4e4!important; }
   .settings-workspace .text-gray-800,.settings-workspace .text-gray-700 { color:#d0d0d0!important; }
@@ -31,28 +33,28 @@
 $embedded = request()->boolean('embed');
 $settingsQuery = $embedded ? ['embed' => 1] : [];
 $tabs = [
-  'general' => ['group'=>'System Configuration','fa'=>'fa-sliders','label'=>'General','description'=>'Platform preferences'],
-  'signup' => ['group'=>'System Configuration','fa'=>'fa-right-to-bracket','label'=>'Signup','description'=>'Registration and consent'],
-  'course-progress' => ['group'=>'Course Configuration','fa'=>'fa-chart-line','label'=>'Progress','description'=>'Course completion rules'],
-  'badges' => ['group'=>'Course Configuration','fa'=>'fa-award','label'=>'Badges','description'=>'Recognition settings'],
-  'badge-assignments' => ['group'=>'Course Configuration','fa'=>'fa-certificate','label'=>'Badge Assignments','description'=>'Badge assignment settings'],
-  'categories' => ['group'=>'Course Configuration','fa'=>'fa-network-wired','label'=>'Categories','description'=>'Create and manage course categories'],
-  'communication' => ['group'=>'Communication','fa'=>'fa-sliders','label'=>'General','description'=>'Contact and notification preferences'],
-  'email-template' => ['group'=>'Communication','fa'=>'fa-envelope-open-text','label'=>'Email Template','description'=>'Email template management'],
-  'mail' => ['group'=>'Communication','fa'=>'fa-envelope','label'=>'Email Accounts','description'=>'SMTP and invitation delivery'],
-  'members' => ['group'=>'User Management','fa'=>'fa-user','label'=>'Users','description'=>'Member roles and access'],
-  'payment' => ['group'=>'Payment','fa'=>'fa-credit-card','label'=>'Configuration','description'=>'Course pricing and payment settings'],
-  'payment-gateways' => ['group'=>'Payment','fa'=>'fa-dollar-sign','label'=>'Gateways','description'=>'Payment gateway management'],
-  'transactions' => ['group'=>'Payment','fa'=>'fa-building-columns','label'=>'Transactions','description'=>'Payment transaction history'],
-  'coupons' => ['group'=>'Payment','fa'=>'fa-ticket','label'=>'Coupons','description'=>'Course discount codes'],
-  'storage' => ['group'=>'Integrations','fa'=>'fa-key','label'=>'Services','description'=>'Storage and service credentials'],
-  'google-calendar' => ['group'=>'Integrations','fa'=>'fa-calendar','label'=>'Google Calendar','description'=>'Calendar integration'],
-  'google-meet' => ['group'=>'Integrations','fa'=>'fa-person-chalkboard','label'=>'Google Meet','description'=>'Meeting integration'],
-  'zoom' => ['group'=>'Integrations','fa'=>'fa-video','label'=>'Zoom','description'=>'Zoom integration'],
-  'raven' => ['group'=>'Integrations','fa'=>'fa-comments','label'=>'Raven','description'=>'Messaging integration'],
-  'branding' => ['group'=>'Customization','fa'=>'fa-palette','label'=>'Branding','description'=>'Academy identity and visual settings'],
-  'sidebar' => ['group'=>'Customization','fa'=>'fa-table-columns','label'=>'Sidebar','description'=>'Navigation appearance'],
-  'seo' => ['group'=>'Customization','fa'=>'fa-magnifying-glass','label'=>'SEO','description'=>'Search and social metadata'],
+  'general' => ['group'=>'System Configuration','fa'=>'fa-solid fa-sliders','label'=>'General','description'=>'Platform preferences'],
+  'signup' => ['group'=>'System Configuration','fa'=>'fa-solid fa-right-to-bracket','label'=>'Signup','description'=>'Registration and consent'],
+  'course-progress' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-chart-line','label'=>'Progress','description'=>'Course completion rules'],
+  'badges' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-award','label'=>'Badges','description'=>'Recognition settings'],
+  'badge-assignments' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-certificate','label'=>'Badge Assignments','description'=>'Badge assignment settings'],
+  'categories' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired','label'=>'Categories','description'=>'Create and manage course categories'],
+  'communication' => ['group'=>'Communication','fa'=>'fa-solid fa-sliders','label'=>'General','description'=>'Contact and notification preferences'],
+  'email-template' => ['group'=>'Communication','fa'=>'fa-solid fa-envelope-open-text','label'=>'Email Template','description'=>'Email template management'],
+  'mail' => ['group'=>'Communication','fa'=>'fa-solid fa-envelope','label'=>'Email Accounts','description'=>'SMTP and invitation delivery'],
+  'members' => ['group'=>'User Management','fa'=>'fa-solid fa-user','label'=>'Users','description'=>'Member roles and access'],
+  'payment' => ['group'=>'Payment','fa'=>'fa-solid fa-credit-card','label'=>'Configuration','description'=>'Course pricing and payment settings'],
+  'payment-gateways' => ['group'=>'Payment','fa'=>'fa-solid fa-dollar-sign','label'=>'Gateways','description'=>'Payment gateway management'],
+  'transactions' => ['group'=>'Payment','fa'=>'fa-solid fa-building-columns','label'=>'Transactions','description'=>'Payment transaction history'],
+  'coupons' => ['group'=>'Payment','fa'=>'fa-solid fa-ticket','label'=>'Coupons','description'=>'Course discount codes'],
+  'storage' => ['group'=>'Integrations','fa'=>'fa-solid fa-key','label'=>'Services','description'=>'Storage and service credentials'],
+  'google-calendar' => ['group'=>'Integrations','fa'=>'fa-solid fa-calendar','label'=>'Google Calendar','description'=>'Calendar integration'],
+  'google-meet' => ['group'=>'Integrations','fa'=>'fa-solid fa-person-chalkboard','label'=>'Google Meet','description'=>'Meeting integration'],
+  'zoom' => ['group'=>'Integrations','fa'=>'fa-solid fa-video','label'=>'Zoom','description'=>'Zoom integration'],
+  'raven' => ['group'=>'Integrations','fa'=>'fa-solid fa-comments','label'=>'Raven','description'=>'Messaging integration'],
+  'branding' => ['group'=>'Customization','fa'=>'fa-solid fa-palette','label'=>'Branding','description'=>'Academy identity and visual settings'],
+  'sidebar' => ['group'=>'Customization','fa'=>'fa-solid fa-table-columns','label'=>'Sidebar','description'=>'Navigation appearance'],
+  'seo' => ['group'=>'Customization','fa'=>'fa-solid fa-magnifying-glass','label'=>'SEO','description'=>'Search and social metadata'],
 ];
 @endphp
 
