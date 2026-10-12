@@ -77,7 +77,7 @@ $tabs = [
   <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-[220px] lg:border-b-0 lg:border-r overflow-y-auto">
     <div class="lg:hidden flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1">
       @foreach($tabs as $key => $tab)
-      <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
+      <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}" data-settings-tab="{{ $key }}"
          class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition
                 {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-lg shadow-brand-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-brand-300 hover:text-brand-600' }}">
         <i class="{{ $tab['fa'] }}"></i> {{ $tab['label'] }}
@@ -92,7 +92,7 @@ $tabs = [
           <p class="px-2 text-xs font-medium text-gray-400">{{ $tab['group'] }}</p>
           @php $lastGroup = $tab['group']; @endphp
         @endif
-        <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}"
+        <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}" data-settings-tab="{{ $key }}"
            class="settings-nav-item {{ $activeTab === $key ? 'is-active' : '' }} flex h-7 items-center gap-2 rounded-md px-2 text-[14px] transition font-medium">
           <span class="w-4 text-center text-gray-400">
             <i class="{{ $tab['fa'] }} text-xs"></i>
@@ -695,6 +695,15 @@ $tabs = [
 @push('scripts')
 <script>
 const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+
+@if($embedded)
+document.querySelectorAll('[data-settings-tab]').forEach((link) => {
+  link.addEventListener('click', (event) => {
+    event.preventDefault();
+    window.parent.postMessage({ type: 'skillspot:navigate-settings', tab: link.dataset.settingsTab }, window.location.origin);
+  });
+});
+@endif
 
 function openCategoryEditor(id, name) {
   const dialog = document.getElementById('editCategoryDialog');

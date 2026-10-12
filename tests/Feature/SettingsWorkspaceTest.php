@@ -50,13 +50,17 @@ class SettingsWorkspaceTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('id="settingsModalButton"', false)
-            ->assertSee(route('admin.settings', ['embed' => 1]));
+            ->assertSee(route('admin.settings', ['embed' => 1]))
+            ->assertSee('history.pushState', false)
+            ->assertSee('skillspot:navigate-settings', false);
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
             ->assertOk()
             ->assertSeeText('System Configuration')
             ->assertDontSeeText('Configure your learning platform')
-            ->assertDontSee('Main navigation');
+            ->assertDontSee('Main navigation')
+            ->assertSee('data-settings-tab="signup"', false)
+            ->assertSee('skillspot:navigate-settings', false);
     }
 
     public function test_management_panels_can_render_without_the_main_sidebar(): void
