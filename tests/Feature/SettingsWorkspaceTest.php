@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Models\Setting;
 use App\Models\CourseCategory;
+use App\Models\Certificate;
+use App\Models\Course;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -25,7 +27,7 @@ class SettingsWorkspaceTest extends TestCase
             ->assertSeeText('General')
             ->assertSeeText('Course Configuration')
             ->assertSeeText('Progress')
-            ->assertSeeText('Badges')
+            ->assertSeeText('Certificates')
             ->assertSeeText('Badge Assignments')
             ->assertSeeText('User Management')
             ->assertSeeText('Payment')
@@ -117,6 +119,24 @@ class SettingsWorkspaceTest extends TestCase
         $this->assertDatabaseHas('settings', ['key' => 'disable_signup', 'value' => '1']);
         $this->assertDatabaseHas('settings', ['key' => 'lesson_dwell_time', 'value' => '30']);
         $this->assertDatabaseHas('settings', ['key' => 'enforce_video_completion', 'value' => '1']);
+    }
+
+    public function test_certificates_are_managed_inside_the_settings_workspace(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+        $learner = User::factory()->create(['name' => 'Certificate Learner']);
+        $course = Course::create(['title' => 'Certificate Course', 'category' => 'Design', 'is_published' => true]);
+        Certificate::create(['user_id' => $learner->id, 'course_id' => $course->id, 'certificate_number' => 'ITF-TEST-2026', 'issued_at' => now()]);
+
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'badges', 'embed' => 1]))
+            ->assertOk()
+            ->assertSeeText('Issue')
+            ->assertSeeText('Certificate Learner')
+            ->assertSeeText('Certificate Course')
+            ->assertSeeText('Revoke')
+            ->assertDontSeeText('does not yet have the matching data model');
     }
 
     public function test_guest_access_setting_protects_the_public_homepage(): void

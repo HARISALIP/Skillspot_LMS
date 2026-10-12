@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
+use App\Models\Certificate;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -30,7 +32,7 @@ class SettingsController extends Controller
             'custom_signup_content' => ['label' => 'Signup Consent HTML', 'type' => 'textarea', 'default' => ''],
         ],
         'course-progress' => [
-            'lesson_dwell_time' => ['label' => 'Lesson Completion Time (seconds)', 'type' => 'text', 'default' => '1'],
+            'lesson_dwell_time' => ['label' => 'Lesson Completion Time (seconds)', 'type' => 'text', 'default' => '30'],
             'enforce_video_completion' => ['label' => 'Enforce video completion', 'type' => 'boolean', 'default' => '0'],
             'enforce_assignment_completion' => ['label' => 'Enforce assignment completion', 'type' => 'boolean', 'default' => '0'],
             'enforce_quiz_completion' => ['label' => 'Enforce quiz completion', 'type' => 'boolean', 'default' => '0'],
@@ -126,8 +128,17 @@ class SettingsController extends Controller
         $categories = $activeTab === 'categories'
             ? CourseCategory::latest()->get()
             : collect();
+        $certificates = $activeTab === 'badges'
+            ? Certificate::with(['user', 'course'])->latest()->limit(20)->get()
+            : collect();
+        $certificateCourses = $activeTab === 'badges'
+            ? Course::where('is_published', 1)->orderBy('title')->get(['id', 'title'])
+            : collect();
+        $certificateUsers = $activeTab === 'badges'
+            ? User::orderBy('name')->limit(100)->get(['id', 'name', 'email'])
+            : collect();
 
-        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories'));
+        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories', 'certificates', 'certificateCourses', 'certificateUsers'));
     }
 
     public function storeCategory(Request $request)

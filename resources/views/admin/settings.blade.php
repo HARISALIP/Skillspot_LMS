@@ -38,7 +38,7 @@ $tabs = [
   'general' => ['group'=>'System Configuration','fa'=>'fa-solid fa-sliders','label'=>'General','description'=>'Platform preferences'],
   'signup' => ['group'=>'System Configuration','fa'=>'fa-solid fa-right-to-bracket','label'=>'Signup','description'=>'Registration and consent'],
   'course-progress' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-chart-line','label'=>'Progress','description'=>'Course completion rules'],
-  'badges' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-award','label'=>'Badges','description'=>'Recognition settings'],
+  'badges' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-certificate','label'=>'Certificates','description'=>'Issue and revoke learner certificates'],
   'badge-assignments' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-certificate','label'=>'Badge Assignments','description'=>'Badge assignment settings'],
   'categories' => ['group'=>'Course Configuration','fa'=>'fa-solid fa-network-wired','label'=>'Categories','description'=>'Create and manage course categories'],
   'communication' => ['group'=>'Communication','fa'=>'fa-solid fa-sliders','label'=>'General','description'=>'Contact and notification preferences'],
@@ -121,7 +121,7 @@ $tabs = [
         @endif
       </div>
 
-      @php $managedPanel = $activeTab === 'categories' || !array_key_exists($activeTab, $schema); @endphp
+      @php $managedPanel = in_array($activeTab, ['categories', 'badges']) || !array_key_exists($activeTab, $schema); @endphp
       @if($managedPanel)
       <div id="settingsForm">
       @else
@@ -170,6 +170,19 @@ $tabs = [
                 @endforelse
               </div>
             </div>
+          </section>
+
+          {{-- CERTIFICATES --}}
+          @elseif($activeTab === 'badges')
+          <section class="space-y-5 pr-10">
+            <div class="flex items-center justify-between gap-3"><h2 class="text-lg font-bold text-gray-900">Certificates</h2><span class="text-xs text-gray-500">{{ $certificates->count() }} issued</span></div>
+            <form method="POST" action="{{ route('admin.certs.issue') }}" class="grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+              @csrf
+              <label class="block text-xs font-semibold text-gray-600">Learner<select name="user_id" required class="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"><option value="">Select learner</option>@foreach($certificateUsers as $user)<option value="{{ $user->id }}">{{ $user->name }} — {{ $user->email }}</option>@endforeach</select></label>
+              <label class="block text-xs font-semibold text-gray-600">Course<select name="course_id" required class="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"><option value="">Select course</option>@foreach($certificateCourses as $course)<option value="{{ $course->id }}">{{ $course->title }}</option>@endforeach</select></label>
+              <button class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700"><i class="fa-solid fa-certificate"></i> Issue</button>
+            </form>
+            <div class="overflow-hidden rounded-xl border border-gray-200"><div class="grid grid-cols-[1fr_1fr_7rem_4rem] gap-3 border-b border-gray-200 px-4 py-3 text-xs font-medium text-gray-400"><span>Learner</span><span>Course</span><span>Issued</span><span></span></div>@forelse($certificates as $certificate)<div class="grid grid-cols-[1fr_1fr_7rem_4rem] items-center gap-3 border-b border-gray-100 px-4 py-3 text-sm last:border-0"><span class="truncate font-medium text-gray-800">{{ $certificate->user->name ?? '—' }}</span><span class="truncate text-gray-600">{{ $certificate->course->title ?? '—' }}</span><span class="text-xs text-gray-500">{{ ($certificate->issued_at ?? $certificate->created_at)?->format('d M Y') }}</span><form method="POST" action="{{ route('admin.certs.revoke', $certificate) }}" onsubmit="return confirm('Revoke this certificate?')">@csrf @method('DELETE')<button class="text-xs font-semibold text-red-600 hover:underline">Revoke</button></form></div>@empty<div class="px-4 py-10 text-center text-sm text-gray-400">No certificates issued yet.</div>@endforelse</div>
           </section>
 
           {{-- GENERAL --}}
@@ -637,7 +650,13 @@ $tabs = [
               </button>
             </div>
           </div>
-          @elseif(in_array($activeTab, ['signup', 'course-progress', 'seo']))
+          @elseif($activeTab === 'course-progress')
+          <section class="space-y-4 pt-2 pr-10">
+            <h2 class="text-sm font-semibold text-gray-900">Completion Time</h2>
+            <div class="grid gap-3 border-b border-gray-200 pb-3 md:grid-cols-[1fr_8rem] md:items-center"><div><p class="text-xs font-semibold text-gray-900">Lesson Completion Time (seconds)</p><p class="mt-0.5 text-[11px] leading-tight text-gray-500">Seconds a learner must stay on a lesson before it auto-marks complete.</p></div><input type="number" min="1" name="lesson_dwell_time" value="{{ old('lesson_dwell_time', $settings['lesson_dwell_time'] ?? $schema['course-progress']['lesson_dwell_time']['default']) }}" class="w-32 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500"></div>
+          </section>
+          <section class="space-y-2 pt-4 pr-10"><h2 class="text-sm font-semibold text-gray-900">Enforcement</h2><div class="divide-y divide-gray-200">@foreach(['enforce_video_completion' => 'When enabled, lessons that contain a video can only be marked complete by playing the video to the end. If the video fails to load, the dwell timer is used as a fallback.', 'enforce_assignment_completion' => 'When enabled, lessons with an assignment cannot be marked complete until the assignment is submitted.', 'enforce_quiz_completion' => 'When enabled, lessons with a quiz cannot be marked complete until the quiz is submitted.', 'prevent_skipping_videos' => 'If enabled, users will not be able to move forward in a video.'] as $key => $description)<label class="flex cursor-pointer items-center justify-between gap-3 py-2"><div><p class="text-xs font-semibold text-gray-900">{{ $schema['course-progress'][$key]['label'] }}</p><p class="mt-0.5 text-[11px] leading-tight text-gray-500">{{ $description }}</p></div><span class="relative shrink-0"><input type="checkbox" name="{{ $key }}" class="peer sr-only" {{ ($settings[$key] ?? $schema['course-progress'][$key]['default']) === '1' ? 'checked' : '' }}><span class="block h-5 w-9 rounded-full bg-gray-600 transition peer-checked:bg-white"></span><span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition peer-checked:translate-x-4 peer-checked:bg-gray-800"></span></span></label>@endforeach</div></section>
+          @elseif(in_array($activeTab, ['signup', 'seo']))
           <section class="space-y-5 pt-2">
             <h2 class="text-lg font-bold text-gray-900">{{ $tabs[$activeTab]['label'] }}</h2>
             <div class="divide-y divide-gray-200">
