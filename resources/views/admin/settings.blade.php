@@ -5,8 +5,11 @@
 
 @push('styles')
 <style>
-  .settings-workspace { min-height: min(860px, calc(100vh - 4rem)); background:#202020; color:#d0d0d0; }
-  .settings-sidebar { scrollbar-width: thin; background:#242424; border-color:#383838; }
+  html,body,main { height:100%; background:#202020!important; }
+  main { padding:0!important; overflow:hidden!important; }
+  .settings-workspace { height:100vh; min-height:0; background:#202020; color:#d0d0d0; }
+  .settings-sidebar { height:100%; min-height:0; scrollbar-width:thin; background:#242424; border-color:#383838; overflow-y:auto; }
+  .settings-content { min-height:0; overflow-y:auto; }
   .settings-workspace .text-gray-900 { color:#e4e4e4!important; }
   .settings-workspace .text-gray-800,.settings-workspace .text-gray-700 { color:#d0d0d0!important; }
   .settings-workspace .text-gray-600,.settings-workspace .text-gray-500,.settings-workspace .text-gray-400 { color:#a3a3a3!important; }
@@ -66,7 +69,7 @@ $tabs = [
 </div>
 @endif
 
-<div class="settings-workspace settings-shell mx-auto flex max-w-6xl flex-col overflow-hidden rounded-2xl shadow-2xl lg:flex-row">
+<div class="settings-workspace settings-shell flex flex-col overflow-hidden lg:flex-row">
 
   {{-- Sidebar tabs --}}
   <div class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 lg:w-64 lg:border-b-0 lg:border-r overflow-y-auto">
@@ -103,7 +106,7 @@ $tabs = [
   </div>
 
   {{-- Main panel --}}
-  <div class="flex-1 min-w-0 overflow-y-auto">
+  <div class="settings-content relative flex-1 min-w-0">
     <div class="min-h-full overflow-hidden">
 
       <div class="absolute right-4 top-4 z-10">
