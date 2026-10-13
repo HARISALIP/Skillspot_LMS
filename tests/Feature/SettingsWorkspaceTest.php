@@ -136,6 +136,11 @@ class SettingsWorkspaceTest extends TestCase
             'enforce_video_completion' => '1',
         ])->assertRedirect(route('admin.settings', ['tab' => 'course-progress']));
 
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'course-progress', 'embed' => 1]))
+            ->assertOk()
+            ->assertSee('peer-checked:bg-brand-600', false)
+            ->assertDontSee('peer-checked:bg-white', false);
+
         $this->assertDatabaseHas('settings', ['key' => 'disable_signup', 'value' => '1']);
         $this->assertDatabaseHas('settings', ['key' => 'lesson_dwell_time', 'value' => '30']);
         $this->assertDatabaseHas('settings', ['key' => 'enforce_video_completion', 'value' => '1']);
