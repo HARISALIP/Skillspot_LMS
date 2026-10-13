@@ -397,7 +397,7 @@ async function loadLesson(lessonId) {
     } else if (data.type === 'quiz' && data.quiz) {
       renderQuiz(data.quiz, data.completed);
     } else if (data.type === 'text') {
-      renderContent(data.content || '<p class="text-gray-400">No content available.</p>', data.title);
+      renderContent(data.block_document ? renderBlockDocument(data.block_document) : (data.content || '<p class="text-gray-400">No content available.</p>'), data.title);
     } else if (data.type === 'pdf' && data.content) {
       renderPdf(data.content);
     } else {
@@ -445,6 +445,20 @@ function renderVideo(url, savedProgress) {
     video.ontimeupdate = () => throttleSaveProgress(video);
     document.getElementById('videoWrap').classList.remove('hidden');
   }
+}
+
+function renderBlockDocument(document) {
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+  return (document?.blocks || []).map(block => {
+    const data = block.data || {};
+    if (block.type === 'header') return '<h' + Math.min(Math.max(data.level || 2, 2), 4) + '>' + escape(data.text) + '</h' + Math.min(Math.max(data.level || 2, 2), 4) + '>';
+    if (block.type === 'paragraph') return '<p>' + escape(data.text) + '</p>';
+    if (block.type === 'list') return '<ul>' + (data.items || []).map(item => '<li>' + escape(typeof item === 'string' ? item : item.content) + '</li>').join('') + '</ul>';
+    if (block.type === 'table') return '<table><tbody>' + (data.content || []).map(row => '<tr>' + row.map(cell => '<td>' + escape(cell) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
+    if (['quiz','assignment','program','media'].includes(block.type)) return '<div class="rounded-xl border border-blue-100 bg-blue-50 p-4 my-4"><strong>' + escape(block.type.replace('_', ' ')) + '</strong><p>' + escape(data.text) + '</p></div>';
+    if (block.type === 'instructorNote') return '';
+    return '';
+  }).join('') || '<p class="text-gray-400">No content available.</p>';
 }
 
 function renderContent(html, title = 'Lesson') {

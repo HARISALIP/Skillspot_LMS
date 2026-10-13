@@ -14,6 +14,19 @@
         "vite": "^8.0.0"
     },
     "dependencies": {
-        "@hotwired/turbo": "^8.0.23"
+        "@editorjs/editorjs": "^2.29.0",
+        "@editorjs/embed": "^2.7.0",
+        "@editorjs/header": "^2.8.1",
+        "@editorjs/inline-code": "^1.5.0",
+        "@editorjs/nested-list": "^1.4.2",
+        "@editorjs/paragraph": "^2.11.3",
+        "@editorjs/simple-image": "^1.6.0",
+        "@editorjs/table": "^2.4.2",
+        "@hotwired/turbo": "^8.0.23",
+        "@vitejs/plugin-vue": "^6.0.10",
+        "editorjs-drag-drop": "^1.1.16",
+        "lucide-vue-next": "^0.383.0",
+        "markdown-it": "^14.0.0",
+        "vue": "^3.5.43"
     }
 }

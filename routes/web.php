@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\Admin\RolesController;
 use App\Http\Controllers\Admin\CoursesController;
+use App\Http\Controllers\Instructor\CourseWorkspaceController;
 use App\Http\Controllers\Admin\CourseOptionsController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PaymentsController;
@@ -52,6 +53,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/teach', [MarketplaceController::class, 'applyForm'])->name('marketplace.apply');
     Route::post('/teach', [MarketplaceController::class, 'apply'])->name('marketplace.apply.store');
     Route::get('/instructor', [MarketplaceController::class, 'dashboard'])->name('marketplace.dashboard');
+});
+
+Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'teacher.only'])->group(function () {
+    Route::get('/courses', [CourseWorkspaceController::class, 'index'])->name('courses.index');
+    Route::get('/courses/{course}', [CourseWorkspaceController::class, 'show'])->name('courses.show');
+    Route::prefix('/workspace/courses')->name('api.courses.')->group(function () {
+        Route::get('/', [CourseWorkspaceController::class, 'courses'])->name('index');
+        Route::post('/', [CourseWorkspaceController::class, 'storeCourse'])->name('store');
+        Route::get('/{course}', [CourseWorkspaceController::class, 'course'])->name('show');
+        Route::patch('/{course}', [CourseWorkspaceController::class, 'updateCourse'])->name('update');
+        Route::post('/{course}/sections', [CourseWorkspaceController::class, 'storeSection'])->name('sections.store');
+        Route::patch('/{course}/sections/{section}', [CourseWorkspaceController::class, 'updateSection'])->name('sections.update');
+        Route::post('/{course}/sections/{section}/lessons', [CourseWorkspaceController::class, 'storeLesson'])->name('lessons.store');
+        Route::patch('/{course}/sections/{section}/lessons/{lesson}', [CourseWorkspaceController::class, 'updateLesson'])->name('lessons.update');
+        Route::post('/{course}/outline', [CourseWorkspaceController::class, 'reorder'])->name('outline');
+    });
 });
 // ── Razorpay Webhook (NO csrf — verified via signature) ────────────────────
 Route::post('/webhook/razorpay', [PaymentController::class, 'webhook'])
@@ -337,6 +354,7 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
         Route::delete('/courses/{course}/sections/{section}/lessons/{lesson}',            [VendorCourses::class,'destroyLesson'])->name('courses.lessons.destroy');
         // Live Classes
         Route::post('/live',                                                              [VendorLive::class,'store'])->name('live.store');
+        Route::post('/live/{lesson}/recording',                                           [VendorLive::class,'updateRecording'])->name('live.recording');
         Route::delete('/live/{lesson}',                                                   [VendorLive::class,'destroy'])->name('live.destroy');
         Route::get('/live/{lesson}/attendance',                                           [VendorLive::class,'attendance'])->name('live.attendance');
         Route::post('/live/{lesson}/attendance',                                          [VendorLive::class,'saveAttendance'])->name('live.attendance.save');

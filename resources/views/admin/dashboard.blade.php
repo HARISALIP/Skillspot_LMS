@@ -106,16 +106,16 @@
     <h3 class="font-bold text-gray-900 text-sm mb-4">Quick Actions</h3>
     <div class="space-y-2.5">
       @php $actions = [
-        ['icon'=>'➕','label'=>'Add New User',    'href'=>'/admin/users/create',   'color'=>'hover:bg-brand-50 hover:text-brand-700'],
-        ['icon'=>'📚','label'=>'Manage Courses',  'href'=>route('admin.courses'),  'color'=>'hover:bg-purple-50 hover:text-purple-700'],
-        ['icon'=>'📚','label'=>'Review Courses',  'href'=>'/admin/courses',        'color'=>'hover:bg-green-50 hover:text-green-700'],
-        ['icon'=>'🔑','label'=>'Issue License',   'href'=>'/admin/licenses/create','color'=>'hover:bg-yellow-50 hover:text-yellow-700'],
-        ['icon'=>'📊','label'=>'View Reports',    'href'=>'/admin/reports',        'color'=>'hover:bg-indigo-50 hover:text-indigo-700'],
-        ['icon'=>'⚙️','label'=>'Platform Settings','href'=>'/admin/settings',     'color'=>'hover:bg-gray-100 hover:text-gray-700'],
+        ['icon'=>'fa-user-plus','label'=>'Add New User',    'href'=>'/admin/users/create',   'color'=>'hover:bg-brand-50 hover:text-brand-700'],
+        ['icon'=>'fa-book-open','label'=>'Manage Courses',  'href'=>route('admin.courses'),  'color'=>'hover:bg-purple-50 hover:text-purple-700'],
+        ['icon'=>'fa-clipboard-check','label'=>'Review Courses',  'href'=>'/admin/courses',        'color'=>'hover:bg-green-50 hover:text-green-700'],
+        ['icon'=>'fa-certificate','label'=>'Manage Certificates','href'=>route('admin.certs'),'color'=>'hover:bg-yellow-50 hover:text-yellow-700'],
+        ['icon'=>'fa-chart-line','label'=>'Marketplace Commissions','href'=>route('admin.marketplace.commissions'),'color'=>'hover:bg-indigo-50 hover:text-indigo-700'],
+        ['icon'=>'fa-gear','label'=>'Platform Settings','href'=>'/admin/settings',     'color'=>'hover:bg-gray-100 hover:text-gray-700'],
       ]; @endphp
       @foreach($actions as $a)
       <a href="{{ $a['href'] }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 transition {{ $a['color'] }} group">
-        <span class="text-base">{{ $a['icon'] }}</span>
+        <i class="fa-solid {{ $a['icon'] }} w-4 text-center"></i>
         <span class="text-sm font-medium">{{ $a['label'] }}</span>
         <svg class="w-3.5 h-3.5 ml-auto opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
       </a>

@@ -280,6 +280,8 @@ class CourseController extends Controller
             'type'         => $lesson->type,
             'video_url'    => $videoUrl,
             'content'      => $lesson->content,
+            // New editor documents are rendered client-side; legacy content remains unchanged.
+            'block_document' => $lesson->block_document,
             'notes'        => $lesson->notes,
             'materials'    => $this->materialsForLessons(collect([$lesson]))[$lesson->id] ?? [],
             'duration'     => $lesson->duration,

@@ -58,7 +58,7 @@
                 <button class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg font-semibold transition">Issue Cert</button>
               </form>
             @endif
-            <form method="POST" action="{{ route('vendor.courses.revoke-student', [$course, $e->user]) }}" onsubmit="return confirm('Remove student?')">
+            <form method="POST" action="{{ route('vendor.courses.revoke-access', [$course, $e->user]) }}" onsubmit="return confirm('Remove student?')">
               @csrf @method('DELETE')
               <button class="text-xs text-gray-400 hover:text-red-600 transition">✕</button>
             </form>

@@ -10,13 +10,15 @@ class Lesson extends Model
         'video_url','video_storage','video_r2_path',
         'live_platform','live_url','live_share_link','live_scheduled_at','live_duration_min','live_meeting_id','live_password',
         'recording_url','recording_shared',
-        'notes','resources','duration','is_preview','order',
+        'notes','resources','duration','is_preview','order','block_document','instructor_notes_document',
     ];
 
     protected $casts = [
         'is_preview'         => 'boolean',
         'recording_shared'   => 'boolean',
         'resources'          => 'array',
+        'block_document'     => 'array',
+        'instructor_notes_document' => 'array',
         'live_scheduled_at'  => 'datetime',
     ];
 

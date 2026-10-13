@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\Section;
 use App\Services\CourseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -88,6 +89,27 @@ class SettingsWorkspaceTest extends TestCase
             ->assertSee('data-navigation-sidebar="settings"', false)
             ->assertSee('data-settings-tab="signup"', false)
             ->assertDontSee('skillspot:navigate-settings', false);
+    }
+
+    public function test_dashboard_quick_actions_only_link_to_available_sections(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.certs'), false)
+            ->assertSee(route('admin.marketplace.commissions'), false)
+            ->assertDontSee('/admin/licenses/create', false)
+            ->assertDontSee('/admin/reports', false);
+    }
+
+    public function test_vendor_action_routes_referenced_by_the_interface_are_registered(): void
+    {
+        $this->assertTrue(Route::has('vendor.courses.grant-access'));
+        $this->assertTrue(Route::has('vendor.courses.revoke-access'));
+        $this->assertTrue(Route::has('vendor.live.recording'));
     }
 
     public function test_management_panels_can_render_without_the_main_sidebar(): void

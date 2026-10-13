@@ -25,7 +25,7 @@
     @if($errors->any())
       <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-2 mb-3 text-sm text-red-800">{{ $errors->first() }}</div>
     @endif
-    <form method="POST" action="{{ route('vendor.courses.allow-student', $course) }}" class="flex items-center gap-3">
+    <form method="POST" action="{{ route('vendor.courses.grant-access', $course) }}" class="flex items-center gap-3">
       @csrf
       <input type="email" name="email" placeholder="Student email (must be registered)" required class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
       <input type="text" name="note" placeholder="Note (optional)" class="w-48 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
@@ -66,7 +66,7 @@
           <td class="px-4 py-3 text-center text-gray-500 text-xs">{{ $enrollment->created_at->format('d M Y') }}</td>
           <td class="px-4 py-3 text-right">
             @if(!isset($isVendorOnly) || !$isVendorOnly)
-            <form method="POST" action="{{ route('vendor.courses.revoke-student', [$course, $enrollment->user_id]) }}">
+            <form method="POST" action="{{ route('vendor.courses.revoke-access', [$course, $enrollment->user_id]) }}">
               @csrf @method('DELETE')
               <button class="text-xs text-red-600 hover:text-red-800 font-medium" onclick="return confirm('Revoke access?')">Revoke</button>
             </form>

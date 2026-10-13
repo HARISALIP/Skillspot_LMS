@@ -142,6 +142,27 @@ function initialiseVendorWorkspace() {
   if (window.innerWidth < 1024) { sidebar.style.transform = 'translateX(-100%)'; sidebar.style.transition = 'transform .25s ease'; }
 }
 
+function initialiseCourseWorkspace() {
+  window.__skillspotCourseWorkspaceCleanup?.();
+  const workspace = document.querySelector('.course-workspace');
+  document.body.classList.toggle('course-workspace-page', Boolean(workspace));
+  if (!workspace) return;
+
+  const showTab = requestedTab => {
+    const tab = workspace.querySelector(`[data-course-tab="${requestedTab}"]`) ? requestedTab : 'overview';
+    workspace.querySelectorAll('[data-course-tab]').forEach(element => element.classList.toggle('is-active', element.dataset.courseTab === tab));
+    workspace.querySelectorAll('[data-course-panel]').forEach(element => { element.hidden = element.dataset.coursePanel !== tab; });
+    document.querySelectorAll('[data-tab-action]').forEach(element => element.classList.toggle('hidden', element.dataset.tabAction !== tab));
+  };
+  const syncTab = () => showTab(location.hash.slice(1) || 'overview');
+  window.addEventListener('hashchange', syncTab);
+  syncTab();
+  window.__skillspotCourseWorkspaceCleanup = () => {
+    window.removeEventListener('hashchange', syncTab);
+    delete window.__skillspotCourseWorkspaceCleanup;
+  };
+}
+
 function initialiseLanding() {
   const navbar = document.getElementById('navbar');
   const hamburger = document.getElementById('hamburger');
@@ -172,7 +193,7 @@ document.addEventListener('turbo:before-render', event => {
 document.addEventListener('turbo:before-visit', event => { if (hasDirtyForm() && !window.confirm('You have unsaved changes. Leave this page without saving them?')) event.preventDefault(); });
 window.addEventListener('beforeunload', event => { if (hasDirtyForm()) { event.preventDefault(); event.returnValue = ''; } });
 document.addEventListener('turbo:load', () => {
-  markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseLanding();
+  markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseCourseWorkspace(); initialiseLanding();
   if (window.self !== window.top && location.pathname === '/admin/settings') window.parent.postMessage({ type: 'skillspot:settings-tab', tab: new URL(location.href).searchParams.get('tab') || 'general' }, location.origin);
 });
 document.addEventListener('click', event => { const link = event.target.closest('[data-settings-tab]'); if (link && window.self !== window.top) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: link.dataset.settingsTab, push: true }, location.origin); });
