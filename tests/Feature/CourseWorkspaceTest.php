@@ -25,10 +25,13 @@ class CourseWorkspaceTest extends TestCase
             'primary_instructor_id' => $teacher->id,
         ]);
         $course->teachers()->attach($teacher->id, ['added_by' => $teacher->id]);
+        Section::create(['course_id' => $course->id, 'title' => 'Introduction', 'order' => 1]);
 
         $this->actingAs($teacher)->get(route('admin.courses.edit', $course))
             ->assertOk()->assertSee('Overview')->assertSee('Dashboard')
-            ->assertSee('Course editor')->assertSee('Meta Tags')->assertSee('Chapters');
+            ->assertSee('Course editor')->assertSee('Meta Tags')->assertSee('Chapters')
+            ->assertSee('md:w-2/3', false)->assertSee('w-80', false)
+            ->assertSee('1 section')->assertSee('Course content coming soon!');
 
         $this->put(route('admin.courses.update', $course), [
             'title' => 'Design Basics', 'category' => 'Design', 'level' => 'beginner',
