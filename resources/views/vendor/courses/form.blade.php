@@ -96,7 +96,7 @@
             <label class="flex items-center gap-3 cursor-pointer">
               <div class="relative">
                 <input type="checkbox" name="registration_open" value="1" {{ old('registration_open', $course->registration_open ?? true) ? 'checked' : '' }} class="sr-only peer">
-                <div class="h-4 w-[26px] rounded-full border-2 border-transparent bg-gray-800 transition-colors duration-100 ease-in-out peer-checked:bg-brand-600 cursor-pointer" onclick="this.previousElementSibling.click()"></div>
+                <div class="h-4 w-[26px] rounded-full border-2 border-transparent bg-gray-300 transition-colors duration-100 ease-in-out peer-checked:bg-gray-900 cursor-pointer" onclick="this.previousElementSibling.click()"></div>
                 <div class="pointer-events-none absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition duration-100 ease-in-out peer-checked:translate-x-2.5"></div>
               </div>
               <span class="text-sm font-semibold text-gray-700">Registration Open</span>
