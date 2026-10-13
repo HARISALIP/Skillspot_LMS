@@ -11,7 +11,7 @@
   </button>
   <div id="courseCreateMenuItems" class="absolute right-0 z-30 mt-2 hidden w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg" role="menu">
     <button type="button" id="openNewCourseModal" class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
-      <i class="fa-regular fa-book-open w-4 text-gray-500"></i> New Course
+      <i class="fa-solid fa-book-open w-4 text-gray-500"></i> New Course
     </button>
     <a href="{{ route('admin.courses.import') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
       <i class="fa-solid fa-folder-plus w-4 text-gray-500"></i> Import via ZIP
@@ -121,14 +121,14 @@
       <a href="{{ route('admin.courses.edit', $course) }}" class="block aspect-[16/7] overflow-hidden bg-[#f5f1e6]">
         @if($course->thumbnail)
         <img src="{{ $course->thumbnail }}" alt="" class="h-full w-full object-cover" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
-        <div class="hidden h-full items-center justify-center text-5xl">📚</div>
+        <div class="hidden h-full items-center justify-center text-5xl text-gray-300"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
         @else
-        <div class="flex h-full items-center justify-center text-5xl">📚</div>
+        <div class="flex h-full items-center justify-center text-5xl text-gray-300"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
         @endif
       </a>
       <div class="p-4">
         <div class="flex items-center justify-between text-sm text-gray-500">
-          <span><i class="fa-regular fa-book-open mr-1.5"></i>{{ $lessonCount }}</span>
+          <span><i class="fa-solid fa-book-open mr-1.5"></i>{{ $lessonCount }}</span>
           <span><i class="fa-solid fa-users mr-1.5"></i>{{ $course->enrollments_count }}</span>
           <span class="text-[#f3b23c]"><i class="fa-solid fa-star mr-1.5"></i>{{ $rating }}</span>
         </div>

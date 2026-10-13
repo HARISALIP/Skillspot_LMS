@@ -23,7 +23,7 @@ function addMaterialRow(resource = {}) {
       <input type="hidden" name="resources[${index}][upload_id]">
       <p class="fileStatus text-xs text-gray-500 mt-1"></p>
     </div>
-    <div class="voiceRecorder hidden"><button type="button" onclick="toggleVoiceRecording(this)" class="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-sm font-bold">🎙 Record voice</button>
+    <div class="voiceRecorder hidden"><button type="button" onclick="toggleVoiceRecording(this)" class="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-sm font-bold"><i class="fa-solid fa-microphone mr-1" aria-hidden="true"></i>Record voice</button>
       <span class="recordStatus text-xs text-gray-500 ml-2">Your browser will ask to use the microphone.</span></div>
     <div class="slidePreview hidden"><label class="text-xs font-semibold text-gray-600">PDF slide preview (lets students view slides in browser)</label>
       <input type="file" accept=".pdf,application/pdf" class="block w-full text-sm mt-1" onchange="uploadMaterial(this, 'preview_upload_id')">
@@ -58,7 +58,7 @@ async function toggleVoiceRecording(button) {
   if (row.recorder?.state === 'recording') {
     row.recorder.stop();
     row.stream.getTracks().forEach(track => track.stop());
-    button.textContent = '🎙 Record voice';
+    button.innerHTML = '<i class="fa-solid fa-microphone mr-1" aria-hidden="true"></i>Record voice';
     status.textContent = 'Preparing recording…';
     return;
   }
@@ -81,7 +81,7 @@ async function toggleVoiceRecording(button) {
     row.recorder.start();
     materialUploadsPending++;
     document.getElementById('saveBtn').disabled = true;
-    button.textContent = '■ Stop recording';
+    button.innerHTML = '<i class="fa-solid fa-stop mr-1" aria-hidden="true"></i>Stop recording';
     status.textContent = 'Recording…';
   } catch (error) {
     status.textContent = error.message;

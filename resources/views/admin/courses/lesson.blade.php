@@ -17,7 +17,7 @@
   <div class="lg:col-span-2">
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-        <div class="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center text-lg">🎬</div>
+        <div class="w-9 h-9 bg-green-100 text-green-700 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-film" aria-hidden="true"></i></div>
         <div>
           <h3 class="font-black text-gray-900">{{ $isEdit ? 'Edit Lesson' : 'New Lesson' }}</h3>
           <p class="text-xs text-gray-400">{{ $course->title }} → {{ $section->title }}</p>
@@ -52,18 +52,18 @@
           <label class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Lesson Type <span class="text-red-400">*</span></label>
           <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
             @foreach([
-              ['video','🎬','Video'],
-              ['text', '📖','Text'],
-              ['pdf',  '📄','PDF'],
-              ['quiz', '📝','Quiz'],
-              ['live', '📡','Live'],
+              ['video','fa-film','Video'],
+              ['text', 'fa-book-open','Text'],
+              ['pdf',  'fa-file-pdf','PDF'],
+              ['quiz', 'fa-clipboard-question','Quiz'],
+              ['live', 'fa-tower-broadcast','Live'],
             ] as [$val,$icon,$lbl])
             <label class="cursor-pointer">
               <input type="radio" name="type" value="{{ $val }}" class="sr-only peer"
                      {{ old('type',$lesson->type ?? 'video') === $val ? 'checked' : '' }}
                      onchange="onTypeChange('{{ $val }}')">
               <div class="border-2 border-gray-200 bg-white rounded-xl p-3 text-center peer-checked:border-brand-500 peer-checked:bg-brand-50 transition">
-                <div class="text-2xl mb-1">{{ $icon }}</div>
+                <div class="text-xl mb-1 text-gray-500"><i class="fa-solid {{ $icon }}" aria-hidden="true"></i></div>
                 <div class="text-xs font-bold text-gray-700">{{ $lbl }}</div>
               </div>
             </label>
@@ -84,11 +84,11 @@
           <div class="flex bg-gray-100 rounded-2xl p-1 mb-4 gap-1">
             <button type="button" id="tab-r2"       onclick="switchVideoTab('r2')"
                     class="video-tab flex-1 py-2.5 rounded-xl text-sm font-semibold transition {{ old('video_storage',$lesson->video_storage ?? 'external') === 'r2' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700' }}">
-              ☁️ Upload to R2 <span class="text-xs text-green-600 font-bold">(Secure)</span>
+              <i class="fa-solid fa-cloud-arrow-up mr-1" aria-hidden="true"></i>Upload to R2 <span class="text-xs text-green-600 font-bold">(Secure)</span>
             </button>
             <button type="button" id="tab-external" onclick="switchVideoTab('external')"
                     class="video-tab flex-1 py-2.5 rounded-xl text-sm font-semibold transition {{ old('video_storage',$lesson->video_storage ?? 'external') !== 'r2' ? 'bg-white text-brand-700 shadow-sm' : 'text-gray-500 hover:text-gray-700' }}">
-              🔗 External URL
+              <i class="fa-solid fa-link mr-1" aria-hidden="true"></i>External URL
             </button>
           </div>
 
@@ -97,7 +97,7 @@
 
             {{-- Security badge --}}
             <div class="bg-green-50 border border-green-200 rounded-xl p-3 mb-3 flex items-start gap-2">
-              <span class="text-lg flex-shrink-0">🔒</span>
+              <i class="fa-solid fa-lock text-green-700 flex-shrink-0" aria-hidden="true"></i>
               <div class="text-xs text-green-700">
                 <strong>Secure Storage</strong> — Video stored privately on Cloudflare R2.
                 Served via <strong>signed URLs</strong> (2hr expiry). Cannot be downloaded or shared outside LMS.
@@ -107,7 +107,7 @@
             {{-- Current video info --}}
             @if($isEdit && $lesson->video_r2_path)
             <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 flex items-center gap-3">
-              <span class="text-2xl flex-shrink-0">✅</span>
+              <i class="fa-solid fa-circle-check text-blue-600 text-xl flex-shrink-0" aria-hidden="true"></i>
               <div class="flex-1 min-w-0">
                 <div class="text-xs font-semibold text-blue-800">Video uploaded</div>
                 <div class="text-xs text-blue-600 truncate font-mono">{{ $lesson->video_r2_path }}</div>
@@ -122,7 +122,7 @@
                  ondragover="event.preventDefault();this.classList.add('border-brand-500','bg-brand-50')"
                  ondragleave="this.classList.remove('border-brand-500','bg-brand-50')"
                  ondrop="handleVideoDrop(event)">
-              <div class="text-4xl mb-2">🎬</div>
+              <div class="text-4xl mb-2 text-gray-400"><i class="fa-solid fa-film" aria-hidden="true"></i></div>
               <p class="text-sm font-semibold text-gray-600">Drop video here or click to upload</p>
               <p class="text-xs text-gray-400 mt-1">MP4, WebM, MOV · Max 500MB</p>
             </div>
@@ -134,7 +134,7 @@
             <button type="button"
                     onclick="openMediaPicker('videoPickerModal','videoPicker','video','course-videos')"
                     class="w-full flex items-center justify-center gap-2 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:border-brand-400 hover:text-brand-600 hover:bg-brand-50 transition">
-              📁 Pick from Media Library
+              <i class="fa-solid fa-folder-open" aria-hidden="true"></i>Pick from Media Library
             </button>
 
             {{-- Upload progress --}}
@@ -153,7 +153,7 @@
           {{-- External URL tab --}}
           <div id="videoTabExternal" class="{{ old('video_storage',$lesson->video_storage ?? 'external') !== 'r2' ? '' : 'hidden' }}">
             <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3 flex items-start gap-2">
-              <span class="text-lg flex-shrink-0">⚠️</span>
+              <i class="fa-solid fa-triangle-exclamation text-yellow-600 flex-shrink-0" aria-hidden="true"></i>
               <div class="text-xs text-yellow-700">
                 <strong>External URLs are not secure</strong> — YouTube/Vimeo links can be shared outside the LMS.
                 Use R2 upload for proprietary content.
@@ -175,10 +175,10 @@
             <label class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Platform <span class="text-red-400">*</span></label>
             @php
               $platforms = [
-                ['google_meet','Google Meet','🟢','Free · No account needed for students'],
-                ['zoom','Zoom','🔵','Free 40min · Paid for longer sessions'],
-                ['teams','Microsoft Teams','🟣','Free tier available'],
-                ['other','Other Platform','⚪','Any platform link'],
+                ['google_meet','Google Meet','text-green-500','Free · No account needed for students'],
+                ['zoom','Zoom','text-blue-500','Free 40min · Paid for longer sessions'],
+                ['teams','Microsoft Teams','text-purple-500','Free tier available'],
+                ['other','Other Platform','text-gray-400','Any platform link'],
               ];
               $selPlatform = old('live_platform', $lesson->live_platform ?? 'google_meet');
             @endphp
@@ -188,7 +188,7 @@
                 <input type="radio" name="live_platform" value="{{ $val }}" class="sr-only peer"
                        {{ $selPlatform === $val ? 'checked' : '' }}>
                 <div class="border-2 border-gray-200 bg-white rounded-xl p-3.5 peer-checked:border-brand-500 peer-checked:bg-brand-50 transition flex items-start gap-3">
-                  <span class="text-xl flex-shrink-0">{{ $dot }}</span>
+                  <i class="fa-solid fa-circle text-sm flex-shrink-0 {{ $dot }}" aria-hidden="true"></i>
                   <div>
                     <div class="text-sm font-bold text-gray-900">{{ $name }}</div>
                     <div class="text-xs text-gray-400 mt-0.5">{{ $hint }}</div>
@@ -203,7 +203,7 @@
           <div class="mb-4">
             <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Meeting Link <span class="text-red-400">*</span></label>
             <div class="relative">
-              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔗</span>
+              <i class="fa-solid fa-link absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
               <input type="text" name="live_url" value="{{ old('live_url',$lesson->live_url) }}"
                      placeholder="https://meet.google.com/xxx-xxxx-xxx"
                      class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -216,7 +216,7 @@
             <div class="sm:col-span-2">
               <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Scheduled Date & Time</label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">📅</span>
+                <i class="fa-solid fa-calendar absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
                 <input type="datetime-local" name="live_scheduled_at"
                        value="{{ old('live_scheduled_at', $lesson->live_scheduled_at ? \Carbon\Carbon::parse($lesson->live_scheduled_at)->format('Y-m-d\TH:i') : '') }}"
                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -225,7 +225,7 @@
             <div>
               <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Duration (min)</label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">⏱</span>
+                <i class="fa-solid fa-stopwatch absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
                 <input type="number" name="live_duration_min" min="15" max="480" step="15"
                        value="{{ old('live_duration_min',$lesson->live_duration_min ?? 60) }}"
                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -238,7 +238,7 @@
             <div>
               <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Meeting ID <span class="text-gray-400 font-normal normal-case">(optional – for Zoom)</span></label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">#️⃣</span>
+                <i class="fa-solid fa-hashtag absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
                 <input type="text" name="live_meeting_id" value="{{ old('live_meeting_id',$lesson->live_meeting_id) }}"
                        placeholder="e.g. 123 456 7890"
                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -247,7 +247,7 @@
             <div>
               <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Password <span class="text-gray-400 font-normal normal-case">(optional)</span></label>
               <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔑</span>
+                <i class="fa-solid fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true"></i>
                 <input type="text" name="live_password" value="{{ old('live_password',$lesson->live_password) }}"
                        placeholder="Meeting password"
                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -257,18 +257,18 @@
 
           {{-- Platform guide --}}
           <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-            <div class="text-xs font-bold text-blue-800 mb-2">📋 How to get your meeting link:</div>
+            <div class="text-xs font-bold text-blue-800 mb-2"><i class="fa-solid fa-clipboard mr-1" aria-hidden="true"></i>How to get your meeting link:</div>
             <div class="space-y-2 text-xs text-blue-700">
               <div class="flex items-start gap-2">
-                <span class="font-bold flex-shrink-0">🟢 Google Meet:</span>
+                <span class="font-bold flex-shrink-0"><i class="fa-solid fa-circle text-green-500 text-[9px] mr-1" aria-hidden="true"></i>Google Meet:</span>
                 <span>Go to <strong>meet.google.com</strong> → New Meeting → Copy link → Paste above. Students join without a Google account.</span>
               </div>
               <div class="flex items-start gap-2">
-                <span class="font-bold flex-shrink-0">🔵 Zoom:</span>
+                <span class="font-bold flex-shrink-0"><i class="fa-solid fa-circle text-blue-500 text-[9px] mr-1" aria-hidden="true"></i>Zoom:</span>
                 <span>Schedule a meeting in Zoom app → Copy <strong>Invite Link</strong> → Also add Meeting ID & Passcode for easy joining.</span>
               </div>
               <div class="flex items-start gap-2">
-                <span class="font-bold flex-shrink-0">🟣 Teams:</span>
+                <span class="font-bold flex-shrink-0"><i class="fa-solid fa-circle text-purple-500 text-[9px] mr-1" aria-hidden="true"></i>Teams:</span>
                 <span>Create meeting in Microsoft Teams → <strong>Copy join link</strong> → Paste above. Students click to join browser.</span>
               </div>
             </div>
@@ -287,7 +287,7 @@
           {{-- Current PDF info --}}
           @if($isEdit && $lesson->content && old('type',$lesson->type) === 'pdf')
           <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3 flex items-center gap-3">
-            <span class="text-2xl flex-shrink-0">📄</span>
+            <i class="fa-solid fa-file-pdf text-blue-600 text-xl flex-shrink-0" aria-hidden="true"></i>
             <div class="flex-1 min-w-0">
               <div class="text-xs font-semibold text-blue-800">Current PDF</div>
               <div class="text-xs text-blue-600 truncate font-mono">{{ basename($lesson->content) }}</div>
@@ -304,7 +304,7 @@
                ondragover="event.preventDefault();this.classList.add('border-brand-500','bg-brand-50')"
                ondragleave="this.classList.remove('border-brand-500','bg-brand-50')"
                ondrop="handlePdfDrop(event)">
-            <div class="text-4xl mb-2">📄</div>
+            <div class="text-4xl mb-2 text-gray-400"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i></div>
             <p class="text-sm font-semibold text-gray-600">Drop PDF here or <span class="text-brand-600">click to browse</span></p>
             <p class="text-xs text-gray-400 mt-1">PDF files only · Max {{ \App\Models\Setting::get('max_upload_mb',500) }}MB</p>
           </div>
@@ -339,7 +339,7 @@
 
           {{-- Preview uploaded PDF --}}
           <div id="pdfPreview" class="hidden bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-3">
-            <span class="text-2xl flex-shrink-0">✅</span>
+            <i class="fa-solid fa-circle-check text-green-600 text-xl flex-shrink-0" aria-hidden="true"></i>
             <div class="flex-1 min-w-0">
               <div class="text-xs font-semibold text-green-800">PDF ready</div>
               <div id="pdfPreviewName" class="text-xs text-green-600 truncate font-mono"></div>
@@ -476,14 +476,14 @@
   <div class="space-y-5">
     {{-- Security info --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <h4 class="font-bold text-gray-900 text-sm mb-3">🔒 Video Security</h4>
+      <h4 class="font-bold text-gray-900 text-sm mb-3"><i class="fa-solid fa-lock mr-1.5 text-gray-500" aria-hidden="true"></i>Video Security</h4>
       <div class="space-y-3 text-xs text-gray-600">
         <div class="flex items-start gap-2 p-3 bg-green-50 rounded-xl border border-green-100">
-          <span>✅</span>
+          <i class="fa-solid fa-circle-check text-green-600 mt-0.5" aria-hidden="true"></i>
           <div><strong class="text-green-800">R2 Secure</strong><br>Signed URLs expire in 2hrs. No direct access possible. Right-click blocked.</div>
         </div>
         <div class="flex items-start gap-2 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
-          <span>⚠️</span>
+          <i class="fa-solid fa-triangle-exclamation text-yellow-600 mt-0.5" aria-hidden="true"></i>
           <div><strong class="text-yellow-800">External URL</strong><br>YouTube/Vimeo links can be shared. Use only for free preview content.</div>
         </div>
       </div>
@@ -492,16 +492,16 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <h4 class="font-bold text-gray-900 text-sm mb-3">Lesson Types</h4>
       <div class="space-y-2 text-xs text-gray-600">
-        <div class="flex items-start gap-2"><span>🎬</span><div><strong>Video</strong> — Upload to R2 (secure) or link YouTube/Vimeo</div></div>
-        <div class="flex items-start gap-2"><span>📖</span><div><strong>Text</strong> — Written article or HTML content</div></div>
-        <div class="flex items-start gap-2"><span>📄</span><div><strong>PDF</strong> — Upload a PDF or link a URL</div></div>
-        <div class="flex items-start gap-2"><span>📝</span><div><strong>Quiz</strong> — Multiple choice assessment</div></div>
-        <div class="flex items-start gap-2"><span>📡</span><div><strong>Live</strong> — Scheduled live session link</div></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-film text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Video</strong> — Upload to R2 (secure) or link YouTube/Vimeo</div></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-book-open text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Text</strong> — Written article or HTML content</div></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-file-pdf text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>PDF</strong> — Upload a PDF or link a URL</div></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-clipboard-question text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Quiz</strong> — Multiple choice assessment</div></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-tower-broadcast text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Live</strong> — Scheduled live session link</div></div>
       </div>
     </div>
 
     <div class="bg-brand-50 border border-brand-200 rounded-2xl p-5">
-      <h4 class="font-bold text-brand-800 text-sm mb-2">💡 Tips</h4>
+      <h4 class="font-bold text-brand-800 text-sm mb-2"><i class="fa-solid fa-lightbulb mr-1.5" aria-hidden="true"></i>Tips</h4>
       <ul class="space-y-1.5 text-xs text-brand-700 leading-relaxed">
         <li>• Upload to R2 for full content protection</li>
         <li>• First 1-2 lessons → mark as Free Preview</li>
@@ -516,7 +516,7 @@
 <div id="videoPickerModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
-      <h3 class="font-black text-gray-900">🎬 Video Library</h3>
+      <h3 class="font-black text-gray-900"><i class="fa-solid fa-film mr-1.5 text-gray-500" aria-hidden="true"></i>Video Library</h3>
       <div class="flex items-center gap-3">
         <input type="text" placeholder="Search videos…" id="videoPickerModal-search"
                class="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-40"
@@ -615,18 +615,18 @@ async function uploadVideo(file) {
       bar.style.width = '100%';
       bar.classList.replace('bg-brand-500','bg-green-500');
       pct.textContent = '100%';
-      status.textContent = '✅ Uploaded securely to R2!';
+      status.textContent = 'Uploaded securely to R2.';
       status.classList.add('text-green-600','font-semibold');
       // Store R2 path
       document.getElementById('videoR2PathInput').value = res.path;
       document.getElementById('videoStorageInput').value = 'r2';
       switchVideoTab('r2');
     } else {
-      status.textContent = '❌ Upload failed: ' + (res.error || 'Unknown error');
+      status.textContent = 'Upload failed: ' + (res.error || 'Unknown error');
       status.classList.add('text-red-600');
     }
   };
-  xhr.onerror = () => { status.textContent = '❌ Network error'; };
+  xhr.onerror = () => { status.textContent = 'Network error'; };
   xhr.send(formData);
 }
 
@@ -636,7 +636,7 @@ function mpPickerSelect(url, path) {
   document.getElementById('videoStorageInput').value = path ? 'r2' : 'external';
   document.getElementById('videoPickerModal').classList.add('hidden');
   if (path) {
-    document.getElementById('videoUploadStatus').textContent = '✅ Video selected from library';
+    document.getElementById('videoUploadStatus').textContent = 'Video selected from library';
     document.getElementById('videoUploadProgress').classList.remove('hidden');
     switchVideoTab('r2');
   }
@@ -675,7 +675,7 @@ async function loadVideoPicker(modalId) {
     div.onclick   = () => mpPickerSelect(f.url, f.path);
     div.innerHTML = `
       <div class="aspect-video bg-gray-800 flex flex-col items-center justify-center gap-1">
-        <span class="text-3xl">🎬</span>
+        <i class="fa-solid fa-film text-3xl text-gray-400" aria-hidden="true"></i>
         <span class="text-xs text-gray-400">${f.extension?.toUpperCase()}</span>
       </div>
       <div class="p-2 bg-white">
@@ -810,7 +810,7 @@ async function uploadPdfFile(file) {
         bar.style.width           = '100%';
         bar.classList.replace('bg-brand-500','bg-green-500');
         pct.textContent           = '100%';
-        status.textContent        = '✅ PDF uploaded successfully!';
+        status.textContent        = 'PDF uploaded successfully.';
         status.className          = 'text-xs text-green-600 font-semibold mt-1';
 
         // Set hidden input + URL input
@@ -823,18 +823,18 @@ async function uploadPdfFile(file) {
         // Auto-hide progress after 2s
         setTimeout(() => prog.classList.add('hidden'), 2000);
       } else {
-        status.textContent = '❌ Upload failed: ' + (res.error || 'Unknown error');
+        status.textContent = 'Upload failed: ' + (res.error || 'Unknown error');
         status.className   = 'text-xs text-red-500 mt-1';
         bar.classList.replace('bg-brand-500','bg-red-500');
       }
     } catch(e) {
-      status.textContent = '❌ Server error';
+      status.textContent = 'Server error';
       bar.classList.replace('bg-brand-500','bg-red-500');
     }
   };
 
   xhr.onerror = () => {
-    status.textContent = '❌ Network error';
+    status.textContent = 'Network error';
     bar.classList.replace('bg-brand-500','bg-red-500');
   };
 
