@@ -46,8 +46,8 @@
     <div class="flex items-center gap-3">
       <label class="relative inline-flex items-center cursor-pointer">
         <input type="checkbox" name="registration_open" value="1" {{ $course->registration_open ? 'checked' : '' }} class="sr-only peer">
-        <div class="w-10 h-5 bg-gray-200 rounded-full peer peer-checked:bg-brand-600 peer-focus:ring-2 peer-focus:ring-brand-300 transition"></div>
-        <div class="absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full shadow peer-checked:translate-x-5 transition"></div>
+        <div class="h-4 w-[26px] rounded-full border-2 border-transparent bg-gray-800 transition-colors duration-100 ease-in-out peer peer-checked:bg-brand-600 peer-focus:ring-2 peer-focus:ring-brand-300"></div>
+        <div class="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition duration-100 ease-in-out peer-checked:translate-x-2.5"></div>
       </label>
       <span class="text-sm font-medium text-gray-700">Registration Open</span>
     </div>

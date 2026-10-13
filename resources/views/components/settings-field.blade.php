@@ -9,8 +9,8 @@
   <div class="relative flex-shrink-0 ml-4">
     <input type="checkbox" name="{{ $field }}" id="{{ $field }}"
            class="sr-only peer" {{ $value == '1' ? 'checked' : '' }}>
-    <div class="w-11 h-6 bg-gray-200 peer-checked:bg-brand-600 rounded-full transition-colors duration-200 peer-focus:ring-2 peer-focus:ring-brand-400"></div>
-    <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 peer-checked:translate-x-5"></div>
+    <div class="h-4 w-[26px] rounded-full border-2 border-transparent bg-gray-800 transition-colors duration-100 ease-in-out peer-checked:bg-brand-600 peer-focus:ring-2 peer-focus:ring-brand-400"></div>
+    <div class="absolute left-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow transition duration-100 ease-in-out peer-checked:translate-x-2.5"></div>
   </div>
 </label>
 
