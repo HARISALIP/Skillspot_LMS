@@ -11,12 +11,16 @@ class Vendor extends Model
         'primary_color','accent_color','domain','description','tagline',
         'email','phone','website','status','license_key','plan',
         'license_expires_at','settings','social_links',
+        'payout_account_name','payout_account_number','payout_ifsc','marketplace_verified_at',
     ];
 
     protected $casts = [
         'settings'           => 'array',
         'social_links'       => 'array',
         'license_expires_at' => 'datetime',
+        'payout_account_number' => 'encrypted',
+        'payout_ifsc' => 'encrypted',
+        'marketplace_verified_at' => 'datetime',
     ];
 
     protected static function boot()

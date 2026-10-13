@@ -34,6 +34,16 @@
   </div>
 </div>
 
+@elseif($meta['type'] === 'select')
+<div>
+  <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">{{ $meta['label'] }}</label>
+  <select name="{{ $field }}" class="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 focus:bg-white transition">
+    @foreach($meta['options'] as $optionValue => $optionLabel)
+      <option value="{{ $optionValue }}" @selected(old($field, $value) === $optionValue)>{{ $optionLabel }}</option>
+    @endforeach
+  </select>
+</div>
+
 @else
 {{-- Text input --}}
 <div>

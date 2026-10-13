@@ -66,6 +66,20 @@ class AppServiceProvider extends ServiceProvider
             Config::set('app.name', $name);
         }
 
+        if ($locale = $s('system_language')) {
+            Config::set('app.locale', $locale);
+            app()->setLocale($locale);
+        }
+
+        if ($timezone = $s('system_timezone')) {
+            Config::set('app.timezone', $timezone);
+            date_default_timezone_set($timezone);
+        }
+
+        if ($direction = $s('text_direction')) {
+            Config::set('app.text_direction', $direction);
+        }
+
         if ($s('maintenance_mode') === '1') {
             Config::set('app.maintenance', true);
         }

@@ -19,11 +19,14 @@ use App\Http\Controllers\Student\DashboardController as StudentDash;
 use App\Http\Controllers\Student\CourseController as StudentCourse;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\SecureVideoController;
+use App\Http\Controllers\MarketplaceController;
 
 // ── Landing ────────────────────────────────────────────────────────────────
 Route::get('/', [LandingController::class, 'index'])->name('home');
+Route::get('/marketplace', [MarketplaceController::class, 'browse'])->name('marketplace.browse');
 Route::get('/media/file/{upload:uuid}', [MediaController::class, 'publicFile'])->name('media.public');
 Route::get('/media/file/{upload:uuid}/download', [MediaController::class, 'downloadPublicFile'])->name('media.download');
+Route::get('/course/{slug}', [StudentCourse::class,'detail'])->name('student.course-detail');
 
 // ── Secure video streaming (auth required)
 Route::middleware(['auth','portal.access'])->group(function () {
@@ -34,7 +37,6 @@ Route::middleware(['auth','portal.access'])->group(function () {
 
 // ── Student Course routes ──────────────────────────────────────────────────
 Route::middleware(['auth','portal.access'])->group(function () {
-    Route::get('/course/{slug}',                             [StudentCourse::class,'detail'])->name('student.course-detail');
     Route::post('/course/{course}/enroll-free',             [StudentCourse::class,'enrollFree'])->name('student.enroll-free');
     Route::post('/course/{course}/order',                   [StudentCourse::class,'createOrder'])->name('student.create-order');
     Route::post('/course/{course}/verify-payment',          [StudentCourse::class,'verifyPayment'])->name('student.verify-payment');
@@ -42,6 +44,13 @@ Route::middleware(['auth','portal.access'])->group(function () {
     Route::get('/learn/{course}/lesson/{lesson}',           [StudentCourse::class,'getLesson'])->name('student.get-lesson');
     Route::post('/learn/{course}/lesson/{lesson}/progress', [StudentCourse::class,'saveProgress'])->name('student.save-progress');
     Route::post('/learn/{course}/lesson/{lesson}/quiz', [StudentCourse::class,'submitQuiz'])->name('student.submit-quiz');
+});
+
+// ── Marketplace instructor onboarding ────────────────────────────────────
+Route::middleware('auth')->group(function () {
+    Route::get('/teach', [MarketplaceController::class, 'applyForm'])->name('marketplace.apply');
+    Route::post('/teach', [MarketplaceController::class, 'apply'])->name('marketplace.apply.store');
+    Route::get('/instructor', [MarketplaceController::class, 'dashboard'])->name('marketplace.dashboard');
 });
 // ── Razorpay Webhook (NO csrf — verified via signature) ────────────────────
 Route::post('/webhook/razorpay', [PaymentController::class, 'webhook'])
@@ -54,6 +63,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/login',    [AuthController::class, 'login']);
     Route::get('/register',  [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 // ── OTP verification (guest)
@@ -78,17 +91,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     Route::post('/settings/mail/test',   [SettingsController::class, 'testMail'])->name('settings.mail.test');
     Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('settings.clear-cache');
     Route::post('/settings/toggle/{key}',  [SettingsController::class, 'toggle'])->name('settings.toggle');
+    Route::post('/settings/categories', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
+    Route::put('/settings/categories/{category}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
+    Route::delete('/settings/categories/{category}', [SettingsController::class, 'destroyCategory'])->name('settings.categories.destroy');
     Route::post('/settings/{group}',     [SettingsController::class, 'save'])->name('settings.save');
     // Courses
     Route::get('/courses',                                            [CoursesController::class,'index'])->name('courses');
     Route::get('/courses/create',                                     [CoursesController::class,'create'])->name('courses.create');
+    Route::get('/courses/import',                                     [CoursesController::class,'importForm'])->name('courses.import');
+    Route::post('/courses/import',                                    [CoursesController::class,'importZip'])->name('courses.import.store');
     Route::post('/courses',                                           [CoursesController::class,'store'])->name('courses.store');
+    Route::post('/courses/instructors',                               [CoursesController::class,'storeInstructor'])->name('courses.instructors.store');
     Route::get('/courses/{course}/edit',                              [CoursesController::class,'edit'])->name('courses.edit');
     Route::put('/courses/{course}',                                   [CoursesController::class,'update'])->name('courses.update');
     Route::post('/courses/{course}/grant-access',        [CoursesController::class,'grantAccess'])->name('courses.grant-access');
     Route::delete('/courses/{course}/revoke-access/{user}', [CoursesController::class,'revokeAccess'])->name('courses.revoke-access');
     Route::patch('/courses/{course}/toggle-publish',                  [CoursesController::class,'togglePublish'])->name('courses.toggle-publish');
     Route::delete('/courses/{course}',                                [CoursesController::class,'destroy'])->name('courses.destroy');
+    Route::post('/courses/{course}/submit-review', [MarketplaceController::class, 'submitCourse'])->name('courses.submit-review');
     // Sections
     Route::post('/courses/{course}/sections',                         [CoursesController::class,'storeSection'])->name('courses.sections.store');
     Route::put('/courses/{course}/sections/{section}',                [CoursesController::class,'updateSection'])->name('courses.sections.update');
@@ -121,8 +141,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     Route::patch('/payments/{payment}/refund', [PaymentsController::class,'refund'])->name('payments.refund');
     // Certificates
     Route::get('/certificates',                [CertificatesController::class,'index'])->name('certs');
-    Route::post('/certificates',               [CertificatesController::class,'issue'])->name('certs.issue');
-    Route::delete('/certificates/{certificate}',[CertificatesController::class,'revoke'])->name('certs.revoke');
+    Route::get('/certificates/{certificate}/verify',[CertificatesController::class,'verify'])->name('certs.verify');
+    Route::patch('/certificates/{certificate}/revoke',[CertificatesController::class,'revoke'])->name('certs.revoke');
     // Enrollments
     Route::get('/enrollments',                     [EnrollmentsController::class,'index'])->name('enrollments');
     Route::get('/enrollments/create',              [EnrollmentsController::class,'create'])->name('enrollments.create');
@@ -186,6 +206,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     Route::put('/profile',             [ProfileController::class, 'update'])->name('profile.update');
     Route::put('/profile/password',    [ProfileController::class, 'changePassword'])->name('profile.password');
     Route::post('/profile/logout-all', [ProfileController::class, 'logoutAll'])->name('profile.logout-all');
+
+    // Marketplace operations are admin-only in the controller, even though course authoring is shared with teachers.
+    Route::get('/marketplace/instructors', [MarketplaceController::class, 'applications'])->name('marketplace.instructors');
+    Route::patch('/marketplace/instructors/{profile}', [MarketplaceController::class, 'reviewApplication'])->name('marketplace.instructors.review');
+    Route::get('/marketplace/reviews', [MarketplaceController::class, 'reviewQueue'])->name('marketplace.reviews');
+    Route::patch('/marketplace/reviews/{course}', [MarketplaceController::class, 'reviewCourse'])->name('marketplace.reviews.update');
+    Route::get('/marketplace/commissions', [MarketplaceController::class, 'commissions'])->name('marketplace.commissions');
+    Route::post('/marketplace/commissions', [MarketplaceController::class, 'saveCommission'])->name('marketplace.commissions.save');
+    Route::get('/marketplace/payouts', [MarketplaceController::class, 'payouts'])->name('marketplace.payouts');
+    Route::post('/marketplace/payouts', [MarketplaceController::class, 'createPayout'])->name('marketplace.payouts.create');
+    Route::patch('/marketplace/payouts/{batch}/paid', [MarketplaceController::class, 'markPayoutPaid'])->name('marketplace.payouts.paid');
 });
 
 // ── Student / Learning area ────────────────────────────────────────────────
@@ -200,6 +231,7 @@ Route::prefix('dashboard')->name('student.')->middleware(['auth','portal.access'
     Route::get('/courses',          [StudentDash::class,'courses'])->name('courses');
     Route::get('/browse',           [StudentDash::class,'browse'])->name('browse');
     Route::get('/certs',            [StudentDash::class,'certificates'])->name('certs');
+    Route::get('/certs/{certificate}', [StudentDash::class,'showCertificate'])->name('certs.show');
     Route::get('/profile',          [StudentDash::class,'profile'])->name('profile');
     Route::put('/profile',          [StudentDash::class,'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [StudentDash::class,'updatePassword'])->name('profile.password');
@@ -229,7 +261,7 @@ Route::post('/contact', function(\Illuminate\Http\Request $req) {
 // ── Admin → Vendor Management ──────────────────────────────────────────────
 use App\Http\Controllers\Admin\VendorsController as AdminVendors;
 
-Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.only'])->group(function () {
     Route::get('/vendors',                          [AdminVendors::class,'index'])->name('vendors');
     Route::get('/vendors/create',                   [AdminVendors::class,'create'])->name('vendors.create');
     Route::post('/vendors',                         [AdminVendors::class,'store'])->name('vendors.store');
@@ -257,6 +289,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->group(function () {
     Route::get('/',                                          [VendorDash::class,'index'])->name('dashboard');
+    Route::get('/earnings',                                  [MarketplaceController::class,'organizationDashboard'])->name('earnings');
     // Profile / branding
     Route::get('/profile',                                   [VendorProfile::class,'index'])->name('profile');
     Route::put('/profile',                                   [VendorProfile::class,'update'])->name('profile.update');
@@ -266,6 +299,7 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
     // Courses (view — all roles)
     Route::get('/courses',                                   [VendorCourses::class,'index'])->name('courses');
     Route::get('/courses/{course}/students',                 [VendorCourses::class,'students'])->name('courses.students');
+    Route::post('/courses/{course}/submit-review',           [MarketplaceController::class,'submitCourse'])->name('courses.submit-review');
     // Live
     Route::get('/live', fn() => redirect()->route('vendor.live_classes.index'))->name('live');
     // Batches

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}" dir="{{ config('app.text_direction') === 'auto' ? 'auto' : config('app.text_direction', 'ltr') }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
   <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -93,6 +93,7 @@
               ['icon'=>'📡','label'=>'Live Classes', 'route'=>'vendor.live_classes.index', 'href'=>route('vendor.live_classes.index')],
               ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.live_classes.my_courses', 'href'=>route('vendor.live_classes.my_courses')],
               ['icon'=>'👥','label'=>'Students',     'route'=>'vendor.students*',  'href'=>route('vendor.students')],
+              ['icon'=>'💰','label'=>'Earnings',      'route'=>'vendor.earnings',   'href'=>route('vendor.earnings')],
           ];
       } else {
           // Teacher / Admin: full access
@@ -103,6 +104,7 @@
               ['icon'=>'📡','label'=>'Live Classes', 'route'=>'vendor.live_classes.index', 'href'=>route('vendor.live_classes.index')],
               ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.live_classes.my_courses', 'href'=>route('vendor.live_classes.my_courses')],
               ['icon'=>'👥','label'=>'Students',     'route'=>'vendor.students*',   'href'=>route('vendor.students')],
+              ['icon'=>'💰','label'=>'Earnings',      'route'=>'vendor.earnings',    'href'=>route('vendor.earnings')],
               ...($isAdminRole ? [['icon'=>'👩‍🏫','label'=>'Teachers','route'=>'vendor.teachers','href'=>route('vendor.teachers')]] : []),
               ...(!$isTeacherOnly ? [['icon'=>'🎨','label'=>'Branding','route'=>'vendor.profile*','href'=>route('vendor.profile')]] : []),
               ['icon'=>'👤','label'=>'My Profile',   'route'=>'vendor.my-profile*', 'href'=>route('vendor.my-profile')],
@@ -227,6 +229,7 @@
     sidebar.style.transition = 'transform 0.25s ease';
   }
 </script>
+@include('partials.ui-icon-normalizer')
 @stack('scripts')
 </body>
 </html>

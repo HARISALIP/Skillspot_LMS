@@ -67,7 +67,7 @@ class CourseMaterialsTest extends TestCase
         $teacher = User::factory()->create();
         $teacher->assignRole('teacher');
         $student = User::factory()->create();
-        $course = Course::create(['title' => 'Programming', 'slug' => 'programming', 'category' => 'Coding', 'visibility' => 'public', 'is_published' => true, 'is_free' => true]);
+        $course = Course::create(['title' => 'Programming', 'slug' => 'programming', 'category' => 'Coding', 'visibility' => 'public', 'is_published' => true, 'is_free' => true, 'primary_instructor_id' => $teacher->id, 'marketplace_status' => 'live', 'marketplace_visible' => true]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
         $deck = $this->upload('slides.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
         $preview = $this->upload('slides-preview.pdf', 'application/pdf');
@@ -101,7 +101,7 @@ class CourseMaterialsTest extends TestCase
         Role::findOrCreate('teacher', 'web');
         $teacher = User::factory()->create();
         $teacher->assignRole('teacher');
-        $course = Course::create(['title' => 'Programming', 'slug' => 'programming', 'category' => 'Coding']);
+        $course = Course::create(['title' => 'Programming', 'slug' => 'programming', 'category' => 'Coding', 'primary_instructor_id' => $teacher->id]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
         $deck = $this->upload('slides.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
         $input = ['title' => 'First lesson', 'type' => 'text', 'resources' => [['title' => 'Slides', 'kind' => 'slides', 'upload_id' => $deck->id]]];

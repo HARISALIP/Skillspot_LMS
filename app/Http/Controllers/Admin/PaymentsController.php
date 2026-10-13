@@ -5,6 +5,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PaymentOrder;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\MarketplaceService;
 use Illuminate\Http\Request;
 
 class PaymentsController extends Controller
@@ -51,6 +52,7 @@ class PaymentsController extends Controller
         }
         // Mark as refunded (actual Razorpay refund via API in future)
         $payment->update(['status' => 'refunded']);
+        MarketplaceService::reverseSale($payment);
         return back()->with('success', "Payment #{$payment->razorpay_payment_id} marked as refunded.");
     }
 }

@@ -2,14 +2,59 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseCategory;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class SettingsController extends Controller
 {
     private array $schema = [
+        'general' => [
+            'system_language'  => ['label' => 'System Language', 'type' => 'select',  'default' => 'en',           'options' => ['en' => 'English']],
+            'system_timezone'  => ['label' => 'System Timezone', 'type' => 'select',  'default' => 'Asia/Kolkata', 'options' => ['Asia/Kolkata' => 'Asia/Kolkata', 'UTC' => 'UTC', 'Europe/London' => 'Europe/London', 'America/New_York' => 'America/New_York']],
+            'text_direction'   => ['label' => 'Text Direction',  'type' => 'select',  'default' => 'auto',         'options' => ['auto' => 'Auto', 'ltr' => 'Left to right', 'rtl' => 'Right to left']],
+            'allow_guest_access' => ['label' => 'Allow Guest Access', 'type' => 'boolean', 'default' => '1'],
+            'disable_pwa' => ['label' => 'Disable PWA', 'type' => 'boolean', 'default' => '0'],
+            'allow_job_posting' => ['label' => 'Allow Job Posting', 'type' => 'boolean', 'default' => '0'],
+            'send_evaluation_invites' => ['label' => 'Send calendar invite for evaluations', 'type' => 'boolean', 'default' => '0'],
+            'published_course_notification' => ['label' => 'Send Notification for Published Courses', 'type' => 'select', 'options' => ['' => 'Select option', 'all' => 'All members', 'enrolled' => 'Enrolled members'], 'default' => ''],
+            'published_batch_notification' => ['label' => 'Send Notification for Published Batches', 'type' => 'select', 'options' => ['' => 'Select option', 'all' => 'All members', 'enrolled' => 'Enrolled members'], 'default' => ''],
+        ],
+        'signup' => [
+            'user_category' => ['label' => 'Identify User Category', 'type' => 'boolean', 'default' => '0'],
+            'disable_signup' => ['label' => 'Disable signup', 'type' => 'boolean', 'default' => '1'],
+            'custom_signup_content' => ['label' => 'Signup Consent HTML', 'type' => 'textarea', 'default' => ''],
+        ],
+        'course-progress' => [
+            'lesson_dwell_time' => ['label' => 'Lesson Completion Time (seconds)', 'type' => 'text', 'default' => '30'],
+            'enforce_video_completion' => ['label' => 'Enforce video completion', 'type' => 'boolean', 'default' => '0'],
+            'enforce_assignment_completion' => ['label' => 'Enforce assignment completion', 'type' => 'boolean', 'default' => '0'],
+            'enforce_quiz_completion' => ['label' => 'Enforce quiz completion', 'type' => 'boolean', 'default' => '0'],
+            'prevent_skipping_videos' => ['label' => 'Prevent Skipping Videos', 'type' => 'boolean', 'default' => '0'],
+        ],
+        'certificates' => [
+            'certificate_auto_issue' => ['label' => 'Automatically issue certificates', 'type' => 'boolean', 'default' => '1'],
+            'certificate_title' => ['label' => 'Certificate title', 'type' => 'text', 'default' => 'Certificate of Completion'],
+            'certificate_intro' => ['label' => 'Introduction', 'type' => 'text', 'default' => 'This certifies that'],
+            'certificate_completion_text' => ['label' => 'Completion text', 'type' => 'text', 'default' => 'has successfully completed ' . '{' . '{course_title}}'],
+            'certificate_signatory' => ['label' => 'Authorized signatory', 'type' => 'text', 'default' => 'Skillspot Academy'],
+            'certificate_footer' => ['label' => 'Footer text', 'type' => 'text', 'default' => 'Issued by Skillspot LMS'],
+        ],
+        'seo' => [
+            'meta_description' => ['label' => 'Meta Description', 'type' => 'textarea', 'default' => ''],
+            'meta_keywords' => ['label' => 'Meta Keywords', 'type' => 'textarea', 'default' => ''],
+            'meta_image' => ['label' => 'Meta Image URL', 'type' => 'text', 'default' => ''],
+        ],
+        'communication' => [
+            'site_email'    => ['label' => 'Contact Email',       'type' => 'text', 'default' => ''],
+            'site_phone'    => ['label' => 'Contact Phone',       'type' => 'text', 'default' => ''],
+            'site_whatsapp' => ['label' => 'WhatsApp Number',     'type' => 'text', 'default' => ''],
+            'site_maps_url' => ['label' => 'Contact / Maps URL',  'type' => 'text', 'default' => ''],
+        ],
         'branding' => [
             'app_url'          => ['label' => 'App / Domain URL',         'type' => 'text',     'default' => 'https://Skillspot.in'],
             'site_name'        => ['label' => 'Academy Name',             'type' => 'text',     'default' => 'Skillspot'],
@@ -81,10 +126,58 @@ class SettingsController extends Controller
     // ── Show settings ──────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $activeTab = $request->get('tab', 'branding');
+        $activeTab = $request->get('tab', 'general');
+        if ($activeTab === 'badges') $activeTab = 'certificates';
+        $knownTabs = ['general', 'signup', 'course-progress', 'certificates', 'badge-assignments', 'categories', 'communication', 'email-template', 'mail', 'members', 'payment', 'payment-gateways', 'transactions', 'coupons', 'storage', 'google-calendar', 'google-meet', 'zoom', 'raven', 'branding', 'sidebar', 'seo'];
+        if (!in_array($activeTab, $knownTabs, true)) $activeTab = 'general';
         $settings  = Setting::allKeyed();
         $schema    = $this->schema;
-        return view('admin.settings', compact('activeTab', 'settings', 'schema'));
+        $categories = $activeTab === 'categories'
+            ? CourseCategory::latest()->get()
+            : collect();
+        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories'));
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $data = $request->validate(['name' => 'required|string|max:100|unique:course_categories,name']);
+
+        CourseCategory::create([
+            'name' => $data['name'],
+            'slug' => Str::slug($data['name']),
+            'icon' => '📚',
+            'is_active' => true,
+            'order_col' => (CourseCategory::max('order_col') ?? 0) + 1,
+        ]);
+
+        return $this->categorySettingsRedirect($request, 'Category created.');
+    }
+
+    public function updateCategory(Request $request, CourseCategory $category)
+    {
+        $data = $request->validate(['name' => 'required|string|max:100|unique:course_categories,name,'.$category->id]);
+
+        $category->update(['name' => $data['name'], 'slug' => Str::slug($data['name'])]);
+
+        return $this->categorySettingsRedirect($request, 'Category updated.');
+    }
+
+    public function destroyCategory(Request $request, CourseCategory $category)
+    {
+        if (Course::where('category', $category->name)->exists()) {
+            return $this->categorySettingsRedirect($request, 'This category is still used by a course and cannot be deleted.', 'error');
+        }
+
+        $category->delete();
+        return $this->categorySettingsRedirect($request, 'Category deleted.');
+    }
+
+    private function categorySettingsRedirect(Request $request, string $message, string $type = 'success')
+    {
+        $parameters = ['tab' => 'categories'];
+        if ($request->boolean('embed')) $parameters['embed'] = 1;
+
+        return redirect()->route('admin.settings', $parameters)->with($type, $message);
     }
 
     // ── Save a group ───────────────────────────────────────────────────
@@ -107,6 +200,14 @@ class SettingsController extends Controller
             Setting::set($key, $value, $group, $meta['type'], $meta['label']);
         }
 
+        // Apply platform-wide preferences on the next request as well as retaining them in settings.
+        if ($group === 'general') {
+            config(['app.locale' => $request->input('system_language', 'en')]);
+            config(['app.timezone' => $request->input('system_timezone', 'Asia/Kolkata')]);
+            app()->setLocale($request->input('system_language', 'en'));
+            date_default_timezone_set($request->input('system_timezone', 'Asia/Kolkata'));
+        }
+
         // Special: sync app_url back to .env APP_URL so artisan commands work too
         if ($group === 'branding' && $request->filled('app_url')) {
             $this->updateEnvKey('APP_URL', rtrim($request->input('app_url'), '/'));
@@ -115,6 +216,7 @@ class SettingsController extends Controller
 
         // Sync mail to .env so queue/jobs pick it up
         if ($group === 'mail') {
+            if ($request->filled('mail_mailer'))       $this->updateEnvKey('MAIL_MAILER',       $request->input('mail_mailer'));
             if ($request->filled('mail_host'))         $this->updateEnvKey('MAIL_HOST',         $request->input('mail_host'));
             if ($request->filled('mail_port'))         $this->updateEnvKey('MAIL_PORT',         $request->input('mail_port'));
             if ($request->filled('mail_username'))     $this->updateEnvKey('MAIL_USERNAME',     $request->input('mail_username'));
@@ -122,13 +224,19 @@ class SettingsController extends Controller
             if ($request->filled('mail_encryption'))   $this->updateEnvKey('MAIL_SCHEME',       $request->input('mail_encryption'));
             if ($request->filled('mail_from_address')) $this->updateEnvKey('MAIL_FROM_ADDRESS', $request->input('mail_from_address'));
             if ($request->filled('mail_from_name'))    $this->updateEnvKey('MAIL_FROM_NAME',    '"' . $request->input('mail_from_name') . '"');
+            Setting::set('mail_invites_verified_at', '', 'mail', 'text', 'Member invites verified at');
         }
 
         Cache::flush();
         Artisan::call('config:clear');
 
+        $settingsRoute = ['tab' => $group];
+        if ($request->boolean('embed')) {
+            $settingsRoute['embed'] = 1;
+        }
+
         return redirect()
-            ->route('admin.settings', ['tab' => $group])
+            ->route('admin.settings', $settingsRoute)
             ->with('success', ucfirst($group) . ' settings saved successfully ✅');
     }
 
@@ -152,12 +260,16 @@ class SettingsController extends Controller
 
     public function testMail(Request $request)
     {
+        if (config('mail.default') !== 'smtp' || blank(config('mail.mailers.smtp.host')) || blank(config('mail.from.address'))) {
+            return back()->with('error', 'Save a complete SMTP configuration before sending a test email.');
+        }
         $to = $request->input('test_email_addr', auth()->user()->email);
         try {
             \Illuminate\Support\Facades\Mail::raw(
                 'This is a test email from Skillspot. If you received this, your SMTP is working! 🎉',
                 fn($msg) => $msg->to($to)->subject('Skillspot — SMTP Test')
             );
+            Setting::set('mail_invites_verified_at', now()->toIso8601String(), 'mail', 'text', 'Member invites verified at');
             return back()->with('success', "Test email sent to {$to} ✅");
         } catch (\Exception $e) {
             return back()->with('error', 'Mail failed: ' . $e->getMessage());

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends(request()->boolean('embed') ? 'layouts.admin-embed' : 'layouts.admin')
 @section('title','Course Categories — Skillspot.in Admin')
 @section('page-title','Course Categories')
 @section('page-sub','Manage categories shown in course creation')

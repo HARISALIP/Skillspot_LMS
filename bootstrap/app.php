@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'vendor.only'        => \App\Http\Middleware\EnsureVendor::class,
             'vendor.portal.auth' => \App\Http\Middleware\VendorPortalAuth::class,
             'teacher.only'  => \App\Http\Middleware\TeacherOnly::class,
+            'admin.only'    => \App\Http\Middleware\AdminOnly::class,
             'single.device'   => \App\Http\Middleware\SingleDeviceSession::class,
             'portal.access'   => \App\Http\Middleware\PortalAccessCheck::class,
         ]);

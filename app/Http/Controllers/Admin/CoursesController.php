@@ -11,11 +11,17 @@ use App\Models\Lesson;
 use App\Models\Upload;
 use App\Models\Enrollment;
 use App\Models\Vendor;
+use App\Models\User;
+use App\Models\Setting;
 use App\Services\LessonQuiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class CoursesController extends Controller
 {
@@ -52,7 +58,10 @@ class CoursesController extends Controller
     // ── List courses ───────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $query = Course::withCount('enrollments')->latest();
+        $query = Course::with('sections.lessons')
+            ->withCount(['enrollments', 'reviews'])
+            ->withAvg('reviews', 'rating')
+            ->latest();
 
         if ($s = $request->search) {
             $query->where(function($q) use ($s) {
@@ -60,9 +69,11 @@ class CoursesController extends Controller
             });
         }
         if ($request->category) $query->where('category', $request->category);
-        if ($request->level)    $query->where('level',    $request->level);
-        if ($request->status === 'published') $query->where('is_published', 1);
-        if ($request->status === 'draft')     $query->where('is_published', 0);
+        $tab = $request->input('tab', 'published');
+        if ($tab === 'published') $query->where('is_published', 1);
+        if ($tab === 'upcoming') $query->whereDate('batch_start_date', '>', today());
+        if ($tab === 'unpublished') $query->where('is_published', 0);
+        // shortcut: courses have no creator_id, scope Created once ownership is modeled.
 
         $courses    = $query->paginate(15);
         $totalCourses   = Course::count();
@@ -71,43 +82,179 @@ class CoursesController extends Controller
         $totalEnroll= Enrollment::count();
 
         $categories = $this->getCategories();
+        $categoryRecords = CourseCategory::where('is_active', 1)->orderBy('order_col')->get(['id', 'name']);
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
+            ->orderBy('name')->get(['id', 'name', 'email']);
+        if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        $canCreateInstructors = auth()->user()->hasRole(['admin', 'super-admin']);
+        $inviteMailReady = $this->inviteMailReady();
         return view('admin.courses.index', compact(
-            'courses','totalCourses','published','draft','totalEnroll','categories'
+            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors','canCreateInstructors','inviteMailReady'
         ));
     }
 
     // ── Create form ────────────────────────────────────────────────────
     public function create()
     {
-        $course  = new Course();
-        $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
-        return view('admin.courses.form', [
-            'course'     => $course,
-            'vendors'    => $vendors,
-            'categories' => $this->getCategories(),
-            'levels'     => $this->getLevels(),
-            'languages'  => $this->getLanguages(),
-            'isEdit'     => false,
+        return redirect()->route('admin.courses', ['new' => 1]);
+    }
+
+    public function importForm()
+    {
+        return view('admin.courses.import');
+    }
+
+    public function importZip(Request $request)
+    {
+        $request->validate(['archive' => 'required|file|mimes:zip|max:51200']);
+        $zip = new \ZipArchive();
+
+        if ($zip->open($request->file('archive')->getRealPath()) !== true || $zip->numFiles > 500) {
+            return back()->withErrors(['archive' => 'Choose a valid course ZIP with no more than 500 files.']);
+        }
+
+        $archiveSize = 0;
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entry = $zip->statIndex($index);
+            $archiveSize += $entry['size'] ?? 0;
+            if ($archiveSize > 52428800 || (($entry['size'] ?? 0) > 1048576 && ($entry['comp_size'] ?? 0) * 100 < $entry['size'])) {
+                $zip->close();
+                return back()->withErrors(['archive' => 'The ZIP expands to more than 50 MB or is compressed too heavily.']);
+            }
+        }
+
+        $courseFile = $zip->statName('course.json');
+        $courseContents = $courseFile && $courseFile['size'] <= 1048576 ? $zip->getFromName('course.json') : false;
+        $zip->close();
+        $courseData = is_string($courseContents) ? json_decode($courseContents, true) : null;
+        $title = is_array($courseData) && is_string($courseData['title'] ?? null) ? trim($courseData['title']) : '';
+
+        if ($title === '' || strlen($title) > 255) {
+            return back()->withErrors(['archive' => 'The ZIP must contain a course.json file with a course title.']);
+        }
+
+        $course = Course::create([
+            'title' => $title,
+            'description' => is_string($courseData['description'] ?? null) ? $courseData['description'] : null,
+            'category' => is_string($courseData['category'] ?? null) ? $courseData['category'] : 'General',
+            'level' => is_string($courseData['level'] ?? null) ? $courseData['level'] : 'beginner',
+            'language' => is_string($courseData['language'] ?? null) ? $courseData['language'] : 'en',
+            'price' => 0,
+            'is_free' => true,
+            'visibility' => 'draft',
+            'is_published' => false,
+            'primary_instructor_id' => auth()->id(),
         ]);
+
+        $course->teachers()->syncWithoutDetaching([auth()->id() => ['added_by' => auth()->id()]]);
+        return redirect()->route('admin.courses.edit', $course)
+            ->with('success', "Course \"{$course->title}\" imported as a draft. Add its sections and lessons before publishing.");
     }
 
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {
+        if (is_string($request->input('description'))) {
+            $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
+        }
+        if ($request->boolean('modal_create')) {
+            $request->validate([
+                'short_introduction' => 'required|string|max:1000',
+                'description' => 'required|string',
+                'instructor_ids' => 'required|array|min:1',
+            ]);
+        }
+        if ($newCategory = trim((string) $request->input('new_category'))) {
+            $category = CourseCategory::firstOrCreate(
+                ['name' => $newCategory],
+                ['is_active' => true, 'order_col' => CourseCategory::max('order_col') + 1]
+            );
+            $request->merge(['category' => $category->name]);
+        }
         $data = $this->validateCourse($request);
-        $course = Course::create($data);
+        if ($request->hasFile('thumbnail_file')) {
+            $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+        }
+        $course = DB::transaction(function () use ($data, $request) {
+            $teacherIds = $request->input('instructor_ids', [auth()->id()]);
+            $data['primary_instructor_id'] = auth()->user()->hasRole(['admin', 'super-admin'])
+                ? ($teacherIds[0] ?? auth()->id())
+                : auth()->id();
+            $data['marketplace_status'] = 'draft';
+            $data['marketplace_visible'] = false;
+            $data['visibility'] = 'draft';
+            $data['is_published'] = false;
+            $course = Course::create($data);
+            $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
+            return $course;
+        });
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
+    }
+
+    public function storeInstructor(Request $request)
+    {
+        abort_unless($request->user()->hasRole(['admin', 'super-admin']), 403);
+        if (!$this->inviteMailReady()) {
+            throw ValidationException::withMessages([
+                'email' => 'SMTP must be configured and a test email sent before member invitations can be created.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'first_name' => ['nullable', 'string', 'max:120'],
+            'last_name' => ['nullable', 'string', 'max:120'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'roles' => ['required', 'array', 'min:1'],
+            'roles.*' => ['in:teacher,admin'],
+        ]);
+
+        $name = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? '')) ?: Str::before($data['email'], '@');
+        $user = User::create([
+            'name' => $name,
+            'email' => $data['email'],
+            'country' => $request->user()->country ?: 'IN',
+            'country_name' => $request->user()->country_name ?: 'India',
+            'registered_via' => 'admin',
+            'portal_access' => 'skillspot_only',
+            'password' => Hash::make(Str::random(64)),
+        ]);
+        $roles = array_unique(array_merge(['student'], $data['roles']));
+        foreach ($roles as $role) Role::findOrCreate($role, 'web');
+        $user->syncRoles($roles);
+
+        try {
+            $status = Password::sendResetLink(['email' => $user->email]);
+            if ($status !== Password::RESET_LINK_SENT) throw new \RuntimeException(__($status));
+        } catch (\Throwable $exception) {
+            $user->delete();
+            throw ValidationException::withMessages(['email' => 'The invitation could not be sent. No member was created.']);
+        }
+
+        return response()->json(['instructor' => $user->only(['id', 'name', 'email']), 'roles' => $roles], 201);
+    }
+
+    private function inviteMailReady(): bool
+    {
+        return config('mail.default') === 'smtp'
+            && filled(config('mail.mailers.smtp.host'))
+            && filled(config('mail.from.address'))
+            && filled(Setting::get('mail_invites_verified_at'));
     }
 
     // ── Edit form ──────────────────────────────────────────────────────
     public function edit(Course $course)
     {
-        $course->load('sections.lessons','allowedUsers');
+        $this->authorizeCourseOwner($course);
+        $course->load(['sections.lessons','allowedUsers','teachers','primaryInstructor','vendor','enrollments.user','reviews']);
         $materialUploads = Upload::whereIn('id', collect($course->resources ?? [])
             ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])->filter())
             ->pluck('original_name', 'id');
         $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
+            ->orderBy('name')->get(['id', 'name', 'email']);
+        if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        $relatedCourses = Course::whereKeyNot($course->id)->orderBy('title')->get(['id', 'title']);
         return view('admin.courses.form', [
             'course'     => $course,
             'vendors'    => $vendors,
@@ -116,35 +263,51 @@ class CoursesController extends Controller
             'languages'  => $this->getLanguages(),
             'isEdit'     => true,
             'materialUploads' => $materialUploads,
+            'instructors' => $instructors,
+            'relatedCourses' => $relatedCourses,
         ]);
     }
 
     // ── Update ─────────────────────────────────────────────────────────
     public function update(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
+        if (is_string($request->input('description'))) {
+            $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
+        }
         $request->merge(['visibility' => $request->input('visibility') ?: $course->visibility]);
         $data = $this->validateCourse($request, $course->id);
-        $course->update($data);
+        if ($request->hasFile('thumbnail_file')) {
+            $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+        }
+        if (!$course->isMarketplaceLive()) {
+            $data['visibility'] = 'draft';
+            $data['is_published'] = false;
+        }
+        DB::transaction(function () use ($course, $data, $request) {
+            $course->update($data);
+            if ($request->has('instructor_ids')) {
+                $teacherIds = collect($request->input('instructor_ids', []))->map(fn ($id) => (int) $id)->unique()->values();
+                $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
+                if ($teacherIds->isNotEmpty()) $course->update(['primary_instructor_id' => $teacherIds->first()]);
+            }
+        });
         return back()->with('success', "Course updated ✅");
     }
 
     // ── Toggle publish ─────────────────────────────────────────────────
     public function togglePublish(Course $course)
     {
-        $next = match($course->visibility) {
-            'draft'      => 'public',
-            'public'     => 'draft',
-            'restricted' => 'draft',
-            default      => 'public',
-        };
-        $course->update(['visibility'=>$next,'is_published'=>$next!=='draft'?1:0]);
-        $msg = ['draft'=>'set to Draft','public'=>'Published (Public)','restricted'=>'set to Restricted'];
-        return back()->with('success', "\"\" ".$msg[$next]." ✅");
+        $this->authorizeCourseOwner($course);
+        if (!$course->isMarketplaceLive()) return back()->with('error', 'Submit this course for marketplace review before publishing it.');
+        $course->update(['visibility' => 'public', 'is_published' => true]);
+        return back()->with('success', 'Course is live in the Skillspot marketplace.');
     }
 
     // Grant restricted access to specific user
     public function grantAccess(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $request->validate(['user_id'=>'required|exists:users,id']);
         $course->allowedUsers()->syncWithoutDetaching([
             $request->user_id => ['added_by'=>auth()->id(),'note'=>$request->input('note'),'created_at'=>now()]
@@ -156,6 +319,7 @@ class CoursesController extends Controller
     // Revoke restricted access
     public function revokeAccess(Request $request, Course $course, $userId)
     {
+        $this->authorizeCourseOwner($course);
         $course->allowedUsers()->detach($userId);
         return back()->with('success', 'Access revoked.');
     }
@@ -163,6 +327,7 @@ class CoursesController extends Controller
     // ── Delete ─────────────────────────────────────────────────────────
     public function destroy(Course $course)
     {
+        $this->authorizeCourseOwner($course);
         $title = $course->title;
         $course->delete();
         return redirect()->route('admin.courses')
@@ -172,18 +337,24 @@ class CoursesController extends Controller
     // ── Section: store ─────────────────────────────────────────────────
     public function storeSection(Request $request, Course $course)
     {
-        $request->validate(['title' => 'required|string|max:255']);
+        $this->authorizeCourseOwner($course);
+        $data = $request->validateWithBag('addChapter', [
+            'title' => 'required|string|max:255',
+            'is_scorm' => 'sometimes|boolean',
+        ]);
         $order = $course->sections()->max('order') + 1;
         $course->sections()->create([
-            'title' => $request->title,
+            'title' => $data['title'],
             'order' => $order,
+            'is_scorm' => $request->boolean('is_scorm'),
         ]);
-        return back()->with('success', 'Section added ✅');
+        return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter added.');
     }
 
     // ── Section: update ────────────────────────────────────────────────
     public function updateSection(Request $request, Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         $request->validate(['title' => 'required|string|max:255']);
         $section->update(['title' => $request->title]);
         return back()->with('success', 'Section updated ✅');
@@ -192,6 +363,7 @@ class CoursesController extends Controller
     // ── Section: delete ────────────────────────────────────────────────
     public function destroySection(Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         $section->delete();
         return back()->with('success', 'Section deleted.');
     }
@@ -199,6 +371,7 @@ class CoursesController extends Controller
     // ── Section: reorder ───────────────────────────────────────────────
     public function reorderSections(Request $request, Course $course)
     {
+        $this->authorizeCourseOwner($course);
         foreach ($request->order ?? [] as $pos => $sectionId) {
             Section::where('id', $sectionId)->where('course_id', $course->id)
                    ->update(['order' => $pos + 1]);
@@ -209,6 +382,7 @@ class CoursesController extends Controller
     // ── Lesson: create form ────────────────────────────────────────────
     public function createLesson(Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         return view('admin.courses.lesson', [
             'course'  => $course,
             'section' => $section,
@@ -221,6 +395,7 @@ class CoursesController extends Controller
     // ── Lesson: store ──────────────────────────────────────────────────
     public function storeLesson(Request $request, Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id, 404);
         $data = $this->validateLesson($request);
         $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
@@ -237,6 +412,7 @@ class CoursesController extends Controller
     // ── Lesson: edit form ──────────────────────────────────────────────
     public function editLesson(Course $course, Section $section, Lesson $lesson)
     {
+        $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $lesson->load('quiz.questions');
         $materialUploads = Upload::whereIn('id', collect($lesson->resources ?? [])
@@ -254,6 +430,7 @@ class CoursesController extends Controller
     // ── Lesson: update ─────────────────────────────────────────────────
     public function updateLesson(Request $request, Course $course, Section $section, Lesson $lesson)
     {
+        $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $data = $this->validateLesson($request);
         $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
@@ -268,6 +445,7 @@ class CoursesController extends Controller
     // ── Lesson: delete ─────────────────────────────────────────────────
     public function destroyLesson(Course $course, Section $section, Lesson $lesson)
     {
+        $this->authorizeCourseOwner($course);
         $lesson->delete();
         return back()->with('success', 'Lesson deleted.');
     }
@@ -275,6 +453,7 @@ class CoursesController extends Controller
     // ── Lesson: reorder ────────────────────────────────────────────────
     public function reorderLessons(Request $request, Course $course, Section $section)
     {
+        $this->authorizeCourseOwner($course);
         foreach ($request->order ?? [] as $pos => $lessonId) {
             Lesson::where('id', $lessonId)->where('section_id', $section->id)
                   ->update(['order' => $pos + 1]);
@@ -289,15 +468,26 @@ class CoursesController extends Controller
             'vendor_id'         => 'nullable|exists:vendors,id',
             'title'             => 'required|string|max:255',
             'description'       => 'nullable|string',
+            'short_introduction'=> 'nullable|string|max:1000',
+            'meta_description'  => 'nullable|string|max:500',
+            'meta_keywords'     => 'nullable|string|max:1000',
             'category'          => 'required|string|max:100',
+            'tags'              => 'nullable|string|max:1000',
             'level'             => 'required|string|max:60',
             'language'          => 'required|string|max:10',
             'price'             => 'required|numeric|min:0',
             'sale_price'        => 'nullable|numeric|min:0',
             'is_free'           => 'boolean',
             'is_featured'       => 'boolean',
+            'upcoming'          => 'boolean',
+            'enforce_lesson_completion' => 'boolean',
+            'enable_certification' => 'boolean',
             'visibility'        => 'nullable|in:draft,public,restricted',
             'thumbnail'         => 'nullable|string|max:500',
+            'thumbnail_color'   => ['nullable','regex:/^#[0-9a-fA-F]{6}$/'],
+            'thumbnail_file'    => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'instructor_ids'    => 'nullable|array',
+            'instructor_ids.*'  => 'integer|exists:users,id',
             'intro_video'       => 'nullable|string|max:500',
             'requirements'      => 'nullable|string',
             'outcomes'          => 'nullable|string',
@@ -307,6 +497,8 @@ class CoursesController extends Controller
             'batch_start_date'  => 'nullable|date',
             'batch_end_date'    => 'nullable|date',
             'registration_open' => 'boolean',
+            'related_course_ids'=> 'nullable|array|max:12',
+            'related_course_ids.*' => ['integer','exists:courses,id', function ($attribute, $value, $fail) use ($ignoreId) { if ($ignoreId && (int) $value === $ignoreId) $fail('A course cannot be related to itself.'); }],
         ], self::MATERIAL_RULES));
         $data['resources'] = $this->validatedMaterials($data['resources'] ?? []);
 
@@ -320,6 +512,9 @@ class CoursesController extends Controller
 
         $data['is_free']          = $request->boolean('is_free');
         $data['is_featured']      = $request->boolean('is_featured');
+        $data['upcoming']         = $request->boolean('upcoming');
+        $data['enforce_lesson_completion'] = $request->boolean('enforce_lesson_completion');
+        $data['enable_certification'] = $ignoreId ? $request->boolean('enable_certification') : true;
         $data['registration_open']= $request->boolean('registration_open');
         $data['max_students']     = (int)($request->input('max_students', 0));
         $data['course_type']      = $request->input('course_type','open');
@@ -333,6 +528,59 @@ class CoursesController extends Controller
         }
 
         return $data;
+    }
+
+    private function authorizeCourseOwner(Course $course): void
+    {
+        $user = auth()->user();
+        if ($user->hasRole(['admin', 'super-admin'])) return;
+        abort_unless($course->primary_instructor_id === $user->id || $course->teachers()->where('users.id', $user->id)->exists(), 403);
+    }
+
+    private function sanitizeRichText(string $html): string
+    {
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $document->loadHTML('<div id="course-description">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        $allowedTags = ['p', 'br', 'h2', 'h3', 'h4', 'strong', 'b', 'em', 'i', 's', 'strike', 'font', 'span', 'mark', 'code', 'ul', 'ol', 'li', 'a', 'img', 'video', 'iframe', 'blockquote', 'pre', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div'];
+        foreach (iterator_to_array($document->getElementsByTagName('*')) as $node) {
+            if ($node->getAttribute('id') === 'course-description') continue;
+            if (!in_array($node->tagName, $allowedTags, true)) {
+                $node->parentNode?->removeChild($node);
+                continue;
+            }
+            foreach (iterator_to_array($node->attributes) as $attribute) {
+                $isSafeUrl = in_array($attribute->name, ['href', 'src'], true)
+                    && (str_starts_with($attribute->value, '/') || filter_var($attribute->value, FILTER_VALIDATE_URL))
+                    && !preg_match('/^(?:javascript|data|vbscript):/i', $attribute->value);
+                $isSafeColor = $node->tagName === 'font' && $attribute->name === 'color'
+                    && preg_match('/^#[0-9a-f]{6}$/i', $attribute->value);
+                $styleRules = array_values(array_filter(array_map('trim', explode(';', $attribute->value))));
+                $isSafeStyle = $attribute->name === 'style' && $styleRules !== [] && collect($styleRules)->every(fn ($rule) =>
+                    preg_match('/^text-align:\s*(?:left|center|right)$/i', $rule)
+                    || preg_match('/^(?:color|background-color):\s*(?:#[0-9a-f]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i', $rule)
+                );
+                if (!in_array($attribute->name, ['alt', 'target', 'rel', 'title', 'loading', 'allowfullscreen', 'controls', 'preload'], true) && !$isSafeUrl && !$isSafeColor && !$isSafeStyle) $node->removeAttribute($attribute->name);
+            }
+            if ($node->tagName === 'a' && $node->hasAttribute('target')) $node->setAttribute('rel', 'noopener');
+            if ($node->tagName === 'iframe') {
+                $host = strtolower(parse_url($node->getAttribute('src'), PHP_URL_HOST) ?: '');
+                $allowedEmbedHosts = ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'vimeo.com', 'player.vimeo.com', 'codepen.io', 'codesandbox.io', 'figma.com', 'embed.figma.com', 'docs.google.com', 'drive.google.com', 'notion.so'];
+                $allowedHost = collect($allowedEmbedHosts)->contains(fn ($domain) => $host === $domain || str_ends_with($host, '.'.$domain));
+                if (!$node->hasAttribute('src') || !$allowedHost) {
+                    $node->parentNode?->removeChild($node);
+                    continue;
+                }
+                $node->setAttribute('loading', 'lazy');
+                $node->setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms allow-presentation');
+            }
+        }
+
+        $root = $document->getElementById('course-description');
+        return collect(iterator_to_array($root->childNodes))->map(fn ($child) => $document->saveHTML($child))->implode('');
     }
 
     // ── Validate lesson fields ─────────────────────────────────────────

@@ -150,7 +150,7 @@
             <input type="checkbox" name="remember" class="w-3.5 h-3.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
             <span class="text-xs text-slate-600">Remember me</span>
           </label>
-          <a href="#" class="text-xs text-brand-600 hover:text-brand-700 font-semibold transition">Forgot password?</a>
+          <a href="{{ route('password.request') }}" class="text-xs text-brand-600 hover:text-brand-700 font-semibold transition">Forgot password?</a>
         </div>
 
         <!-- Submit -->

@@ -1,15 +1,15 @@
 @extends('layouts.admin')
-@section('title','Vendors — Skillspot.in LMS')
+@section('title','Organizations — Skillspot.in LMS')
 @section('admin-content')
 <div class="p-6">
   <div class="flex items-center justify-between mb-6">
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Vendors</h1>
-      <p class="text-sm text-gray-500 mt-0.5">Manage LMS vendors and their branding</p>
+      <h1 class="text-2xl font-bold text-gray-900">Organizations</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Manage schools, colleges, and their marketplace ownership</p>
     </div>
     <a href="{{ route('admin.vendors.create') }}" class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-      Add Vendor
+      Add Organization
     </a>
   </div>
 
@@ -21,7 +21,7 @@
     <table class="w-full text-sm">
       <thead class="bg-gray-50 border-b border-gray-100">
         <tr>
-          <th class="text-left px-5 py-3 font-semibold text-gray-600">Vendor</th>
+          <th class="text-left px-5 py-3 font-semibold text-gray-600">Organization</th>
           <th class="text-left px-4 py-3 font-semibold text-gray-600">Owner</th>
           <th class="text-center px-4 py-3 font-semibold text-gray-600">Courses</th>
           <th class="text-center px-4 py-3 font-semibold text-gray-600">Students</th>

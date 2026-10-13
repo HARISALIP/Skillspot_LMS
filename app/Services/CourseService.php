@@ -6,6 +6,7 @@ use App\Models\Enrollment;
 use App\Models\Certificate;
 use App\Models\User;
 use App\Models\Lesson;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -118,7 +119,7 @@ class CourseService
 
         // Auto-issue certificate if just completed
         $certificate = null;
-        if ($courseCompleted) {
+        if ($courseCompleted && $course->enable_certification !== false && Setting::get('certificate_auto_issue', '1') === '1') {
             $certificate = self::issueCertificate($user, $course, $enrollment);
         }
 
@@ -136,7 +137,7 @@ class CourseService
             ->where('course_id',$course->id)->first();
         if ($existing) return $existing;
 
-        return Certificate::create([
+        $certificate = Certificate::create([
             'user_id'            => $user->id,
             'course_id'          => $course->id,
             'vendor_id'          => $course->vendor_id,
@@ -144,6 +145,15 @@ class CourseService
             'certificate_number' => 'ITF-' . strtoupper(Str::random(6)) . '-' . now()->format('Y'),
             'issued_at'          => now(),
         ]);
+        \DB::table('certificate_audits')->insert([
+            'certificate_id' => $certificate->id,
+            'actor_id' => null,
+            'action' => 'automatically_issued',
+            'note' => 'Issued after the learner completed every lesson.',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        return $certificate;
     }
 
     // ── Check if student has valid access ─────────────────────────────

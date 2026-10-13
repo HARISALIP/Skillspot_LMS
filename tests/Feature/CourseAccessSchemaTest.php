@@ -30,11 +30,13 @@ class CourseAccessSchemaTest extends TestCase
             'title' => 'Demo Course',
             'slug' => 'demo-course',
             'category' => 'Web Development',
+            'primary_instructor_id' => $teacher->id,
         ]);
 
         $this->actingAs($teacher)
             ->get(route('admin.courses.edit', $course))
             ->assertOk()
-            ->assertSeeText('Sections & Lessons');
+            ->assertSeeText('Course editor')
+            ->assertSeeText('Chapters');
     }
 }
