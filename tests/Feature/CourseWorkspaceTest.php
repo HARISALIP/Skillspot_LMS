@@ -48,6 +48,34 @@ class CourseWorkspaceTest extends TestCase
         $this->assertFalse($course->enable_certification);
     }
 
+    public function test_add_chapter_modal_saves_a_scorm_chapter_and_returns_to_the_editor(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $course = Course::create([
+            'title' => 'SCORM Course', 'category' => 'Technology', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => true,
+            'primary_instructor_id' => $teacher->id,
+        ]);
+        $course->teachers()->attach($teacher->id, ['added_by' => $teacher->id]);
+
+        $this->actingAs($teacher)->get(route('admin.courses.edit', $course).'#editor')
+            ->assertOk()
+            ->assertSee('id="addChapterModal"', false)
+            ->assertSee('Add Chapter')
+            ->assertSee('SCORM Package');
+
+        $this->post(route('admin.courses.sections.store', $course), [
+            'title' => 'Interactive package',
+            'is_scorm' => '1',
+        ])->assertRedirect(route('admin.courses.edit', $course).'#editor');
+
+        $chapter = $course->sections()->firstOrFail();
+        $this->assertSame('Interactive package', $chapter->title);
+        $this->assertTrue($chapter->is_scorm);
+    }
+
     public function test_enforced_course_blocks_skipping_an_incomplete_lesson(): void
     {
         Role::findOrCreate('student', 'web');

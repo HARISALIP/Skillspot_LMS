@@ -338,13 +338,17 @@ class CoursesController extends Controller
     public function storeSection(Request $request, Course $course)
     {
         $this->authorizeCourseOwner($course);
-        $request->validate(['title' => 'required|string|max:255']);
+        $data = $request->validateWithBag('addChapter', [
+            'title' => 'required|string|max:255',
+            'is_scorm' => 'sometimes|boolean',
+        ]);
         $order = $course->sections()->max('order') + 1;
         $course->sections()->create([
-            'title' => $request->title,
+            'title' => $data['title'],
             'order' => $order,
+            'is_scorm' => $request->boolean('is_scorm'),
         ]);
-        return back()->with('success', 'Section added ✅');
+        return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter added.');
     }
 
     // ── Section: update ────────────────────────────────────────────────
