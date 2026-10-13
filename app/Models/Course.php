@@ -10,9 +10,9 @@ class Course extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'vendor_id','primary_instructor_id','title','slug','description','short_introduction','thumbnail','intro_video',
-        'language','level','category','price','sale_price','is_free',
-        'is_published','is_featured','visibility','requirements','outcomes','resources',
+        'vendor_id','primary_instructor_id','title','slug','description','short_introduction','meta_description','meta_keywords',
+        'thumbnail','thumbnail_color','intro_video','language','level','category','tags','price','sale_price','is_free',
+        'is_published','is_featured','upcoming','enforce_lesson_completion','enable_certification','visibility','requirements','outcomes','resources','related_course_ids',
         'max_students','course_type','batch_name','batch_start_date','batch_end_date','registration_open',
         'marketplace_status','marketplace_visible','submitted_at','reviewed_at','reviewed_by','review_feedback',
     ];
@@ -21,6 +21,9 @@ class Course extends Model
         'is_free'            => 'boolean',
         'is_published'       => 'boolean',
         'is_featured'        => 'boolean',
+        'upcoming'           => 'boolean',
+        'enforce_lesson_completion' => 'boolean',
+        'enable_certification' => 'boolean',
         'registration_open'  => 'boolean',
         'visibility'         => 'string',
         'price'              => 'decimal:2',
@@ -28,6 +31,7 @@ class Course extends Model
         'requirements'       => 'array',
         'outcomes'           => 'array',
         'resources'          => 'array',
+        'related_course_ids' => 'array',
         'batch_start_date'   => 'date',
         'batch_end_date'     => 'date',
         'marketplace_visible'=> 'boolean',
@@ -108,6 +112,7 @@ class Course extends Model
 
     public function canEnroll($user = null): bool
     {
+        if ($this->upcoming) return false;
         if ($this->visibility === 'draft') return false;
         if (!$user) return $this->visibility === 'public';
         if ($user->hasRole('super-admin') || $user->hasRole('admin')) return true;
@@ -120,12 +125,12 @@ class Course extends Model
 
     public function scopeMarketplaceLive($query)
     {
-        return $query->where('marketplace_status', 'live')->where('marketplace_visible', true);
+        return $query->where('marketplace_status', 'live')->where('marketplace_visible', true)->where('upcoming', false);
     }
 
     public function isMarketplaceLive(): bool
     {
-        return $this->marketplace_status === 'live' && (bool) $this->marketplace_visible;
+        return $this->marketplace_status === 'live' && (bool) $this->marketplace_visible && !$this->upcoming;
     }
 
     public function getLessonsCountAttribute(): int

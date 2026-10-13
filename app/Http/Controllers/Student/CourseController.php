@@ -233,6 +233,17 @@ class CourseController extends Controller
         if ($lesson->section?->course_id !== $course->id || !CourseService::hasAccess($user, $course)) {
             return response()->json(['error'=>'Access denied.'], 403);
         }
+        if ($course->enforce_lesson_completion) {
+            $lessonIds = $course->sections()->with('lessons:id,section_id,order')->get()
+                ->flatMap->lessons->pluck('id')->values();
+            $position = $lessonIds->search($lesson->id);
+            $requiredIds = $position === false ? collect() : $lessonIds->take($position);
+            $completed = DB::table('lesson_progress')->where('user_id', $user->id)
+                ->whereIn('lesson_id', $requiredIds)->where('completed', true)->count();
+            if ($requiredIds->isNotEmpty() && $completed !== $requiredIds->count()) {
+                return response()->json(['error' => 'Complete the previous lesson before opening this one.'], 423);
+            }
+        }
 
         // Signed video URL for R2 videos
         $videoUrl = null;

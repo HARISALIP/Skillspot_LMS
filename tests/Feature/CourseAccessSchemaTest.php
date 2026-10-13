@@ -36,6 +36,7 @@ class CourseAccessSchemaTest extends TestCase
         $this->actingAs($teacher)
             ->get(route('admin.courses.edit', $course))
             ->assertOk()
-            ->assertSeeText('Sections & Lessons');
+            ->assertSeeText('Course editor')
+            ->assertSeeText('Chapters');
     }
 }

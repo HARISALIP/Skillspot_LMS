@@ -119,7 +119,7 @@ class CourseService
 
         // Auto-issue certificate if just completed
         $certificate = null;
-        if ($courseCompleted && Setting::get('certificate_auto_issue', '1') === '1') {
+        if ($courseCompleted && $course->enable_certification !== false && Setting::get('certificate_auto_issue', '1') === '1') {
             $certificate = self::issueCertificate($user, $course, $enrollment);
         }
 

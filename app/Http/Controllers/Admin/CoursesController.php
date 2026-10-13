@@ -246,11 +246,15 @@ class CoursesController extends Controller
     public function edit(Course $course)
     {
         $this->authorizeCourseOwner($course);
-        $course->load('sections.lessons','allowedUsers');
+        $course->load(['sections.lessons','allowedUsers','teachers','primaryInstructor','vendor','enrollments.user','reviews']);
         $materialUploads = Upload::whereIn('id', collect($course->resources ?? [])
             ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])->filter())
             ->pluck('original_name', 'id');
         $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
+            ->orderBy('name')->get(['id', 'name', 'email']);
+        if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        $relatedCourses = Course::whereKeyNot($course->id)->orderBy('title')->get(['id', 'title']);
         return view('admin.courses.form', [
             'course'     => $course,
             'vendors'    => $vendors,
@@ -259,6 +263,8 @@ class CoursesController extends Controller
             'languages'  => $this->getLanguages(),
             'isEdit'     => true,
             'materialUploads' => $materialUploads,
+            'instructors' => $instructors,
+            'relatedCourses' => $relatedCourses,
         ]);
     }
 
@@ -266,13 +272,26 @@ class CoursesController extends Controller
     public function update(Request $request, Course $course)
     {
         $this->authorizeCourseOwner($course);
+        if (is_string($request->input('description'))) {
+            $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
+        }
         $request->merge(['visibility' => $request->input('visibility') ?: $course->visibility]);
         $data = $this->validateCourse($request, $course->id);
+        if ($request->hasFile('thumbnail_file')) {
+            $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+        }
         if (!$course->isMarketplaceLive()) {
             $data['visibility'] = 'draft';
             $data['is_published'] = false;
         }
-        $course->update($data);
+        DB::transaction(function () use ($course, $data, $request) {
+            $course->update($data);
+            if ($request->has('instructor_ids')) {
+                $teacherIds = collect($request->input('instructor_ids', []))->map(fn ($id) => (int) $id)->unique()->values();
+                $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
+                if ($teacherIds->isNotEmpty()) $course->update(['primary_instructor_id' => $teacherIds->first()]);
+            }
+        });
         return back()->with('success', "Course updated ✅");
     }
 
@@ -446,15 +465,22 @@ class CoursesController extends Controller
             'title'             => 'required|string|max:255',
             'description'       => 'nullable|string',
             'short_introduction'=> 'nullable|string|max:1000',
+            'meta_description'  => 'nullable|string|max:500',
+            'meta_keywords'     => 'nullable|string|max:1000',
             'category'          => 'required|string|max:100',
+            'tags'              => 'nullable|string|max:1000',
             'level'             => 'required|string|max:60',
             'language'          => 'required|string|max:10',
             'price'             => 'required|numeric|min:0',
             'sale_price'        => 'nullable|numeric|min:0',
             'is_free'           => 'boolean',
             'is_featured'       => 'boolean',
+            'upcoming'          => 'boolean',
+            'enforce_lesson_completion' => 'boolean',
+            'enable_certification' => 'boolean',
             'visibility'        => 'nullable|in:draft,public,restricted',
             'thumbnail'         => 'nullable|string|max:500',
+            'thumbnail_color'   => ['nullable','regex:/^#[0-9a-fA-F]{6}$/'],
             'thumbnail_file'    => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
             'instructor_ids'    => 'nullable|array',
             'instructor_ids.*'  => 'integer|exists:users,id',
@@ -467,6 +493,8 @@ class CoursesController extends Controller
             'batch_start_date'  => 'nullable|date',
             'batch_end_date'    => 'nullable|date',
             'registration_open' => 'boolean',
+            'related_course_ids'=> 'nullable|array|max:12',
+            'related_course_ids.*' => ['integer','exists:courses,id', function ($attribute, $value, $fail) use ($ignoreId) { if ($ignoreId && (int) $value === $ignoreId) $fail('A course cannot be related to itself.'); }],
         ], self::MATERIAL_RULES));
         $data['resources'] = $this->validatedMaterials($data['resources'] ?? []);
 
@@ -480,6 +508,9 @@ class CoursesController extends Controller
 
         $data['is_free']          = $request->boolean('is_free');
         $data['is_featured']      = $request->boolean('is_featured');
+        $data['upcoming']         = $request->boolean('upcoming');
+        $data['enforce_lesson_completion'] = $request->boolean('enforce_lesson_completion');
+        $data['enable_certification'] = $ignoreId ? $request->boolean('enable_certification') : true;
         $data['registration_open']= $request->boolean('registration_open');
         $data['max_students']     = (int)($request->input('max_students', 0));
         $data['course_type']      = $request->input('course_type','open');
