@@ -723,6 +723,15 @@ $tabs = [
   </div>
 </div>
 
+<script>
+  (() => {
+    const preference = localStorage.getItem('skillspot-theme');
+    const theme = preference === 'light' || (preference === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'light' : 'dark';
+    document.body.dataset.theme = theme;
+    document.querySelector('.settings-workspace')?.setAttribute('data-theme', theme);
+  })();
+</script>
+
 @if($activeTab === 'categories')
 <dialog id="newCategoryDialog" class="w-full max-w-md rounded-2xl bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-black/50">
   <form method="POST" action="{{ route('admin.settings.categories.store') }}" class="p-6">

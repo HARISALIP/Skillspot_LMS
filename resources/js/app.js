@@ -178,6 +178,11 @@ document.addEventListener('turbo:load', () => {
 document.addEventListener('click', event => { const link = event.target.closest('[data-settings-tab]'); if (link && window.self !== window.top) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: link.dataset.settingsTab, push: true }, location.origin); });
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.data?.type !== 'skillspot:open-settings-tab' || window.self === window.top) return;
-  const url = new URL(location.href); url.searchParams.set('tab', event.data.tab); url.searchParams.set('embed', '1'); if (event.data.theme) url.searchParams.set('theme', event.data.theme);
+  const theme = ['light', 'dark'].includes(event.data.theme) ? event.data.theme : null;
+  if (theme) {
+    document.body.dataset.theme = theme;
+    document.querySelector('.settings-workspace')?.setAttribute('data-theme', theme);
+  }
+  const url = new URL(location.href); url.searchParams.set('tab', event.data.tab); url.searchParams.set('embed', '1'); if (theme) url.searchParams.set('theme', theme);
   if (url.toString() !== location.href) Turbo.visit(url.toString());
 });

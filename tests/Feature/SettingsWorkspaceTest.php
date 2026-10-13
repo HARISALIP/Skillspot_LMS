@@ -53,8 +53,8 @@ class SettingsWorkspaceTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('id="settingsModalButton"', false)
-            ->assertSee(route('admin.settings', ['embed' => 1]))
-            ->assertSee('data-settings-url=', false);
+            ->assertSee('data-settings-url=', false)
+            ->assertDontSee('title="Settings" class="h-full w-full border-0" src=', false);
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
             ->assertOk()
@@ -67,7 +67,8 @@ class SettingsWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1, 'theme' => 'light']))
             ->assertOk()
-            ->assertSee('data-theme="light"', false);
+            ->assertSee('data-theme="light"', false)
+            ->assertSee("localStorage.getItem('skillspot-theme')", false);
     }
 
     public function test_workspace_layouts_expose_the_turbo_navigation_contract(): void
