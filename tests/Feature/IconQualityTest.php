@@ -62,11 +62,17 @@ class IconQualityTest extends TestCase
     public function test_every_primary_layout_loads_the_shared_icon_normalizer(): void
     {
         foreach (['admin', 'admin-embed', 'auth', 'landing', 'student', 'vendor'] as $layout) {
+            $source = file_get_contents(resource_path("views/layouts/{$layout}.blade.php"));
             $this->assertStringContainsString(
                 "@include('partials.ui-icon-normalizer')",
-                file_get_contents(resource_path("views/layouts/{$layout}.blade.php")),
+                $source,
                 "{$layout} does not load the shared icon normalizer",
             );
+            $this->assertStringContainsString("asset('assets/fontawesome/css/all.min.css')", $source);
+        }
+
+        foreach (['css/all.min.css', 'webfonts/fa-solid-900.woff2', 'webfonts/fa-regular-400.woff2', 'webfonts/fa-brands-400.woff2'] as $asset) {
+            $this->assertFileExists(public_path("assets/fontawesome/{$asset}"));
         }
     }
 
