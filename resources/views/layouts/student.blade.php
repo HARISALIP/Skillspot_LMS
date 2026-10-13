@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
+  @include('partials.turbo')
   <script>
     tailwind.config = {
       theme: {
@@ -86,7 +87,7 @@
     </div>
 
     <!-- Nav -->
-    <nav class="flex-1 px-3 py-4 overflow-y-auto">
+    <nav data-navigation-sidebar="student" class="flex-1 px-3 py-4 overflow-y-auto">
       @php $navItems = [
         ['icon'=>'🏠','label'=>'Dashboard',   'route'=>'student.dashboard','href'=>'/dashboard'],
         ['icon'=>'📚','label'=>'My Courses',  'route'=>'student.courses',  'href'=>'/dashboard/courses'],
@@ -140,7 +141,7 @@
     </header>
 
     <!-- Page content -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-6">
+    <main data-navigation-main class="flex-1 overflow-y-auto p-4 md:p-6">
       @yield('student-content')
     </main>
   </div>

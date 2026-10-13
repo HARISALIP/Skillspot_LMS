@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
+  @include('partials.turbo')
   <script>
     tailwind.config = {
       theme: {
@@ -142,39 +143,6 @@
   </div>
 </footer>
 
-<script>
-  // Navbar scroll solid effect
-  const navbar = document.getElementById('navbar');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 40) {
-      navbar.classList.add('nav-solid');
-      navbar.classList.remove('glass');
-    } else {
-      navbar.classList.remove('nav-solid');
-      navbar.classList.add('glass');
-    }
-  });
-
-  // Mobile menu toggle
-  const hamburger  = document.getElementById('hamburger');
-  const mobileMenu = document.getElementById('mobile-menu');
-  const iconOpen   = document.getElementById('icon-open');
-  const iconClose  = document.getElementById('icon-close');
-  hamburger.addEventListener('click', () => {
-    const open = mobileMenu.classList.toggle('open');
-    iconOpen.classList.toggle('hidden', open);
-    iconClose.classList.toggle('hidden', !open);
-    document.body.style.overflow = open ? 'hidden' : '';
-  });
-  mobileMenu.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-      mobileMenu.classList.remove('open');
-      iconOpen.classList.remove('hidden');
-      iconClose.classList.add('hidden');
-      document.body.style.overflow = '';
-    });
-  });
-</script>
 @include('partials.ui-icon-normalizer')
 @stack('scripts')
 </body>

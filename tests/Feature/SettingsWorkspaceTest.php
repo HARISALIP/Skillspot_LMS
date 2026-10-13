@@ -54,8 +54,7 @@ class SettingsWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('id="settingsModalButton"', false)
             ->assertSee(route('admin.settings', ['embed' => 1]))
-            ->assertSee('history.pushState', false)
-            ->assertSee('skillspot:navigate-settings', false);
+            ->assertSee('data-settings-url=', false);
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
             ->assertOk()
@@ -63,12 +62,31 @@ class SettingsWorkspaceTest extends TestCase
             ->assertDontSeeText('Configure your learning platform')
             ->assertDontSee('Main navigation')
             ->assertSee('data-settings-tab="signup"', false)
-            ->assertSee('skillspot:navigate-settings', false)
+            ->assertDontSee('skillspot:navigate-settings', false)
             ->assertSee('data-theme="dark"', false);
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1, 'theme' => 'light']))
             ->assertOk()
             ->assertSee('data-theme="light"', false);
+    }
+
+    public function test_workspace_layouts_expose_the_turbo_navigation_contract(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('data-navigation-sidebar="admin"', false)
+            ->assertSee('data-navigation-main', false)
+            ->assertSee('data-settings-url=', false);
+
+        $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
+            ->assertOk()
+            ->assertSee('data-navigation-sidebar="settings"', false)
+            ->assertSee('data-settings-tab="signup"', false)
+            ->assertDontSee('skillspot:navigate-settings', false);
     }
 
     public function test_management_panels_can_render_without_the_main_sidebar(): void

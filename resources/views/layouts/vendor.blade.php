@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
   <script src="https://cdn.tailwindcss.com"></script>
+  @include('partials.turbo')
   <script>
     tailwind.config = {
       theme: {
@@ -81,7 +82,7 @@
     </div>
 
     <!-- Nav -->
-    <nav class="flex-1 px-3 py-4 overflow-y-auto">
+    <nav data-navigation-sidebar="vendor" class="flex-1 px-3 py-4 overflow-y-auto">
       @php
       $isTeacherOrAdmin = auth()->user()->hasRole(['teacher','admin','super-admin']);
       $isVendorRole     = auth()->user()->hasRole('vendor') && !$isTeacherOrAdmin;
@@ -164,7 +165,7 @@
   </aside>
 
   <!-- Mobile overlay -->
-  <div id="mobileOverlay" class="fixed inset-0 bg-black/40 z-20 hidden lg:hidden" onclick="closeMobileSidebar()"></div>
+  <div id="mobileOverlay" class="fixed inset-0 bg-black/40 z-20 hidden lg:hidden"></div>
 
   <!-- Main content -->
   <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -173,7 +174,7 @@
     <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10">
       <div class="flex items-center gap-3">
         <!-- Mobile menu btn -->
-        <button id="mobileMenuBtn" onclick="openMobileSidebar()" class="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition">
+        <button id="mobileMenuBtn" type="button" class="lg:hidden p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <div>
@@ -191,7 +192,7 @@
     </header>
 
     <!-- Page content -->
-    <main class="flex-1 overflow-y-auto p-4 md:p-6">
+    <main data-navigation-main class="flex-1 overflow-y-auto p-4 md:p-6">
       @if(session('success'))
         <div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 mb-4 text-sm">{{ session('success') }}</div>
       @endif
@@ -203,32 +204,6 @@
   </div>
 </div>
 
-<script>
-  // Sidebar collapse (desktop)
-  const sidebar = document.getElementById('sidebar');
-  document.getElementById('sidebarToggle')?.addEventListener('click', () => {
-    sidebar.classList.toggle('sidebar-collapsed');
-    sidebar.classList.toggle('sidebar');
-  });
-
-  // Mobile sidebar
-  function openMobileSidebar() {
-    sidebar.style.transform = 'translateX(0)';
-    document.getElementById('mobileOverlay').classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeMobileSidebar() {
-    sidebar.style.transform = 'translateX(-100%)';
-    document.getElementById('mobileOverlay').classList.add('hidden');
-    document.body.style.overflow = '';
-  }
-
-  // Mobile: hide sidebar off-screen by default on small screens
-  if (window.innerWidth < 1024) {
-    sidebar.style.transform = 'translateX(-100%)';
-    sidebar.style.transition = 'transform 0.25s ease';
-  }
-</script>
 @include('partials.ui-icon-normalizer')
 @stack('scripts')
 </body>
