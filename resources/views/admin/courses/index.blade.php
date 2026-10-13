@@ -335,9 +335,13 @@
       courseCreateMenuButton?.setAttribute('aria-expanded', 'false');
     }
   });
+  const closeEditorPopovers = () => document.querySelectorAll('.frappe-rich-editor__popover').forEach((popover) => { popover.hidden = true; });
   const newCourseModal = document.getElementById('newCourseModal');
   const openNewCourseModal = document.getElementById('openNewCourseModal');
-  const closeNewCourseModal = () => newCourseModal?.classList.add('hidden');
+  const closeNewCourseModal = () => {
+    closeEditorPopovers();
+    newCourseModal?.classList.add('hidden');
+  };
   openNewCourseModal?.addEventListener('click', () => {
     courseCreateMenuItems?.classList.add('hidden');
     courseCreateMenuButton?.setAttribute('aria-expanded', 'false');
@@ -352,6 +356,10 @@
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+      if (document.querySelector('.frappe-rich-editor__popover:not([hidden])')) {
+        closeEditorPopovers();
+        return;
+      }
       if (!newInstructorModal?.classList.contains('hidden')) closeNewInstructorModal();
       else closeNewCourseModal();
     }
@@ -504,16 +512,22 @@
     }
   };
   const positionEditorPopover = (popover, button, width) => {
+    const wasOpen = !popover.hidden;
     document.querySelectorAll('.frappe-rich-editor__popover').forEach((item) => { if (item !== popover) item.hidden = true; });
+    if (wasOpen) {
+      popover.hidden = true;
+      return false;
+    }
     popover.hidden = false;
     popover.style.left = `${Math.max(0, Math.min(button.offsetLeft, button.parentElement.clientWidth - width))}px`;
     popover.style.top = `${button.offsetTop + button.offsetHeight + 4}px`;
+    return true;
   };
   const openEditorUrlPopover = (button) => {
     saveEditorRange();
+    if (!positionEditorPopover(courseEditorUrlPopover, button, 248)) return;
     courseEditorUrl.placeholder = 'https://example.com';
     courseEditorUrl.value = '';
-    positionEditorPopover(courseEditorUrlPopover, button, 248);
     courseEditorUrl.focus();
   };
   const closeEditorUrlPopover = () => {
@@ -663,7 +677,7 @@
         return;
       }
       if (action === 'rule') return runEditorCommand('insertHTML', '<hr>');
-      if (action === 'table') { saveEditorRange(); setTableSelection(3, 3); positionEditorPopover(courseEditorTablePopover, button, 186); courseEditorTableGrid.querySelector('button[data-row="3"][data-column="3"]')?.focus(); return; }
+      if (action === 'table') { saveEditorRange(); setTableSelection(3, 3); if (positionEditorPopover(courseEditorTablePopover, button, 186)) courseEditorTableGrid.querySelector('button[data-row="3"][data-column="3"]')?.focus(); return; }
       runEditorCommand(command, button.dataset.editorValue || null);
     });
   });
@@ -672,6 +686,9 @@
   courseEditorColorPopover?.addEventListener('click', (event) => {
     const swatch = event.target.closest('[data-editor-color]');
     if (swatch) applyEditorColor(swatch.dataset.colorType, swatch.dataset.editorColor);
+  });
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.frappe-rich-editor__popover, [data-editor-action="link"], [data-editor-action="color"], [data-editor-action="table"]')) closeEditorPopovers();
   });
   courseEditorTableGrid?.addEventListener('keydown', (event) => {
     if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(event.key)) return;
@@ -702,6 +719,7 @@
     }
     if (event.key === 'Escape') {
       event.preventDefault();
+      event.stopPropagation();
       closeEditorUrlPopover();
       restoreEditorRange();
       courseEditor.focus();
@@ -722,7 +740,7 @@
   document.getElementById('courseEditorEmbedCancel')?.addEventListener('click', closeEmbedModal);
   document.getElementById('courseEditorEmbedClose')?.addEventListener('click', closeEmbedModal);
   courseEditorEmbedModal?.addEventListener('click', (event) => { if (event.target === courseEditorEmbedModal) closeEmbedModal(); });
-  courseEditorEmbedInput?.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeEmbedModal(); });
+  courseEditorEmbedInput?.addEventListener('keydown', (event) => { if (event.key === 'Escape') { event.stopPropagation(); closeEmbedModal(); } });
   courseEditorImage?.addEventListener('change', async () => {
     try { await uploadEditorFiles([...courseEditorImage.files], 'image'); } catch (error) { window.alert(error.message); }
     courseEditorImage.value = '';
