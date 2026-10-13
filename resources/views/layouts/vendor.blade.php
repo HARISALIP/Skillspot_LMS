@@ -229,6 +229,7 @@
     sidebar.style.transition = 'transform 0.25s ease';
   }
 </script>
+@include('partials.ui-icon-normalizer')
 @stack('scripts')
 </body>
 </html>

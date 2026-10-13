@@ -58,6 +58,7 @@
     <a href="/terms" class="hover:text-brand-600 transition">Terms</a>
   </div>
 
+  @include('partials.ui-icon-normalizer')
   @stack('scripts')
 </body>
 </html>

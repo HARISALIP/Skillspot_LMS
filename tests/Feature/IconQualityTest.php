@@ -42,6 +42,34 @@ class IconQualityTest extends TestCase
         $this->assertSame([], $failures, "Emoji UI icons found in:\n".implode("\n", $failures));
     }
 
+    public function test_every_template_emoji_has_a_professional_icon_mapping(): void
+    {
+        $mapped = array_keys(config('ui_icons.emoji'));
+        $failures = [];
+
+        foreach ($this->bladeFiles(resource_path('views')) as $file) {
+            preg_match_all('/\p{Extended_Pictographic}\x{FE0F}?/u', file_get_contents($file), $matches);
+            foreach (array_unique($matches[0]) as $emoji) {
+                if (! in_array($emoji, $mapped, true)) {
+                    $failures[] = str_replace(base_path().'\\', '', $file).": {$emoji}";
+                }
+            }
+        }
+
+        $this->assertSame([], $failures, "Unmapped emoji UI icons:\n".implode("\n", $failures));
+    }
+
+    public function test_every_primary_layout_loads_the_shared_icon_normalizer(): void
+    {
+        foreach (['admin', 'admin-embed', 'auth', 'landing', 'student', 'vendor'] as $layout) {
+            $this->assertStringContainsString(
+                "@include('partials.ui-icon-normalizer')",
+                file_get_contents(resource_path("views/layouts/{$layout}.blade.php")),
+                "{$layout} does not load the shared icon normalizer",
+            );
+        }
+    }
+
     /** @return list<string> */
     private function bladeFiles(string $directory): array
     {

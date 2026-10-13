@@ -146,6 +146,7 @@
   </div>
 </div>
 
+@include('partials.ui-icon-normalizer')
 @stack('scripts')
 </body>
 </html>
