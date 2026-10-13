@@ -14,6 +14,7 @@ use App\Models\Vendor;
 use App\Models\User;
 use App\Models\Setting;
 use App\Services\LessonQuiz;
+use App\Services\ScormPackageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -325,29 +326,49 @@ class CoursesController extends Controller
     }
 
     // ── Delete ─────────────────────────────────────────────────────────
-    public function destroy(Course $course)
+    public function destroy(Course $course, ScormPackageService $scormPackages)
     {
         $this->authorizeCourseOwner($course);
         $title = $course->title;
+        $course->sections()->where('is_scorm', true)->get()->each(fn (Section $section) => $scormPackages->delete($section));
         $course->delete();
         return redirect()->route('admin.courses')
             ->with('success', "Course \"{$title}\" deleted.");
     }
 
     // ── Section: store ─────────────────────────────────────────────────
-    public function storeSection(Request $request, Course $course)
+    public function storeSection(Request $request, Course $course, ScormPackageService $scormPackages)
     {
         $this->authorizeCourseOwner($course);
         $data = $request->validateWithBag('addChapter', [
             'title' => 'required|string|max:255',
             'is_scorm' => 'sometimes|boolean',
+            'scorm_package' => 'required_if:is_scorm,1|nullable|file|max:204800',
         ]);
+        if ($request->boolean('is_scorm') && strtolower($request->file('scorm_package')?->getClientOriginalExtension() ?? '') !== 'zip') {
+            $validation = ValidationException::withMessages(['scorm_package' => 'Please upload a ZIP package.']);
+            $validation->errorBag = 'addChapter';
+            throw $validation;
+        }
         $order = $course->sections()->max('order') + 1;
-        $course->sections()->create([
-            'title' => $data['title'],
-            'order' => $order,
-            'is_scorm' => $request->boolean('is_scorm'),
-        ]);
+        $section = null;
+        try {
+            DB::transaction(function () use ($request, $course, $data, $order, $scormPackages, &$section) {
+                $section = $course->sections()->create([
+                    'title' => $data['title'], 'order' => $order,
+                    'is_scorm' => $request->boolean('is_scorm'),
+                ]);
+                if ($section->is_scorm) {
+                    $section->update($scormPackages->install($request->file('scorm_package'), $course, $section));
+                    $section->lessons()->create(['title' => $section->title, 'type' => 'scorm', 'order' => 1]);
+                }
+            });
+        } catch (\RuntimeException $exception) {
+            if ($section) $scormPackages->delete($section);
+            $validation = ValidationException::withMessages(['scorm_package' => $exception->getMessage()]);
+            $validation->errorBag = 'addChapter';
+            throw $validation;
+        }
         return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter added.');
     }
 
@@ -361,9 +382,11 @@ class CoursesController extends Controller
     }
 
     // ── Section: delete ────────────────────────────────────────────────
-    public function destroySection(Course $course, Section $section)
+    public function destroySection(Course $course, Section $section, ScormPackageService $scormPackages)
     {
         $this->authorizeCourseOwner($course);
+        abort_unless($section->course_id === $course->id, 404);
+        $scormPackages->delete($section);
         $section->delete();
         return back()->with('success', 'Section deleted.');
     }

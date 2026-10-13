@@ -48,7 +48,7 @@ class CourseWorkspaceTest extends TestCase
         $this->assertFalse($course->enable_certification);
     }
 
-    public function test_add_chapter_modal_saves_a_scorm_chapter_and_returns_to_the_editor(): void
+    public function test_add_chapter_modal_saves_a_regular_chapter_and_returns_to_the_editor(): void
     {
         Role::findOrCreate('teacher', 'web');
         $teacher = User::factory()->create();
@@ -64,16 +64,18 @@ class CourseWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('id="addChapterModal"', false)
             ->assertSee('Add Chapter')
-            ->assertSee('SCORM Package');
+            ->assertSee('SCORM Package')
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('name="scorm_package"', false)
+            ->assertSee('Upload a ZIP file');
 
         $this->post(route('admin.courses.sections.store', $course), [
             'title' => 'Interactive package',
-            'is_scorm' => '1',
         ])->assertRedirect(route('admin.courses.edit', $course).'#editor');
 
         $chapter = $course->sections()->firstOrFail();
         $this->assertSame('Interactive package', $chapter->title);
-        $this->assertTrue($chapter->is_scorm);
+        $this->assertFalse($chapter->is_scorm);
     }
 
     public function test_enforced_course_blocks_skipping_an_incomplete_lesson(): void

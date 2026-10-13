@@ -42,6 +42,7 @@ Route::middleware(['auth','portal.access'])->group(function () {
     Route::post('/course/{course}/verify-payment',          [StudentCourse::class,'verifyPayment'])->name('student.verify-payment');
     Route::get('/learn/{course}',                           [StudentCourse::class,'learn'])->name('student.learn');
     Route::get('/learn/{course}/lesson/{lesson}',           [StudentCourse::class,'getLesson'])->name('student.get-lesson');
+    Route::get('/learn/{course}/scorm/{section}/{path}',     [StudentCourse::class,'scormAsset'])->where('path', '.*')->name('student.scorm.asset');
     Route::post('/learn/{course}/lesson/{lesson}/progress', [StudentCourse::class,'saveProgress'])->name('student.save-progress');
     Route::post('/learn/{course}/lesson/{lesson}/quiz', [StudentCourse::class,'submitQuiz'])->name('student.submit-quiz');
 });

@@ -155,6 +155,7 @@
               @elseif($lesson->type==='quiz')  📝
               @elseif($lesson->type==='pdf')   📄
               @elseif($lesson->type==='live')  📡
+              @elseif($lesson->type==='scorm') <i class="fa-solid fa-box-archive" aria-label="SCORM package"></i>
               @else 📖 @endif
             </span>
             <div class="flex-1 min-w-0">
@@ -308,6 +309,29 @@ const COURSE  = {{ $course->id }};
 const API_BASE= '/learn/{{ $course->id }}';
 let currentLessonId = {{ $currentLesson?->id ?? 'null' }};
 let saveTimer;
+let scormState = {};
+let scormCompleted = false;
+
+function scormSetValue(key, value) {
+  scormState[key] = String(value);
+  scormCompleted = ['completed','passed'].includes(String(scormState['cmi.core.lesson_status'] || '').toLowerCase())
+    || String(scormState['cmi.completion_status'] || '').toLowerCase() === 'completed';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveLessonProgress(scormCompleted ? 100 : 0, 0, JSON.stringify(scormState)), 500);
+  return 'true';
+}
+window.API = {
+  LMSInitialize: () => 'true', LMSFinish: () => { saveLessonProgress(scormCompleted ? 100 : 0, 0, JSON.stringify(scormState)); return 'true'; },
+  LMSGetValue: key => scormState[key] || '', LMSSetValue: scormSetValue,
+  LMSCommit: () => { saveLessonProgress(scormCompleted ? 100 : 0, 0, JSON.stringify(scormState)); return 'true'; },
+  LMSGetLastError: () => '0', LMSGetErrorString: () => 'No error', LMSGetDiagnostic: () => '',
+};
+window.API_1484_11 = {
+  Initialize: () => 'true', Terminate: () => { saveLessonProgress(scormCompleted ? 100 : 0, 0, JSON.stringify(scormState)); return 'true'; },
+  GetValue: key => scormState[key] || '', SetValue: scormSetValue,
+  Commit: () => { saveLessonProgress(scormCompleted ? 100 : 0, 0, JSON.stringify(scormState)); return 'true'; },
+  GetLastError: () => '0', GetErrorString: () => 'No error', GetDiagnostic: () => '',
+};
 
 // Load a lesson
 async function loadLesson(lessonId) {
@@ -355,10 +379,18 @@ async function loadLesson(lessonId) {
       doneBtn.disabled   = false;
       doneBtn.className  = 'flex-shrink-0 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition';
     }
-    doneBtn.classList.toggle('hidden', data.type === 'quiz');
+    doneBtn.classList.toggle('hidden', data.type === 'quiz' || data.type === 'scorm');
 
     // Render based on type
-    if (data.type === 'video' && data.video_url) {
+    if (data.type === 'scorm' && data.scorm_launch_url) {
+      scormState = {};
+      try { scormState = data.scorm_data ? JSON.parse(data.scorm_data) : {}; } catch (_) {}
+      scormCompleted = !!data.completed;
+      const frame = document.getElementById('lessonIframe');
+      frame.title = data.title;
+      frame.src = data.scorm_launch_url;
+      document.getElementById('iframeWrap').classList.remove('hidden');
+    } else if (data.type === 'video' && data.video_url) {
       renderVideo(data.video_url, data.progress);
     } else if (data.type === 'live') {
       renderLive(data);
@@ -567,13 +599,13 @@ async function markLessonDone() {
   await saveLessonProgress(100, 0);
 }
 
-async function saveLessonProgress(percent, seconds) {
+async function saveLessonProgress(percent, seconds, scormData = null) {
   if (!currentLessonId) return;
   try {
     const res  = await fetch(`${API_BASE}/lesson/${currentLessonId}/progress`, {
       method : 'POST',
       headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},
-      body   : JSON.stringify({progress:percent, watched_seconds:seconds}),
+      body   : JSON.stringify({progress:percent, watched_seconds:seconds, scorm_data:scormData}),
     });
     const data = await res.json();
     if (!data.ok) return;

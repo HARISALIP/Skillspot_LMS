@@ -10,9 +10,11 @@ use App\Models\Section;
 use App\Models\Setting;
 use App\Services\CourseService;
 use App\Services\MediaUploader;
+use App\Services\ScormPackageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
 class CourseController extends Controller
@@ -284,6 +286,8 @@ class CourseController extends Controller
             'is_preview'   => $lesson->is_preview,
             'progress'     => $progress?->progress ?? 0,
             'completed'    => (bool)($progress?->completed ?? false),
+            'scorm_launch_url' => $lesson->type === 'scorm' ? $this->scormLaunchUrl($course, $lesson->section) : null,
+            'scorm_data'   => $lesson->type === 'scorm' ? ($progress?->scorm_data ?? '') : null,
             'quiz'         => $quizData,
             'live_platform'=> $lesson->live_platform,
             'live_url'     => $lesson->live_url,
@@ -327,7 +331,15 @@ class CourseController extends Controller
         $request->validate([
             'progress'        => 'required|numeric|min:0|max:100',
             'watched_seconds' => 'nullable|integer|min:0',
+            'scorm_data'      => 'nullable|string|max:65535',
         ]);
+
+        if ($lesson->type === 'scorm') {
+            DB::table('lesson_progress')->updateOrInsert(
+                ['user_id' => Auth::id(), 'lesson_id' => $lesson->id],
+                ['scorm_data' => $request->input('scorm_data'), 'updated_at' => now(), 'created_at' => now()]
+            );
+        }
 
         $user   = Auth::user();
         $result = CourseService::updateLessonProgress(
@@ -346,6 +358,31 @@ class CourseController extends Controller
                 'issued' => $result['certificate']->issued_at?->format('d M Y'),
             ] : null,
         ]);
+    }
+
+    public function scormAsset(Course $course, Section $section, string $path, ScormPackageService $scormPackages)
+    {
+        abort_unless($section->course_id === $course->id && $section->is_scorm, 404);
+        $user = Auth::user();
+        $ownsCourse = $user->hasRole(['admin', 'super-admin'])
+            || $course->primary_instructor_id === $user->id
+            || $course->teachers()->where('users.id', $user->id)->exists();
+        abort_unless($ownsCourse || CourseService::hasAccess($user, $course), 403);
+
+        $asset = $scormPackages->assetPath($section, $path);
+        return response()->file($asset, [
+            'Content-Type' => File::mimeType($asset) ?: 'application/octet-stream',
+            'Cache-Control' => 'private, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    private function scormLaunchUrl(Course $course, Section $section): ?string
+    {
+        if (!$section->scorm_launch_path) return null;
+        $parts = parse_url($section->scorm_launch_path);
+        $url = route('student.scorm.asset', [$course, $section, $parts['path'] ?? $section->scorm_launch_path]);
+        return $url.(isset($parts['query']) ? '?'.$parts['query'] : '');
     }
 
     public function submitQuiz(Request $request, Course $course, Lesson $lesson)
