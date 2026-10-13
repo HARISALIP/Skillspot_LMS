@@ -102,18 +102,18 @@ class AuthController extends Controller
                     $value = substr($value, 2);
                 }
             }
-            // Auto-repair non-$2y$ passwords (such as $2b$ or plain text) in database
+            // Only migrate a legacy password after it has been proven correct.
             $candidate = User::where($field, $value)->first();
             if ($candidate && !empty($candidate->password)) {
                 if (!str_starts_with($candidate->password, '$2y$')) {
-                    if (@password_verify($password, $candidate->password) || $candidate->password === $password) {
-                        $candidate->password = Hash::make($password);
-                        $candidate->save();
-                    } else {
-                        // Force re-hash so Laravel BcryptHasher won't fail
-                        $candidate->password = Hash::make($password);
-                        $candidate->save();
+                    $validLegacyPassword = @password_verify($password, $candidate->password)
+                        || hash_equals($candidate->password, $password);
+                    if (!$validLegacyPassword) {
+                        return back()->withErrors(['login' => 'Incorrect '.($isPhone ? 'phone number' : 'email').' or password. Please try again.'])
+                            ->withInput($request->only('login'));
                     }
+                    $candidate->password = Hash::make($password);
+                    $candidate->save();
                 }
             }
 
