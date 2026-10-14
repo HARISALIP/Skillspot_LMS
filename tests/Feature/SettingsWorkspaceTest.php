@@ -160,7 +160,7 @@ class SettingsWorkspaceTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'course-progress', 'embed' => 1]))
             ->assertOk()
-            ->assertSee('peer-checked:bg-gray-900', false)
+            ->assertSee('peer-checked:bg-brand-600', false)
             ->assertDontSee('peer-checked:bg-white', false);
 
         $this->assertDatabaseHas('settings', ['key' => 'disable_signup', 'value' => '1']);
