@@ -43,9 +43,6 @@
 
       <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
         <a href="#courses" class="hover:text-brand-600 transition">Courses</a>
-        <a href="#how-it-works" class="hover:text-brand-600 transition">How it Works</a>
-        <a href="#about" class="hover:text-brand-600 transition">Why Us</a>
-        <a href="#testimonials" class="hover:text-brand-600 transition">Reviews</a>
       </div>
 
       <div class="hidden md:flex items-center gap-3">
@@ -65,9 +62,6 @@
   <div id="mobile-menu" class="md:hidden bg-white/98 border-t border-slate-200/80 shadow-xl">
     <div class="px-4 py-4 flex flex-col gap-1 text-sm font-medium">
       <a href="#courses" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">📚 Courses</a>
-      <a href="#how-it-works" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">🚀 How it Works</a>
-      <a href="#about" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">🏆 Why Skillspot</a>
-      <a href="#testimonials" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">⭐ Reviews</a>
       <div class="border-t border-slate-100 mt-2 pt-3 flex flex-col gap-2">
         <a href="/login" class="text-center text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-semibold transition hover:bg-slate-50">Login</a>
         <a href="/register" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">Start Learning →</a>
