@@ -26,7 +26,7 @@
   </style>
   @stack('styles')
 </head>
-<body class="font-sans bg-slate-50 text-slate-800 antialiased">
+<body class="font-sans bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
 
 <!-- ── NAVBAR ──────────────────────────────────────────────────────────── -->
 <nav id="navbar" class="fixed top-0 w-full z-50 glass transition-all duration-300">
@@ -76,10 +76,12 @@
   </div>
 </nav>
 
-@yield('content')
+<main class="flex-1">
+  @yield('content')
+</main>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
-<footer class="bg-slate-950 text-slate-300 pt-12 pb-8">
+<footer class="bg-slate-950 text-slate-300 pt-12 pb-8 mt-auto">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 pb-8 border-b border-slate-800">
       <div class="lg:col-span-2">
