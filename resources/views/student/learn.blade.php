@@ -449,13 +449,33 @@ function renderVideo(url, savedProgress) {
 
 function renderBlockDocument(document) {
   const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+  const safeUrl = value => {
+    try { const url = new URL(value, location.origin); return ['http:', 'https:'].includes(url.protocol) ? escape(url.href) : ''; }
+    catch { return ''; }
+  };
   return (document?.blocks || []).map(block => {
     const data = block.data || {};
     if (block.type === 'header') return '<h' + Math.min(Math.max(data.level || 2, 2), 4) + '>' + escape(data.text) + '</h' + Math.min(Math.max(data.level || 2, 2), 4) + '>';
     if (block.type === 'paragraph') return '<p>' + escape(data.text) + '</p>';
     if (block.type === 'list') return '<ul>' + (data.items || []).map(item => '<li>' + escape(typeof item === 'string' ? item : item.content) + '</li>').join('') + '</ul>';
     if (block.type === 'table') return '<table><tbody>' + (data.content || []).map(row => '<tr>' + row.map(cell => '<td>' + escape(cell) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
-    if (['quiz','assignment','program','media'].includes(block.type)) return '<div class="rounded-xl border border-blue-100 bg-blue-50 p-4 my-4"><strong>' + escape(block.type.replace('_', ' ')) + '</strong><p>' + escape(data.text) + '</p></div>';
+    if (block.type === 'image') { const url = safeUrl(data.url); return url ? '<img src="' + url + '" alt="' + escape(data.caption || '') + '">' : ''; }
+    if (block.type === 'embed') {
+      const url = safeUrl(data.embed || data.source);
+      if (!url) return '';
+      const host = new URL(data.embed || data.source, location.origin).hostname.toLowerCase();
+      if (!['youtube.com','www.youtube.com','youtu.be','player.vimeo.com','vimeo.com','codepen.io','github.com','codesandbox.io'].some(allowed => host === allowed || host.endsWith('.' + allowed))) return '';
+      return '<iframe src="' + url + '" title="Embedded lesson content" loading="lazy" allowfullscreen></iframe>';
+    }
+    if (block.type === 'upload') {
+      const url = safeUrl(data.file_url);
+      if (!url) return '';
+      if (data.file_type === 'video') return '<video controls src="' + url + '"></video>';
+      if (data.file_type === 'audio') return '<audio controls src="' + url + '"></audio>';
+      if (data.file_type === 'pdf') return '<iframe src="' + url + '" title="' + escape(data.file_name || 'PDF document') + '"></iframe>';
+      return '<img src="' + url + '" alt="' + escape(data.file_name || '') + '">';
+    }
+    if (['quiz','assignment','program'].includes(block.type)) return '<div class="rounded-xl border border-blue-100 bg-blue-50 p-4 my-4"><strong>' + escape(block.type.replace('_', ' ')) + '</strong><p>' + escape(data.text) + '</p></div>';
     if (block.type === 'instructorNote') return '';
     return '';
   }).join('') || '<p class="text-gray-400">No content available.</p>';

@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Select Portal — Skillspot.in LMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']},colors:{brand:{500:'#3b82f6',600:'#2563eb'},accent:{500:'#8b5cf6',600:'#7c3aed'}}}}}</script>
+  @include('partials.styles')
 </head>
 <body class="font-sans bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen flex items-center justify-center p-4">
 <div class="w-full max-w-lg">

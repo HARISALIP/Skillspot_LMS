@@ -38,6 +38,7 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('Robotics Fundamentals')
             ->assertSeeText('Published')
             ->assertSeeText('All Courses')
+            ->assertSeeText('Created')
             ->assertSeeText('Unpublished')
             ->assertSeeText('New Course')
             ->assertSeeText('Course description')
@@ -60,7 +61,7 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('Notifications')
             ->assertSeeText('Batches')
             ->assertSeeText('Certifications')
-            ->assertSeeText('Getting started')
+            ->assertDontSeeText('Getting started')
             ->assertSeeText('Collapse')
             ->assertSeeText('Light')
             ->assertSeeText('Dark')
@@ -75,6 +76,57 @@ class CourseManagementIndexTest extends TestCase
         $this->actingAs($teacher)->get(route('admin.courses', ['new' => 1]))
             ->assertOk()
             ->assertSee('id="newCourseModal" class="fixed inset-0 z-50  overflow-y-auto', false);
+    }
+
+    public function test_course_filters_use_real_upcoming_and_certification_fields(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+
+        Course::create(['title' => 'Certified upcoming', 'slug' => 'certified-upcoming', 'category' => 'Technology', 'visibility' => 'public', 'is_published' => true, 'upcoming' => true, 'enable_certification' => true]);
+        Course::create(['title' => 'Ordinary course', 'slug' => 'ordinary-course', 'category' => 'Technology', 'visibility' => 'public', 'is_published' => true, 'upcoming' => false, 'enable_certification' => false]);
+
+        $this->actingAs($teacher)->get(route('admin.courses', ['tab' => 'upcoming', 'certification' => 1]))
+            ->assertOk()
+            ->assertSeeText('Certified upcoming')
+            ->assertDontSeeText('Ordinary course');
+    }
+
+    public function test_created_filter_and_page_size_match_the_course_list_controls(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $mine = Course::create(['title' => 'My draft', 'category' => 'Technology', 'primary_instructor_id' => $teacher->id, 'is_published' => false]);
+        Course::create(['title' => 'Someone else draft', 'category' => 'Technology', 'is_published' => false]);
+
+        $this->actingAs($teacher)->get(route('admin.courses', ['tab' => 'created', 'limit' => 60]))
+            ->assertOk()
+            ->assertSeeText($mine->title)
+            ->assertDontSeeText('Someone else draft')
+            ->assertSee('aria-current="true"', false);
+    }
+
+    public function test_course_modal_allows_no_category_like_frappe(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+
+        $this->actingAs($teacher)->post(route('admin.courses.store'), [
+            'modal_create' => 1,
+            'title' => 'Uncategorized course',
+            'short_introduction' => 'A short introduction',
+            'description' => '<p>Course details</p>',
+            'instructor_ids' => [$teacher->id],
+            'level' => 'beginner',
+            'language' => 'en',
+            'price' => 0,
+            'is_free' => 1,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('courses', ['title' => 'Uncategorized course', 'category' => null]);
     }
 
     public function test_teacher_can_import_a_frappe_course_zip_as_a_draft(): void

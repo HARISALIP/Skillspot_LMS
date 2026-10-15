@@ -4,7 +4,7 @@
 @section('page-sub','')
 @section('page-actions')
 <div class="relative" id="courseCreateMenu">
-  <button type="button" id="courseCreateMenuButton" aria-expanded="false" aria-controls="courseCreateMenuItems" class="inline-flex items-center gap-2 rounded-lg bg-[#f7f7f7] px-3 py-1.5 text-sm font-medium text-[#202020] transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+  <button type="button" id="courseCreateMenuButton" aria-expanded="false" aria-controls="courseCreateMenuItems" class="inline-flex items-center gap-2 rounded-md bg-[#171717] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[#333] focus:outline-none focus:ring-2 focus:ring-gray-500">
     <i class="fa-solid fa-plus text-xs"></i>
     <span>Create</span>
     <i class="fa-solid fa-chevron-down ml-1 text-[10px]"></i>
@@ -61,6 +61,13 @@
   .frappe-rich-editor__content :where(th, td) { min-width:4rem; border:1px solid var(--editor-border); padding:.5rem; text-align:left; }
   .frappe-rich-editor__content th { background:var(--editor-hover); font-weight:600; }
   .frappe-embed-modal[hidden] { display:none; }
+  .courses-workspace .course-filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .courses-workspace .course-card{width:100%;max-width:340px;min-height:350px;border:2px solid #ededed;border-radius:12px;box-shadow:none}
+  .courses-workspace .course-card:hover{transform:none;border-color:#d6d6d6;box-shadow:0 2px 8px rgb(0 0 0 / .08)}
+  .courses-workspace .course-card-cover{height:168px;aspect-ratio:auto}
+  .courses-workspace .course-card-body{display:flex;min-height:178px;flex-direction:column}
+  .courses-workspace .course-card-author{margin-top:auto}
+  @media(min-width:768px){.courses-workspace .course-grid{grid-template-columns:repeat(auto-fill,minmax(300px,340px))}}
 </style>
 @endpush
 
@@ -73,10 +80,10 @@
   </div>
   @endif
 
-  <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-    <h3 class="text-base font-bold">All Courses</h3>
-    <form method="GET" action="{{ route('admin.courses') }}" class="flex flex-wrap items-center gap-3">
-      <div class="flex rounded-lg bg-gray-100 p-1 text-sm text-gray-500">
+  <div class="space-y-4">
+    <h2 class="text-lg font-semibold">All Courses</h2>
+    <form method="GET" action="{{ route('admin.courses') }}" class="course-filters">
+      <div class="flex max-w-full gap-1 overflow-x-auto rounded-lg bg-gray-100 p-1 text-sm text-gray-600 sm:w-fit" aria-label="Course status">
         @foreach([
           'published' => 'Published',
           'upcoming' => 'Upcoming',
@@ -84,59 +91,65 @@
           'unpublished' => 'Unpublished',
         ] as $value => $label)
         <a href="{{ route('admin.courses', array_merge(request()->except('tab'), ['tab' => $value])) }}"
-           class="rounded-md px-2.5 py-1 transition {{ request('tab', 'published') === $value ? 'course-tab-active' : 'hover:text-gray-900' }}">
+           @if(request('tab', 'published') === $value) aria-current="page" @endif
+           class="whitespace-nowrap rounded-md px-3 py-2 transition {{ request('tab', 'published') === $value ? 'course-tab-active' : 'hover:text-gray-900' }}">
           {{ $label }}
         </a>
         @endforeach
       </div>
-
-      <label class="flex h-8 w-44 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-500">
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+      <input type="hidden" name="tab" value="{{ request('tab', 'published') }}">
+      <label class="flex h-9 min-w-[min(100%,14rem)] flex-1 items-center gap-2 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-500 sm:max-w-sm">
         <i class="fa-solid fa-magnifying-glass text-xs"></i>
-        <input name="search" value="{{ request('search') }}" placeholder="Search" class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-gray-400">
+        <span class="sr-only">Search courses</span><input name="search" type="search" value="{{ request('search') }}" placeholder="Search courses" class="min-w-0 flex-1 bg-transparent outline-none placeholder:text-gray-400">
       </label>
 
-      <select name="category" onchange="this.form.submit()" class="h-8 w-44 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-500 outline-none">
+      <label class="sr-only" for="course-category-filter">Category</label>
+      <select id="course-category-filter" name="category" onchange="this.form.submit()" class="h-9 w-full rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700 sm:w-44">
         <option value="">Category</option>
         @foreach($categories as $category)
         <option value="{{ $category }}" {{ request('category') === $category ? 'selected' : '' }}>{{ $category }}</option>
         @endforeach
       </select>
 
-      {{-- shortcut: certification is not modeled on Course, wire this filter when the offering flag exists. --}}
-      <label class="flex items-center gap-2 whitespace-nowrap text-sm text-gray-600">
-        <input type="checkbox" name="certification" value="1" {{ request('certification') ? 'checked' : '' }} class="h-3.5 w-3.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+      <label class="flex min-h-9 items-center gap-2 whitespace-nowrap text-sm text-gray-700">
+        <input type="checkbox" name="certification" value="1" onchange="this.form.submit()" {{ request('certification') ? 'checked' : '' }} class="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
         Certification
       </label>
+      <button type="submit" class="sr-only">Search</button>
+      @if(request()->hasAny(['search','category','certification']))<a href="{{ route('admin.courses', ['tab'=>request('tab', 'published')]) }}" class="text-sm font-medium text-brand-700 hover:underline">Clear filters</a>@endif
+      </div>
     </form>
   </div>
 
   @if($courses->count())
-  <div class="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="course-grid mt-5 grid gap-5">
     @foreach($courses as $course)
     @php
       $lessonCount = $course->sections->sum(fn ($section) => $section->lessons->count());
       $rating = $course->reviews_avg_rating ? number_format($course->reviews_avg_rating, 1) : '—';
     @endphp
-    <article class="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <a href="{{ route('admin.courses.edit', $course) }}" class="block aspect-[16/7] overflow-hidden bg-[#f5f1e6]">
+    <article class="course-card overflow-hidden bg-white transition">
+      <a href="{{ route('admin.courses.edit', $course) }}" aria-label="Open {{ $course->title }}" class="course-card-cover block overflow-hidden bg-[#f5f1e6]">
         @if($course->thumbnail)
-        <img src="{{ $course->thumbnail }}" alt="" class="h-full w-full object-cover" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
+        <img src="{{ $course->thumbnail }}" alt="{{ $course->title }} course cover" loading="lazy" class="h-full w-full object-cover" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
         <div class="hidden h-full items-center justify-center text-5xl text-gray-300"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
         @else
         <div class="flex h-full items-center justify-center text-5xl text-gray-300"><i class="fa-solid fa-book-open" aria-hidden="true"></i></div>
         @endif
       </a>
-      <div class="p-4">
+      <div class="course-card-body p-4">
         <div class="flex items-center justify-between text-sm text-gray-500">
-          <span><i class="fa-solid fa-book-open mr-1.5"></i>{{ $lessonCount }}</span>
-          <span><i class="fa-solid fa-users mr-1.5"></i>{{ $course->enrollments_count }}</span>
-          <span class="text-[#f3b23c]"><i class="fa-solid fa-star mr-1.5"></i>{{ $rating }}</span>
+          <span aria-label="Rating {{ $rating }}" class="text-amber-700"><i class="fa-solid fa-star mr-1.5" aria-hidden="true"></i>{{ $rating }}</span>
+          <span aria-label="{{ $lessonCount }} {{ $lessonCount === 1 ? 'lesson' : 'lessons' }}"><i class="fa-solid fa-book-open mr-1.5" aria-hidden="true"></i>{{ $lessonCount }} <span class="sr-only">{{ $lessonCount === 1 ? 'lesson' : 'lessons' }}</span></span>
+          <span aria-label="{{ $course->enrollments_count }} {{ $course->enrollments_count === 1 ? 'learner' : 'learners' }}"><i class="fa-solid fa-users mr-1.5" aria-hidden="true"></i>{{ $course->enrollments_count }} <span class="sr-only">{{ $course->enrollments_count === 1 ? 'learner' : 'learners' }}</span></span>
         </div>
-        <h4 class="mt-3 truncate text-base font-bold text-gray-900">{{ $course->title }}</h4>
-        <p class="mt-1.5 line-clamp-2 min-h-10 text-sm leading-5 text-gray-600">{{ Str::limit(strip_tags($course->description), 110) }}</p>
-        <div class="mt-5 flex items-center justify-between">
-          <span class="text-sm text-gray-500">{{ $course->category }}</span>
-          <a href="{{ route('admin.courses.edit', $course) }}" class="text-sm font-semibold text-brand-600 hover:text-brand-700">Manage</a>
+        <h3 class="mt-3 text-xl font-semibold leading-6 text-gray-900"><a href="{{ route('admin.courses.edit', $course) }}">{{ $course->title }}</a></h3>
+        <p class="mt-1.5 line-clamp-2 text-sm leading-5 text-gray-600" title="{{ $course->short_introduction }}">{{ $course->short_introduction }}</p>
+        <div class="course-card-author flex items-center gap-2 pt-5 text-sm text-gray-600">
+          @php($creator = $course->primaryInstructor?->name ?? $course->vendor?->brand_name ?? 'Skillspot')
+          <span aria-hidden="true" class="flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-700">{{ mb_strtoupper(mb_substr($creator, 0, 1)) }}</span>
+          <span class="truncate">{{ $creator }}</span>
         </div>
       </div>
     </article>
@@ -144,19 +157,23 @@
   </div>
   @else
   <div class="mt-5 rounded-xl border border-dashed border-gray-300 bg-white py-16 text-center text-sm text-gray-500">
-    No courses match these filters.
+    <p>No courses match these filters.</p><a href="{{ route('admin.courses', ['tab'=>'all']) }}" class="mt-3 inline-block font-medium text-brand-700 hover:underline">View all courses</a>
   </div>
   @endif
 
+  <div class="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 text-sm text-gray-500">
+    <div class="flex items-center gap-3">Show @foreach([24,60,120] as $limit)<a href="{{ route('admin.courses', array_merge(request()->except(['limit','page']), ['limit'=>$limit])) }}" @if($pageLength === $limit) aria-current="true" @endif class="{{ $pageLength === $limit ? 'font-semibold text-gray-900' : '' }}">{{ $limit }}</a>@endforeach</div>
+    <span>{{ $courses->firstItem() ?? 0 }}–{{ $courses->lastItem() ?? 0 }} of {{ $courses->total() }}</span>
+  </div>
   @if($courses->hasPages())
-  <div class="mt-8 border-t border-gray-200 pt-4">
+  <div class="mt-4">
     {{ $courses->withQueryString()->links('pagination::tailwind') }}
   </div>
   @endif
 </div>
 
-<div id="newCourseModal" class="fixed inset-0 z-50 {{ request()->has('new') ? '' : 'hidden' }} overflow-y-auto bg-slate-950/40 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="newCourseModalTitle">
-  <form id="newCourseForm" method="POST" action="{{ route('admin.courses.store') }}" enctype="multipart/form-data" class="mx-auto my-6 w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl md:my-12 md:p-8">
+<div id="newCourseModal" class="fixed inset-0 z-50 {{ request()->has('new') ? '' : 'hidden' }} overflow-y-auto bg-black/35 p-4" role="dialog" aria-modal="true" aria-labelledby="newCourseModalTitle">
+  <form id="newCourseForm" method="POST" action="{{ route('admin.courses.store') }}" enctype="multipart/form-data" class="mx-auto my-6 w-full max-w-3xl rounded-xl bg-white p-5 shadow-xl md:my-8 md:p-6">
     @csrf
     <input type="hidden" name="modal_create" value="1">
     <input type="hidden" name="category" id="selectedCategory">
@@ -178,7 +195,7 @@
       <label class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span>
         <input name="title" type="text" required maxlength="255" class="mt-2 h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" aria-label="Course title">
       </label>
-      <div class="relative text-sm font-medium text-gray-700" id="categoryPicker">Category <span class="text-red-500">*</span>
+      <div class="relative text-sm font-medium text-gray-700" id="categoryPicker">Category
         <button type="button" id="categoryPickerButton" aria-expanded="false" class="mt-2 flex h-10 w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-3 text-left text-sm font-normal text-gray-500 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"><span id="categoryPickerLabel">Select option</span><i class="fa-solid fa-chevron-down text-xs"></i></button>
         <div id="categoryPickerMenu" class="absolute z-20 mt-1 hidden w-full overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
           <div class="max-h-36 overflow-y-auto">
@@ -229,6 +246,7 @@
           <label for="thumbnailFile" class="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Upload</label>
           <input id="thumbnailFile" name="thumbnail_file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="sr-only">
         </div>
+        <p class="mt-1 text-xs font-normal text-gray-500">Upload a 750×422 image (.jpg, .jpeg, .gif, or .png). Shown on the catalog card and lesson hero.</p>
       </div>
     </div>
 
@@ -752,10 +770,9 @@
   document.getElementById('newCourseForm')?.addEventListener('submit', (event) => {
     courseDescription.value = courseEditor.innerHTML.trim();
     const hasInstructor = document.querySelector('input[name="instructor_ids[]"]:checked');
-    if (!selectedCategory.value || !courseEditor.textContent.trim() || !hasInstructor) {
+    if (!courseEditor.textContent.trim() || !hasInstructor) {
       event.preventDefault();
-      if (!selectedCategory.value) categoryPickerButton.focus();
-      else if (!hasInstructor) instructorPickerButton.focus();
+      if (!hasInstructor) instructorPickerButton.focus();
       else courseEditor.focus();
     }
   });

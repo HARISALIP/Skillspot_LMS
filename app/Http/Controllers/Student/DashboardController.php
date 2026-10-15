@@ -27,20 +27,11 @@ class DashboardController extends Controller
             );
 
         $completedCount = $enrollments->where('status','completed')->count();
-        $inProgress     = $enrollments->where('status','active')->where('progress','>',0)->count();
 
         $certificates = Certificate::with('course')
             ->where('user_id', $user->id)
             ->latest()->take(5)->get();
-        $certCount = $certificates->count();
-
-        $totalMinutes = 0;
-        foreach ($enrollments as $en) {
-            if ($en->course) {
-                $totalMinutes += $en->course->sections->flatMap->lessons->sum('duration') ?? 0;
-            }
-        }
-        $totalHours = round($totalMinutes / 60, 1);
+        $certCount = Certificate::where('user_id', $user->id)->count();
 
         $enrolledCourseIds = $enrollments->pluck('course_id');
 
@@ -66,8 +57,8 @@ class DashboardController extends Controller
             ->distinct()->count();
 
         return view('student.dashboard', compact(
-            'enrollments','completedCount','inProgress',
-            'certificates','certCount','totalHours',
+            'enrollments','completedCount',
+            'certificates','certCount',
             'upcomingLive','recommended','streak'
         ));
     }

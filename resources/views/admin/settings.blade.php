@@ -8,12 +8,16 @@
   html,body,main { height:100%; background:#fff!important; }
   main { padding:0!important; overflow:hidden!important; }
   .settings-workspace { height:100vh; min-height:0; background:#fff; color:#1f2937; }
-  .settings-sidebar,.settings-content { scrollbar-width:none; -ms-overflow-style:none; }
-  .settings-sidebar::-webkit-scrollbar,.settings-content::-webkit-scrollbar { display:none; }
-  .settings-sidebar { height:100%; min-height:0; overflow-y:auto; }
+  .settings-sidebar { height:100%; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent; }
+  .settings-sidebar::-webkit-scrollbar { width:6px; }
+  .settings-sidebar::-webkit-scrollbar-thumb { border-radius:999px; background:#cbd5e1; }
+  .settings-content { scrollbar-width:none; -ms-overflow-style:none; }
+  .settings-content::-webkit-scrollbar { display:none; }
   .settings-content { min-height:0; overflow-y:auto; }
   .settings-workspace[data-theme="dark"] { background:#202020; color:#d0d0d0; }
   .settings-workspace[data-theme="dark"] .settings-sidebar { background:#242424; border-color:#383838; }
+  .settings-workspace[data-theme="dark"] .settings-sidebar { scrollbar-color:#525252 transparent; }
+  .settings-workspace[data-theme="dark"] .settings-sidebar::-webkit-scrollbar-thumb { background:#525252; }
   .settings-workspace[data-theme="dark"] .text-gray-900 { color:#e4e4e4!important; }
   .settings-workspace[data-theme="dark"] .text-gray-800,.settings-workspace[data-theme="dark"] .text-gray-700 { color:#d0d0d0!important; }
   .settings-workspace[data-theme="dark"] .text-gray-600,.settings-workspace[data-theme="dark"] .text-gray-500,.settings-workspace[data-theme="dark"] .text-gray-400 { color:#a3a3a3!important; }

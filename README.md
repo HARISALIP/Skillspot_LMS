@@ -46,4 +46,4 @@ php artisan storage:link
 
 ## 🌐 Deployment
 
-Clone repo on any server, set .env, run `composer install && php artisan migrate`.
+Clone repo on the server, set `.env`, then run `composer install`, `npm ci`, `npm run build`, and `php artisan migrate --force`. The compiled `public/build` assets are required; the application no longer loads Tailwind from the CDN.

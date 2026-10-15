@@ -59,7 +59,7 @@ class CoursesController extends Controller
     // ── List courses ───────────────────────────────────────────────────
     public function index(Request $request)
     {
-        $query = Course::with('sections.lessons')
+        $query = Course::with(['sections.lessons', 'primaryInstructor', 'vendor'])
             ->withCount(['enrollments', 'reviews'])
             ->withAvg('reviews', 'rating')
             ->latest();
@@ -70,13 +70,18 @@ class CoursesController extends Controller
             });
         }
         if ($request->category) $query->where('category', $request->category);
+        if ($request->boolean('certification')) $query->where('enable_certification', true);
         $tab = $request->input('tab', 'published');
         if ($tab === 'published') $query->where('is_published', 1);
-        if ($tab === 'upcoming') $query->whereDate('batch_start_date', '>', today());
+        if ($tab === 'upcoming') $query->where(fn ($q) => $q->where('upcoming', 1)->orWhereDate('batch_start_date', '>', today()));
         if ($tab === 'unpublished') $query->where('is_published', 0);
-        // shortcut: courses have no creator_id, scope Created once ownership is modeled.
+        if ($tab === 'created') $query->where(function ($q) {
+            $q->where('primary_instructor_id', auth()->id())
+                ->orWhereHas('teachers', fn ($teacher) => $teacher->whereKey(auth()->id()));
+        });
 
-        $courses    = $query->paginate(15);
+        $pageLength = in_array((int) $request->input('limit', 24), [24, 60, 120], true) ? (int) $request->input('limit', 24) : 24;
+        $courses    = $query->paginate($pageLength);
         $totalCourses   = Course::count();
         $published  = Course::where('is_published',1)->count();
         $draft      = Course::where('is_published',0)->count();
@@ -90,7 +95,7 @@ class CoursesController extends Controller
         $canCreateInstructors = auth()->user()->hasRole(['admin', 'super-admin']);
         $inviteMailReady = $this->inviteMailReady();
         return view('admin.courses.index', compact(
-            'courses','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors','canCreateInstructors','inviteMailReady'
+            'courses','pageLength','totalCourses','published','draft','totalEnroll','categories','categoryRecords','instructors','canCreateInstructors','inviteMailReady'
         ));
     }
 
@@ -388,7 +393,8 @@ class CoursesController extends Controller
         abort_unless($section->course_id === $course->id, 404);
         $scormPackages->delete($section);
         $section->delete();
-        return back()->with('success', 'Section deleted.');
+        if (request()->expectsJson()) return response()->noContent();
+        return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter deleted.');
     }
 
     // ── Section: reorder ───────────────────────────────────────────────
@@ -406,6 +412,15 @@ class CoursesController extends Controller
     public function createLesson(Course $course, Section $section)
     {
         $this->authorizeCourseOwner($course);
+        abort_unless($section->course_id === $course->id, 404);
+        if (request()->boolean('embed')) {
+            return view('admin.courses.lesson-frappe', [
+                'course' => $course,
+                'section' => $section,
+                'lesson' => new Lesson(),
+                'isEdit' => false,
+            ]);
+        }
         return view('admin.courses.lesson', [
             'course'  => $course,
             'section' => $section,
@@ -428,6 +443,7 @@ class CoursesController extends Controller
             if ($quiz) LessonQuiz::save($lesson, $quiz);
             return $lesson;
         });
+        if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode(route('admin.courses.edit', $course->id).'#editor').')</script>');
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Lesson \"{$lesson->title}\" added ✅");
     }
@@ -437,6 +453,9 @@ class CoursesController extends Controller
     {
         $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
+        if (request()->boolean('embed')) {
+            return view('admin.courses.lesson-frappe', compact('course', 'section', 'lesson') + ['isEdit' => true]);
+        }
         $lesson->load('quiz.questions');
         $materialUploads = Upload::whereIn('id', collect($lesson->resources ?? [])
             ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])
@@ -461,6 +480,7 @@ class CoursesController extends Controller
             $lesson->update($data);
             if ($quiz) LessonQuiz::save($lesson, $quiz);
         });
+        if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode(route('admin.courses.edit', $course->id).'#editor').')</script>');
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Lesson updated ✅");
     }
@@ -494,7 +514,7 @@ class CoursesController extends Controller
             'short_introduction'=> 'nullable|string|max:1000',
             'meta_description'  => 'nullable|string|max:500',
             'meta_keywords'     => 'nullable|string|max:1000',
-            'category'          => 'required|string|max:100',
+            'category'          => 'nullable|string|max:100',
             'tags'              => 'nullable|string|max:1000',
             'level'             => 'required|string|max:60',
             'language'          => 'required|string|max:10',

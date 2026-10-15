@@ -6,7 +6,7 @@
   <title>{{ $lesson->title }} — {{ $vendor->brand_name }}</title>
   @if($vendor->favicon)<link rel="icon" href="{{ Storage::disk('public')->url($vendor->favicon) }}">@endif
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  @include('partials.styles')
   <style>:root { --primary: {{ $vendor->primary_color ?? '#2563eb' }}; } .btn-primary { background: var(--primary); }</style>
 </head>
 <body class="font-sans bg-gray-900 text-white antialiased min-h-screen flex flex-col items-center justify-center p-6">

@@ -55,7 +55,9 @@ class SettingsWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('id="settingsModalButton"', false)
             ->assertSee('data-settings-url=', false)
-            ->assertDontSee('title="Settings" class="h-full w-full border-0" src=', false);
+            ->assertSee('id="settingsLoading"', false)
+            ->assertSee('aria-busy="true"', false)
+            ->assertDontSee('title="Settings" class="h-full w-full border-0 opacity-0 transition-opacity duration-150" src=', false);
 
         $this->actingAs($admin)->get(route('admin.settings', ['embed' => 1]))
             ->assertOk()
@@ -88,6 +90,7 @@ class SettingsWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('data-navigation-sidebar="settings"', false)
             ->assertSee('data-settings-tab="signup"', false)
+            ->assertSee('scrollbar-width:thin', false)
             ->assertDontSee('skillspot:navigate-settings', false);
     }
 

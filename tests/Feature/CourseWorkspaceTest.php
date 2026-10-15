@@ -103,6 +103,44 @@ class CourseWorkspaceTest extends TestCase
         $this->assertFalse($chapter->is_scorm);
     }
 
+    public function test_lesson_creation_can_stay_inside_the_course_editor(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $course = Course::create(['title' => 'Inline Lessons', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Introduction', 'order' => 1]);
+
+        $this->actingAs($teacher)->get(route('admin.courses.edit', $course))
+            ->assertOk()
+            ->assertSee('openLessonInWorkspace', false)
+            ->assertSee("event.data.type === 'skillspot:lesson-created'", false);
+        $this->get(route('admin.courses.lessons.create', [$course, $section]).'?embed=1')
+            ->assertOk()
+            ->assertSee('id="frappe-lesson-editor"', false)
+            ->assertSee('data-section-id="'.$section->id.'"', false)
+            ->assertDontSeeText('Video Security')
+            ->assertDontSee('frappe-sidebar', false);
+    }
+
+    public function test_chapter_deletion_stays_in_the_editor_and_supports_inline_deletion(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $course = Course::create(['title' => 'Delete Chapter', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Remove me', 'order' => 1]);
+
+        $this->actingAs($teacher)->delete(route('admin.courses.sections.destroy', [$course, $section]))
+            ->assertRedirect(route('admin.courses.edit', $course).'#editor');
+        $this->assertDatabaseMissing('sections', ['id' => $section->id]);
+
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Remove inline', 'order' => 1]);
+        $this->actingAs($teacher)->deleteJson(route('admin.courses.sections.destroy', [$course, $section]))
+            ->assertNoContent();
+        $this->assertDatabaseMissing('sections', ['id' => $section->id]);
+    }
+
     public function test_enforced_course_blocks_skipping_an_incomplete_lesson(): void
     {
         Role::findOrCreate('student', 'web');

@@ -6,7 +6,7 @@
   <title>Register — {{ $vendor->brand_name }}</title>
   @if($vendor->favicon)<link rel="icon" href="{{ Storage::disk('public')->url($vendor->favicon) }}">@endif
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  @include('partials.styles')
   <style>:root { --primary: {{ $vendor->primary_color ?? '#2563eb' }}; --accent: {{ $vendor->accent_color ?? '#7c3aed' }}; }
   .btn-primary { background: var(--primary); } .btn-primary:hover { opacity: 0.9; }
   .hero-bg { background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); }</style>

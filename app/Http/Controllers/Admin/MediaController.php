@@ -2,6 +2,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\Enrollment;
 use App\Models\Upload;
 use App\Services\MediaUploader;
 use Illuminate\Http\Request;
@@ -9,6 +11,24 @@ use Illuminate\Support\Facades\Storage;
 
 class MediaController extends Controller
 {
+    public function courseFile(Request $request, Course $course, Upload $upload)
+    {
+        abort_unless((int) data_get($upload->used_in, 'course_id') === $course->id, 404);
+        $user = $request->user();
+        $canManage = $user->hasRole(['admin', 'super-admin'])
+            || $course->primary_instructor_id === $user->id
+            || $course->teachers()->where('users.id', $user->id)->exists();
+        $isEnrolled = Enrollment::where('course_id', $course->id)
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->exists();
+        abort_unless($canManage || $isEnrolled, 403);
+        abort_unless(Storage::disk($upload->disk)->exists($upload->path), 404);
+
+        return Storage::disk($upload->disk)->response($upload->path, $upload->original_name, [], 'inline');
+    }
+
     public function publicFile(Upload $upload)
     {
         abort_unless($upload->is_public && $upload->disk === 'public', 404);
@@ -61,21 +81,31 @@ class MediaController extends Controller
             'file'      => ['required','file','max:512000'], // 500MB in KB
             'folder'    => ['nullable','string','max:60'],
             'is_public' => ['nullable','boolean'],
+            'course_id' => ['nullable','integer','exists:courses,id'],
         ]);
+
+        $course = $request->filled('course_id') ? Course::findOrFail($request->integer('course_id')) : null;
+        if ($course) {
+            $user = $request->user();
+            abort_unless($user->hasRole(['admin', 'super-admin'])
+                || $course->primary_instructor_id === $user->id
+                || $course->teachers()->where('users.id', $user->id)->exists(), 403);
+        }
 
         try {
             $upload = MediaUploader::upload(
                 $request->file('file'),
-                $request->input('folder','general'),
-                $request->boolean('is_public', true)
+                $course ? 'course-materials' : $request->input('folder','general'),
+                $course ? false : $request->boolean('is_public', true)
             );
+            if ($course) $upload->update(['used_in' => ['course_id' => $course->id]]);
 
             if ($request->expectsJson() || $request->ajax()) {
                 return response()->json([
                     'success'  => true,
                     'id'       => $upload->id,
                     'uuid'     => $upload->uuid,
-                    'url'      => $upload->public_url,
+                    'url'      => $course ? route('media.course', [$course, $upload->uuid]) : $upload->public_url,
                     'name'     => $upload->original_name,
                     'type'     => $upload->type,
                     'size'     => $upload->human_size,

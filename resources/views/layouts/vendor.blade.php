@@ -10,21 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
-  <script src="https://cdn.tailwindcss.com"></script>
   @include('partials.turbo')
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter','sans-serif'] },
-          colors: {
-            brand: { 50:'#eff6ff',100:'#dbeafe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',900:'#1e3a8a' },
-            accent: { 100:'#ede9fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',900:'#4c1d95' }
-          }
-        }
-      }
-    }
-  </script>
   <style>
     .sidebar { width: 260px; min-width: 260px; }
     .sidebar-collapsed { width: 72px; min-width: 72px; }

@@ -5,45 +5,23 @@
 
 @section('admin-content')
 
-<!-- Stats grid -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  @php
-  $stats = [
-    ['label'=>'Total Users',    'value'=>$stats['users']       ?? 0, 'icon'=>'👥', 'color'=>'from-blue-500 to-brand-600',   'sub'=>'+12 this week'],
-    ['label'=>'Admins',         'value'=>$stats['admins']      ?? 0, 'icon'=>'🛡️', 'color'=>'from-purple-500 to-accent-600','sub'=>'Platform managers'],
-    ['label'=>'Total Courses',  'value'=>$stats['courses']     ?? 0, 'icon'=>'📚', 'color'=>'from-green-500 to-emerald-600','sub'=>$stats['published_courses'] ?? 0 . ' published'],
-    ['label'=>'Revenue',        'value'=>'₹'.number_format($stats['revenue'] ?? 0), 'icon'=>'💰', 'color'=>'from-orange-500 to-amber-500','sub'=>'This month'],
-  ];
-  @endphp
-
-  @foreach($stats as $s)
-  <div class="bg-white rounded-2xl p-4 md:p-5 border border-gray-100 shadow-sm">
-    <div class="flex items-start justify-between mb-3">
-      <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br {{ $s['color'] }} rounded-xl flex items-center justify-center text-xl md:text-2xl shadow-sm flex-shrink-0">{{ $s['icon'] }}</div>
-    </div>
-    <div class="text-xl md:text-2xl font-black text-gray-900">{{ $s['value'] }}</div>
-    <div class="text-xs md:text-sm font-semibold text-gray-700 mt-0.5">{{ $s['label'] }}</div>
-    <div class="text-xs text-gray-400 mt-1">{{ $s['sub'] }}</div>
-  </div>
-  @endforeach
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+  <div><h2 class="text-lg font-semibold text-gray-900">At a glance</h2><p class="text-sm text-gray-600">Courses, learners, and work needing attention.</p></div>
+  <a href="{{ route('admin.courses') }}" class="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Manage courses</a>
 </div>
-
-<!-- Second row stats -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  @php
-  $stats2 = [
-    ['label'=>'Enrollments',    'value'=>$stats['enrollments']  ?? 0, 'icon'=>'🎓', 'bg'=>'bg-blue-50',   'text'=>'text-blue-700'],
-    ['label'=>'Certificates',   'value'=>$stats['certs']        ?? 0, 'icon'=>'📜', 'bg'=>'bg-green-50',  'text'=>'text-green-700'],
-    ['label'=>'Active Licenses','value'=>$stats['licenses']     ?? 0, 'icon'=>'🔑', 'bg'=>'bg-purple-50', 'text'=>'text-purple-700'],
-    ['label'=>'Open Reviews',   'value'=>$stats['reviews']      ?? 0, 'icon'=>'⭐', 'bg'=>'bg-yellow-50', 'text'=>'text-yellow-700'],
-  ];
-  @endphp
-  @foreach($stats2 as $s)
-  <div class="{{ $s['bg'] }} rounded-2xl p-4 border border-transparent">
-    <div class="text-2xl mb-1">{{ $s['icon'] }}</div>
-    <div class="text-xl font-black {{ $s['text'] }}">{{ $s['value'] }}</div>
-    <div class="text-xs font-semibold text-gray-600">{{ $s['label'] }}</div>
-  </div>
+<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  @foreach([
+    ['label'=>'Published courses', 'value'=>$stats['published_courses'], 'detail'=>$stats['courses'].' total courses', 'icon'=>'fa-book-open', 'href'=>route('admin.courses')],
+    ['label'=>'Enrollments', 'value'=>$stats['enrollments'], 'detail'=>$stats['users'].' users', 'icon'=>'fa-user-graduate', 'href'=>route('admin.enrollments')],
+    ['label'=>'Reviews to process', 'value'=>$stats['reviews'], 'detail'=>'Submitted course reviews', 'icon'=>'fa-clipboard-check', 'href'=>route('admin.marketplace.reviews')],
+    ['label'=>'Paid online this month', 'value'=>'₹'.number_format($stats['revenue']), 'detail'=>'Excludes manual payments', 'icon'=>'fa-indian-rupee-sign', 'href'=>null],
+  ] as $s)
+    @if($s['href'])<a href="{{ $s['href'] }}" class="block rounded-xl border border-gray-200 bg-white p-5 transition hover:border-brand-300 hover:shadow-sm">@else<div class="rounded-xl border border-gray-200 bg-white p-5">@endif
+      <i class="fa-solid {{ $s['icon'] }} text-brand-600" aria-hidden="true"></i>
+      <div class="mt-4 text-2xl font-bold tabular-nums text-gray-900">{{ $s['value'] }}</div>
+      <div class="mt-1 text-sm font-semibold text-gray-800">{{ $s['label'] }}</div>
+      <div class="mt-1 text-xs text-gray-600">{{ $s['detail'] }}</div>
+    @if($s['href'])</a>@else</div>@endif
   @endforeach
 </div>
 
@@ -63,7 +41,6 @@
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">User</th>
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Role</th>
             <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide hidden md:table-cell">Joined</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
@@ -87,14 +64,9 @@
               </span>
             </td>
             <td class="px-5 py-3.5 text-gray-500 text-xs hidden md:table-cell">{{ $user->created_at?->diffForHumans() }}</td>
-            <td class="px-5 py-3.5">
-              <span class="inline-flex items-center gap-1 text-xs font-medium text-green-600">
-                <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Active
-              </span>
-            </td>
           </tr>
           @empty
-          <tr><td colspan="4" class="px-5 py-8 text-center text-gray-400 text-sm">No users yet</td></tr>
+          <tr><td colspan="3" class="px-5 py-8 text-center text-gray-400 text-sm">No users yet</td></tr>
           @endforelse
         </tbody>
       </table>
@@ -108,7 +80,7 @@
       @php $actions = [
         ['icon'=>'fa-user-plus','label'=>'Add New User',    'href'=>'/admin/users/create',   'color'=>'hover:bg-brand-50 hover:text-brand-700'],
         ['icon'=>'fa-book-open','label'=>'Manage Courses',  'href'=>route('admin.courses'),  'color'=>'hover:bg-purple-50 hover:text-purple-700'],
-        ['icon'=>'fa-clipboard-check','label'=>'Review Courses',  'href'=>'/admin/courses',        'color'=>'hover:bg-green-50 hover:text-green-700'],
+        ['icon'=>'fa-clipboard-check','label'=>'Review Courses',  'href'=>route('admin.marketplace.reviews'), 'color'=>'hover:bg-green-50 hover:text-green-700'],
         ['icon'=>'fa-certificate','label'=>'Manage Certificates','href'=>route('admin.certs'),'color'=>'hover:bg-yellow-50 hover:text-yellow-700'],
         ['icon'=>'fa-chart-line','label'=>'Marketplace Commissions','href'=>route('admin.marketplace.commissions'),'color'=>'hover:bg-indigo-50 hover:text-indigo-700'],
         ['icon'=>'fa-gear','label'=>'Platform Settings','href'=>'/admin/settings',     'color'=>'hover:bg-gray-100 hover:text-gray-700'],
@@ -147,7 +119,7 @@
             <div class="font-semibold text-gray-900 text-xs">{{ $course->title }}</div>
             <div class="text-gray-400 text-xs capitalize">{{ $course->level }} · {{ $course->category }}</div>
           </td>
-          <td class="px-5 py-3.5 text-gray-500 text-xs hidden md:table-cell">{{ $course->vendor?->name ?? '—' }}</td>
+          <td class="px-5 py-3.5 text-gray-500 text-xs hidden md:table-cell">{{ $course->category ?: '—' }}</td>
           <td class="px-5 py-3.5 font-semibold text-gray-900 text-xs hidden sm:table-cell">
             {{ $course->is_free ? 'Free' : '₹'.number_format($course->price) }}
           </td>

@@ -6,7 +6,7 @@
   <title>{{ $file->title }} — {{ $vendor->brand_name }}</title>
   @if($vendor->favicon)<link rel="icon" href="{{ Storage::disk('public')->url($vendor->favicon) }}">@endif
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  @include('partials.styles')
   <style>
     :root { --primary: {{ $vendor->primary_color ?? '#2563eb' }}; }
     body { font-family: 'Inter', sans-serif; background: #0f172a; }

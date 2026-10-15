@@ -27,6 +27,7 @@ Route::get('/', [LandingController::class, 'index'])->name('home');
 Route::get('/marketplace', [MarketplaceController::class, 'browse'])->name('marketplace.browse');
 Route::get('/media/file/{upload:uuid}', [MediaController::class, 'publicFile'])->name('media.public');
 Route::get('/media/file/{upload:uuid}/download', [MediaController::class, 'downloadPublicFile'])->name('media.download');
+Route::get('/course-media/{course}/{upload:uuid}', [MediaController::class, 'courseFile'])->middleware('auth')->withoutScopedBindings()->name('media.course');
 Route::get('/course/{slug}', [StudentCourse::class,'detail'])->name('student.course-detail');
 
 // ── Secure video streaming (auth required)

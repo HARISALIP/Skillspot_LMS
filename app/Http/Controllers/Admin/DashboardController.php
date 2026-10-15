@@ -7,7 +7,8 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Certificate;
 use App\Models\License;
-use Illuminate\Support\Facades\DB;
+use App\Models\CourseReview;
+use App\Models\PaymentOrder;
 
 class DashboardController extends Controller
 {
@@ -21,8 +22,8 @@ class DashboardController extends Controller
             'enrollments'      => Enrollment::count(),
             'certs'            => Certificate::count(),
             'licenses'         => License::where('status', 'active')->count(),
-            'reviews'          => DB::table('reviews')->count(),
-            'revenue'          => Enrollment::sum('amount_paid'),
+            'reviews'          => CourseReview::where('status', 'submitted')->count(),
+            'revenue'          => PaymentOrder::where('status', 'paid')->where('paid_at', '>=', now()->startOfMonth())->sum('amount'),
         ];
 
         $recentUsers   = User::with('roles')->latest()->take(8)->get();

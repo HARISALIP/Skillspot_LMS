@@ -1,0 +1,134 @@
+body.frappe-lesson-embed {
+  margin: 0;
+  overflow-y: auto;
+  background: #fff;
+  color: #1f272e;
+}
+
+.frappe-lesson-form {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 40px 120px 72px;
+}
+
+.preview-setting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  color: #313b44;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.frappe-switch {
+  position: relative;
+  width: 28px;
+  height: 16px;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #c5c9cc;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.frappe-switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px #0003;
+  transition: transform 150ms;
+}
+
+.frappe-switch.checked { background: #2490ef; }
+.frappe-switch.checked span { transform: translateX(12px); }
+.frappe-switch:focus-visible { outline: 2px solid #2490ef; outline-offset: 2px; }
+.help-icon { display: inline-flex; color: #8b949b; cursor: help; }
+
+.frappe-lesson-title {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 31px;
+  overflow: hidden;
+  resize: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #1f272e;
+  font: 700 24px/1.25 Inter, ui-sans-serif, system-ui, sans-serif;
+  outline: 0;
+}
+
+.frappe-lesson-title::placeholder { color: #b4b9bd; }
+.frappe-lesson-title:focus-visible { border-radius: 4px; box-shadow: 0 0 0 2px #8e969d; }
+
+.instructor-notes {
+  margin-top: 24px;
+  border: 1px solid #dfe1e3;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.instructor-notes summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: #313b44;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.instructor-notes summary::-webkit-details-marker { display: none; }
+.instructor-notes summary small { border-radius: 5px; background: #f0f1f2; padding: 2px 7px; color: #687178; font-size: 11px; font-weight: 500; }
+.notes-chevron { margin-left: auto; color: #8b949b; transition: transform 150ms; }
+.instructor-notes[open] .notes-chevron { transform: rotate(90deg); }
+.notes-editor { border-top: 1px solid #dfe1e3; padding: 12px 16px; }
+.frappe-lesson-form > .block-editor { margin-top: 24px; }
+.frappe-lesson-form .block-editor { max-width: none; }
+.frappe-lesson-form .editor-hint { display: none; }
+.frappe-lesson-form .codex-editor__redactor { padding-bottom: 80px !important; }
+.frappe-lesson-form .ce-block__content,
+.frappe-lesson-form .ce-toolbar__content { max-width: none; }
+
+.save-state {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  margin: 0;
+  border-radius: 6px;
+  background: #f2f3f3;
+  padding: 5px 9px;
+  color: #6c757d;
+  font-size: 11px;
+  opacity: .9;
+}
+
+.save-state:empty { display: none; }
+.save-state.error { background: #fff0f0; color: #b42318; }
+.lesson-loading { padding: 40px; color: #7b858e; font-size: 14px; }
+.frappe-upload-block { margin: 20px 0; }
+.frappe-upload-button { border: 1px solid #d8d8d8; border-radius: 7px; background: #fff; color: #34404a; padding: 9px 13px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.frappe-upload-error { margin: 5px 0 0; color: #c0392b; font-size: 12px; }
+.frappe-upload-preview { display: block; width: 100%; max-width: 100%; border: 0; border-radius: 7px; background: #f5f5f5; }
+.frappe-upload-audio { height: 44px; }
+.frappe-upload-pdf { height: 700px; }
+
+@media (max-width: 900px) {
+  .frappe-lesson-form { padding: 28px 44px 60px; }
+}
+
+@media (max-width: 600px) {
+  .frappe-lesson-form { padding: 22px 18px 56px; }
+  .preview-setting { margin-bottom: 20px; }
+  .frappe-lesson-title { font-size: 22px; }
+}

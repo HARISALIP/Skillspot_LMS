@@ -61,6 +61,8 @@ function initialiseAdminWorkspace() {
   const palette = document.getElementById('commandPalette');
   const settingsModal = document.getElementById('settingsModal');
   const settingsFrame = document.getElementById('settingsFrame');
+  const settingsLoading = document.getElementById('settingsLoading');
+  const settingsSurface = document.getElementById('settingsSurface');
   const mobileOverlay = document.getElementById('mobileOverlay');
   if (!sidebar || !settingsModal || settingsModal.dataset.navigationReady === 'true') return;
   settingsModal.dataset.navigationReady = 'true';
@@ -74,41 +76,51 @@ function initialiseAdminWorkspace() {
     localStorage.setItem('skillspot-theme', preference);
     window.dispatchEvent(new Event('skillspot:themechange'));
   };
-  applyWorkspaceTheme(localStorage.getItem('skillspot-theme') || localStorage.getItem('skillspot-sidebar-theme') || 'dark');
+  applyWorkspaceTheme(localStorage.getItem('skillspot-theme') || localStorage.getItem('skillspot-sidebar-theme') || 'light');
+  const loadSettingsFrame = tab => {
+    if (!settingsFrame) return;
+    if (settingsFrame.dataset.initialised === 'true') return visitSettingsInFrame(settingsFrame, tab, workspaceTheme());
+    if (settingsFrame.dataset.loading === 'true' && settingsFrame.dataset.tab === tab) return;
+    settingsLoading?.classList.remove('hidden');
+    settingsFrame.classList.add('opacity-0');
+    settingsSurface?.setAttribute('aria-busy', 'true');
+    const url = new URL(settingsFrame.dataset.settingsUrl, location.origin);
+    url.searchParams.set('tab', tab); url.searchParams.set('embed', '1'); url.searchParams.set('theme', workspaceTheme());
+    settingsFrame.src = url.toString(); settingsFrame.dataset.tab = tab; settingsFrame.dataset.loading = 'true';
+  };
   const showSettings = (tab = 'general', addHistory = false) => {
     settingsModal.classList.remove('hidden');
     document.documentElement.classList.add('settings-open');
     document.body.classList.add('settings-open');
     appMenu?.classList.remove('is-open');
     if (addHistory) syncSettingsHash(tab, true);
-    if (!settingsFrame) return;
-    if (settingsFrame.dataset.initialised === 'true') return visitSettingsInFrame(settingsFrame, tab, workspaceTheme());
-    const url = new URL(settingsFrame.dataset.settingsUrl, location.origin);
-    url.searchParams.set('tab', tab); url.searchParams.set('embed', '1'); url.searchParams.set('theme', workspaceTheme());
-    settingsFrame.src = url.toString(); settingsFrame.dataset.tab = tab;
+    loadSettingsFrame(tab);
   };
   const closeSettings = () => {
     settingsModal.classList.add('hidden'); document.documentElement.classList.remove('settings-open'); document.body.classList.remove('settings-open');
     if (settingTabFromHash()) history.pushState({}, '', `${location.pathname}${location.search}`);
   };
-  settingsFrame?.addEventListener('load', () => { settingsFrame.dataset.initialised = 'true'; });
+  settingsFrame?.addEventListener('load', () => {
+    settingsFrame.dataset.initialised = 'true'; settingsFrame.dataset.loading = 'false';
+    settingsFrame.classList.remove('opacity-0'); settingsLoading?.classList.add('hidden'); settingsSurface?.setAttribute('aria-busy', 'false');
+  });
   document.getElementById('settingsModalButton')?.addEventListener('click', () => showSettings(settingTabFromHash() || 'general', !settingTabFromHash()));
   settingsModal.addEventListener('click', event => { if (event.target === settingsModal) closeSettings(); });
   document.getElementById('sidebarToggle')?.addEventListener('click', () => { sidebar.classList.toggle('is-collapsed'); localStorage.setItem('skillspot-sidebar-collapsed', String(sidebar.classList.contains('is-collapsed'))); });
-  if (localStorage.getItem('skillspot-sidebar-collapsed') === 'true') sidebar.classList.add('is-collapsed');
+  if (window.innerWidth >= 1024 && localStorage.getItem('skillspot-sidebar-collapsed') === 'true') sidebar.classList.add('is-collapsed');
   document.getElementById('appMenuButton')?.addEventListener('click', () => { appMenu?.classList.toggle('is-open'); document.getElementById('appMenuButton')?.setAttribute('aria-expanded', String(appMenu?.classList.contains('is-open'))); themeMenu?.classList.remove('is-open'); });
   document.getElementById('themeMenuButton')?.addEventListener('click', () => themeMenu?.classList.toggle('is-open'));
   document.querySelectorAll('[data-sidebar-theme]').forEach(button => button.addEventListener('click', () => { applyWorkspaceTheme(button.dataset.sidebarTheme); themeMenu?.classList.remove('is-open'); appMenu?.classList.remove('is-open'); }));
   document.getElementById('notificationsButton')?.addEventListener('click', () => document.getElementById('notificationPanel')?.classList.toggle('is-open'));
   const openPalette = () => { palette?.classList.add('is-open'); document.getElementById('commandInput')?.focus(); };
-  const closePalette = () => palette?.classList.remove('is-open');
+  const closePalette = () => { if (palette?.classList.contains('is-open')) { palette.classList.remove('is-open'); document.getElementById('searchButton')?.focus(); } };
   document.getElementById('searchButton')?.addEventListener('click', openPalette); document.getElementById('commandClose')?.addEventListener('click', closePalette);
   palette?.addEventListener('click', event => { if (event.target === palette) closePalette(); });
   document.getElementById('commandInput')?.addEventListener('input', event => document.querySelectorAll('[data-command-item]').forEach(item => item.classList.toggle('hidden', !item.dataset.commandItem.includes(event.target.value.toLowerCase()))));
-  const openMobileSidebar = () => { sidebar.style.transform = 'translateX(0)'; mobileOverlay?.classList.remove('hidden'); };
-  const closeMobileSidebar = () => { sidebar.style.transform = 'translateX(-100%)'; mobileOverlay?.classList.add('hidden'); };
+  const mobileMenuButton = document.getElementById('mobileMenuBtn');
+  const openMobileSidebar = () => { sidebar.classList.add('is-mobile-open'); mobileOverlay?.classList.remove('hidden'); mobileMenuButton?.setAttribute('aria-expanded', 'true'); sidebar.querySelector('a,button')?.focus(); };
+  const closeMobileSidebar = () => { if (!sidebar.classList.contains('is-mobile-open')) return; sidebar.classList.remove('is-mobile-open'); mobileOverlay?.classList.add('hidden'); mobileMenuButton?.setAttribute('aria-expanded', 'false'); mobileMenuButton?.focus(); };
   document.getElementById('mobileMenuBtn')?.addEventListener('click', openMobileSidebar); mobileOverlay?.addEventListener('click', closeMobileSidebar);
-  if (window.innerWidth < 1024) { sidebar.style.transform = 'translateX(-100%)'; sidebar.style.transition = 'transform .2s ease'; }
   const onPopState = () => { const tab = settingTabFromHash(); if (tab) showSettings(tab); else closeSettings(); };
   const onThemeChange = () => { if (!settingsModal.classList.contains('hidden') && settingsFrame?.dataset.initialised === 'true') visitSettingsInFrame(settingsFrame, settingTabFromHash() || 'general', workspaceTheme()); };
   const onMessage = event => {
@@ -116,7 +128,7 @@ function initialiseAdminWorkspace() {
     if (event.data === 'skillspot:close-settings') return closeSettings();
     if (event.data?.type === 'skillspot:settings-tab' && /^[a-z-]+$/.test(event.data.tab)) { settingsFrame.dataset.tab = event.data.tab; syncSettingsHash(event.data.tab, event.data.push === true); }
   };
-  const onKeydown = event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openPalette(); } if (event.key === 'Escape') { closePalette(); closeSettings(); appMenu?.classList.remove('is-open'); themeMenu?.classList.remove('is-open'); } };
+  const onKeydown = event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openPalette(); } if (event.key === 'Escape') { closePalette(); closeMobileSidebar(); closeSettings(); appMenu?.classList.remove('is-open'); themeMenu?.classList.remove('is-open'); } };
   window.addEventListener('popstate', onPopState);
   window.addEventListener('skillspot:themechange', onThemeChange);
   window.addEventListener('message', onMessage);
@@ -129,6 +141,8 @@ function initialiseAdminWorkspace() {
     delete window.__skillspotAdminCleanup;
   };
   if (settingTabFromHash()) showSettings(settingTabFromHash());
+  else if ('requestIdleCallback' in window) window.requestIdleCallback(() => { if (settingsFrame?.isConnected) loadSettingsFrame('general'); }, { timeout: 1200 });
+  else window.setTimeout(() => { if (settingsFrame?.isConnected) loadSettingsFrame('general'); }, 250);
 }
 
 function initialiseVendorWorkspace() {
