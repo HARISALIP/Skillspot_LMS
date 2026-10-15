@@ -79,9 +79,9 @@
 @yield('content')
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
-<footer class="bg-slate-950 text-slate-300 py-14">
+<footer class="bg-slate-950 text-slate-300 pt-12 pb-8">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 mb-10">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 pb-8 border-b border-slate-800">
       <div class="lg:col-span-2">
         <div class="flex items-center gap-3 mb-4">
           <div class="w-10 h-10 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand-500/20">S</div>
@@ -96,37 +96,37 @@
       <div>
         <h4 class="text-white font-bold mb-4 text-sm">Programs</h4>
         <ul class="space-y-2.5 text-sm">
-          <li><a href="#courses" class="hover:text-brand-400 transition">Web Development</a></li>
-          <li><a href="#courses" class="hover:text-brand-400 transition">Cybersecurity</a></li>
-          <li><a href="#courses" class="hover:text-brand-400 transition">Python & AI</a></li>
-          <li><a href="#courses" class="hover:text-brand-400 transition">Cloud & DevOps</a></li>
+          <li><a href="#courses" class="text-slate-300 hover:text-brand-400 transition">Web Development</a></li>
+          <li><a href="#courses" class="text-slate-300 hover:text-brand-400 transition">Cybersecurity</a></li>
+          <li><a href="#courses" class="text-slate-300 hover:text-brand-400 transition">Python & AI</a></li>
+          <li><a href="#courses" class="text-slate-300 hover:text-brand-400 transition">Cloud & DevOps</a></li>
         </ul>
       </div>
 
       <div>
         <h4 class="text-white font-bold mb-4 text-sm">Student Hub</h4>
         <ul class="space-y-2.5 text-sm">
-          <li><a href="/register" class="hover:text-brand-400 transition">Register Free</a></li>
-          <li><a href="/login" class="hover:text-brand-400 transition">Login</a></li>
-          <li><a href="#how-it-works" class="hover:text-brand-400 transition">How it Works</a></li>
-          <li><a href="#about" class="hover:text-brand-400 transition">Why Skillspot</a></li>
+          <li><a href="/register" class="text-slate-300 hover:text-brand-400 transition">Register Free</a></li>
+          <li><a href="/login" class="text-slate-300 hover:text-brand-400 transition">Login</a></li>
+          <li><a href="#how-it-works" class="text-slate-300 hover:text-brand-400 transition">How it Works</a></li>
+          <li><a href="#about" class="text-slate-300 hover:text-brand-400 transition">Why Skillspot</a></li>
         </ul>
       </div>
 
       <div>
         <h4 class="text-white font-bold mb-4 text-sm">Company</h4>
         <ul class="space-y-2.5 text-sm">
-          <li><a href="/about" class="hover:text-brand-400 transition">About</a></li>
-          <li><a href="/contact" class="hover:text-brand-400 transition">Contact</a></li>
-          <li><a href="/privacy" class="hover:text-brand-400 transition">Privacy</a></li>
-          <li><a href="/terms" class="hover:text-brand-400 transition">Terms</a></li>
+          <li><a href="/about" class="text-slate-300 hover:text-brand-400 transition">About</a></li>
+          <li><a href="/contact" class="text-slate-300 hover:text-brand-400 transition">Contact</a></li>
+          <li><a href="/privacy" class="text-slate-300 hover:text-brand-400 transition">Privacy</a></li>
+          <li><a href="/terms" class="text-slate-300 hover:text-brand-400 transition">Terms</a></li>
         </ul>
       </div>
     </div>
 
-    <div class="border-t border-slate-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-400">
+    <div class="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-400">
       <p>© {{ date('Y') }} Skillspot.in. All rights reserved.</p>
-      <div class="flex items-center gap-4">
+      <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center">
         <a href="mailto:hello@skillspot.in" class="hover:text-brand-400 transition">hello@skillspot.in</a>
         <span class="hidden sm:inline">•</span>
         <a href="tel:+919999999999" class="hover:text-brand-400 transition">+91 99999 99999</a>
