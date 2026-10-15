@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\Certificate;
 use App\Models\Section;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -12,6 +13,22 @@ use Tests\TestCase;
 class StudentCourseNavigationTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_dashboard_reports_all_certificates_without_repeating_stats(): void
+    {
+        $student = User::factory()->create();
+        foreach (range(1, 6) as $number) {
+            $course = Course::create(['title' => "Course {$number}", 'slug' => "course-{$number}", 'category' => 'Technology']);
+            Certificate::create(['user_id' => $student->id, 'course_id' => $course->id, 'certificate_number' => "CERT-{$number}", 'issued_at' => now()]);
+        }
+
+        $this->actingAs($student)->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertViewHas('certCount', 6)
+            ->assertViewHas('certificates', fn ($certificates) => $certificates->count() === 5)
+            ->assertSeeText('Active days (30d)')
+            ->assertDontSeeText('Day Streak');
+    }
 
     public function test_editing_course_details_keeps_a_published_course_public(): void
     {

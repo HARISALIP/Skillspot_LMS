@@ -26,8 +26,8 @@
 @endphp
 
 <div class="rounded-2xl border-2 p-5 {{ $isLive ? 'border-red-300 bg-red-50' : ($isUpcoming ? 'border-brand-200 bg-brand-50' : 'border-gray-200 bg-gray-50') }}">
-  <div class="flex items-start justify-between gap-4 flex-wrap">
-    <div class="flex items-start gap-3 flex-1 min-w-0">
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div class="flex w-full min-w-0 items-start gap-3 sm:w-auto sm:flex-1">
       <span class="text-2xl flex-shrink-0">{{ $icon }}</span>
       <div class="min-w-0">
         <div class="font-bold text-gray-900 text-sm flex items-center gap-2 flex-wrap">
@@ -44,7 +44,7 @@
         </div>
         <div class="text-xs text-gray-500 mt-1">{{ $name }}</div>
         @if($scheduled)
-        <div class="text-xs text-gray-600 mt-1 flex items-center gap-1.5">
+        <div class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
           <span>📅</span>
           <span>{{ $scheduled->format('D, d M Y') }} at {{ $scheduled->format('h:i A') }}</span>
           <span class="text-gray-400">·</span>
@@ -61,7 +61,7 @@
     </div>
 
     {{-- Join button --}}
-    <div class="flex-shrink-0">
+    <div class="w-full flex-shrink-0 sm:w-auto">
       @if($isLive)
         <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
            class="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-5 py-2.5 rounded-xl text-sm transition shadow-lg shadow-red-200 animate-pulse">
@@ -97,16 +97,14 @@
     <div class="flex items-center gap-1.5">
       <span class="text-gray-400">#️⃣ Meeting ID:</span>
       <span class="font-mono font-bold">{{ $lesson->live_meeting_id }}</span>
-      <button onclick="navigator.clipboard.writeText('{{ $lesson->live_meeting_id }}').then(()=>{this.textContent='✅';setTimeout(()=>this.textContent='📋',2000)})"
-              class="text-brand-600 hover:text-brand-700">📋</button>
+      <button type="button" data-copy="{{ $lesson->live_meeting_id }}" aria-label="Copy meeting ID" class="text-brand-600 hover:text-brand-700">📋</button>
     </div>
     @endif
     @if($lesson->live_password)
     <div class="flex items-center gap-1.5">
       <span class="text-gray-400">🔑 Password:</span>
       <span class="font-mono font-bold">{{ $lesson->live_password }}</span>
-      <button onclick="navigator.clipboard.writeText('{{ $lesson->live_password }}').then(()=>{this.textContent='✅';setTimeout(()=>this.textContent='📋',2000)})"
-              class="text-brand-600 hover:text-brand-700">📋</button>
+      <button type="button" data-copy="{{ $lesson->live_password }}" aria-label="Copy meeting password" class="text-brand-600 hover:text-brand-700">📋</button>
     </div>
     @endif
   </div>
@@ -125,11 +123,17 @@ function updateCountdowns() {
     const h = Math.floor((diff % 86400000) / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    if (d > 0)      el.textContent = ;
-    else if (h > 0) el.textContent = ;
-    else            el.textContent = ;
+    if (d > 0)      el.textContent = `${d}d ${h}h until class`;
+    else if (h > 0) el.textContent = `${h}h ${m}m until class`;
+    else            el.textContent = `${m}m ${s}s until class`;
   });
 }
+document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', () => {
+  navigator.clipboard.writeText(button.dataset.copy).then(() => {
+    button.textContent = '✓';
+    setTimeout(() => button.textContent = '📋', 2000);
+  });
+}));
 setInterval(updateCountdowns, 1000);
 updateCountdowns();
 </script>

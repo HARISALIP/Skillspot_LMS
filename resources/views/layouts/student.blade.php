@@ -10,21 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
-  <script src="https://cdn.tailwindcss.com"></script>
   @include('partials.turbo')
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter','sans-serif'] },
-          colors: {
-            brand: { 50:'#eff6ff',100:'#dbeafe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',900:'#1e3a8a' },
-            accent: { 100:'#ede9fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',900:'#4c1d95' }
-          }
-        }
-      }
-    }
-  </script>
   <style>
     .progress-bar { background: linear-gradient(90deg, #2563eb, #7c3aed); border-radius: 9999px; }
     .active-nav { color: #2563eb; font-weight: 600; background: rgba(37,99,235,0.08); }
@@ -34,18 +20,18 @@
 <body class="font-sans bg-gray-50 antialiased">
 
 <!-- Mobile nav bottom bar -->
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 lg:hidden flex items-center justify-around h-16 px-2 safe-area-bottom">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
+<nav aria-label="Learning navigation" class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 lg:hidden flex items-center justify-around h-16 px-2 safe-area-bottom">
   @php $mobileNav = [
-    ['icon'=>'🏠','label'=>'Home',    'href'=>'/dashboard',          'route'=>'student.dashboard'],
-    ['icon'=>'📚','label'=>'Courses', 'href'=>'/dashboard/courses',  'route'=>'student.courses'],
-    ['icon'=>'📡','label'=>'Live',    'href'=>'/dashboard/live',     'route'=>'student.live'],
-    ['icon'=>'🔖','label'=>'Saved',   'href'=>'/dashboard/saved',    'route'=>'student.saved'],
-    ['icon'=>'📜','label'=>'Certs',   'href'=>'/dashboard/certs',    'route'=>'student.certs'],
-    ['icon'=>'👤','label'=>'Profile', 'href'=>'/dashboard/profile',  'route'=>'student.profile'],
+    ['icon'=>'fa-house','label'=>'Home',    'href'=>'/dashboard',          'route'=>'student.dashboard'],
+    ['icon'=>'fa-book-open','label'=>'Courses', 'href'=>'/dashboard/courses',  'route'=>'student.courses'],
+    ['icon'=>'fa-magnifying-glass','label'=>'Explore', 'href'=>'/dashboard/browse', 'route'=>'student.browse'],
+    ['icon'=>'fa-video','label'=>'Live',    'href'=>'/dashboard/live',     'route'=>'student.live'],
+    ['icon'=>'fa-user','label'=>'Profile', 'href'=>'/dashboard/profile',  'route'=>'student.profile'],
   ]; @endphp
   @foreach($mobileNav as $item)
-  <a href="{{ $item['href'] }}" class="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition {{ request()->routeIs($item['route']) ? 'text-brand-600' : 'text-gray-500' }}">
-    <span class="text-xl leading-none">{{ $item['icon'] }}</span>
+  <a href="{{ $item['href'] }}" @if(request()->routeIs($item['route'])) aria-current="page" @endif class="flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition {{ request()->routeIs($item['route']) ? 'text-brand-700' : 'text-gray-600' }}">
+    <i class="fa-solid {{ $item['icon'] }} text-lg" aria-hidden="true"></i>
     <span class="text-xs font-medium">{{ $item['label'] }}</span>
   </a>
   @endforeach
@@ -72,16 +58,6 @@
         <div class="min-w-0">
           <div class="text-sm font-bold text-gray-900 truncate">{{ auth()->user()->name ?? 'Student' }}</div>
           <div class="text-xs text-gray-400 truncate">{{ auth()->user()->email ?? '' }}</div>
-        </div>
-      </div>
-      <!-- XP progress -->
-      <div class="mt-3">
-        <div class="flex items-center justify-between text-xs mb-1">
-          <span class="text-gray-500 font-medium">⚡ Learning streak</span>
-          <span class="text-brand-600 font-bold">Lv.3</span>
-        </div>
-        <div class="bg-gray-100 rounded-full h-1.5 overflow-hidden">
-          <div class="progress-bar h-full" style="width:62%"></div>
         </div>
       </div>
     </div>
@@ -141,7 +117,7 @@
     </header>
 
     <!-- Page content -->
-    <main data-navigation-main class="flex-1 overflow-y-auto p-4 md:p-6">
+    <main id="main-content" tabindex="-1" data-navigation-main class="flex-1 overflow-y-auto p-4 md:p-6">
       @yield('student-content')
     </main>
   </div>

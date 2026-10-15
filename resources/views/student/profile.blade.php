@@ -5,6 +5,13 @@
 
 @section('student-content')
 
+<nav aria-label="Your learning" class="mb-5 flex flex-wrap gap-2">
+  <a href="{{ route('student.saved') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Saved courses</a>
+  <a href="{{ route('student.certs') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Certificates</a>
+  <a href="{{ route('student.progress') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Learning progress</a>
+  <a href="{{ route('student.settings') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Settings</a>
+</nav>
+
 @if(session('success'))
 <div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
   ✅ {{ session('success') }}

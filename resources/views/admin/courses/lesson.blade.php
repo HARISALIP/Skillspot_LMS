@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends(request()->boolean('embed') ? 'layouts.admin-embed' : 'layouts.admin')
 @section('title', ($isEdit ? 'Edit' : 'Add').' Lesson — Skillspot.in Admin')
 @section('page-title', $isEdit ? 'Edit Lesson' : 'Add Lesson')
 @section('page-sub', $course->title.' → '.$section->title)
@@ -30,6 +30,7 @@
               : route('admin.courses.lessons.store',  [$course->id,$section->id]) }}"
             class="p-6 space-y-5">
         @csrf
+        @if(request()->boolean('embed'))<input type="hidden" name="embed" value="1">@endif
         @if($isEdit) @method('PUT') @endif
 
         {{-- Title --}}
@@ -155,8 +156,8 @@
             <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3 flex items-start gap-2">
               <i class="fa-solid fa-triangle-exclamation text-yellow-600 flex-shrink-0" aria-hidden="true"></i>
               <div class="text-xs text-yellow-700">
-                <strong>External URLs are not secure</strong> — YouTube/Vimeo links can be shared outside the LMS.
-                Use R2 upload for proprietary content.
+                <strong>External link</strong> — Learners may share a YouTube/Vimeo URL outside the LMS.
+                Use R2 upload when you need course access checks.
               </div>
             </div>
             <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Video URL</label>
@@ -480,7 +481,7 @@
       <div class="space-y-3 text-xs text-gray-600">
         <div class="flex items-start gap-2 p-3 bg-green-50 rounded-xl border border-green-100">
           <i class="fa-solid fa-circle-check text-green-600 mt-0.5" aria-hidden="true"></i>
-          <div><strong class="text-green-800">R2 Secure</strong><br>Signed URLs expire in 2hrs. No direct access possible. Right-click blocked.</div>
+          <div><strong class="text-green-800">R2 protected</strong><br>Access requires authorization; temporary links expire after 2 hours. Downloads and screen recording cannot be fully prevented.</div>
         </div>
         <div class="flex items-start gap-2 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
           <i class="fa-solid fa-triangle-exclamation text-yellow-600 mt-0.5" aria-hidden="true"></i>
@@ -492,7 +493,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <h4 class="font-bold text-gray-900 text-sm mb-3">Lesson Types</h4>
       <div class="space-y-2 text-xs text-gray-600">
-        <div class="flex items-start gap-2"><i class="fa-solid fa-film text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Video</strong> — Upload to R2 (secure) or link YouTube/Vimeo</div></div>
+        <div class="flex items-start gap-2"><i class="fa-solid fa-film text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Video</strong> — Upload to R2 with access checks or link YouTube/Vimeo</div></div>
         <div class="flex items-start gap-2"><i class="fa-solid fa-book-open text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Text</strong> — Written article or HTML content</div></div>
         <div class="flex items-start gap-2"><i class="fa-solid fa-file-pdf text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>PDF</strong> — Upload a PDF or link a URL</div></div>
         <div class="flex items-start gap-2"><i class="fa-solid fa-clipboard-question text-gray-500 mt-0.5" aria-hidden="true"></i><div><strong>Quiz</strong> — Multiple choice assessment</div></div>
@@ -503,7 +504,7 @@
     <div class="bg-brand-50 border border-brand-200 rounded-2xl p-5">
       <h4 class="font-bold text-brand-800 text-sm mb-2"><i class="fa-solid fa-lightbulb mr-1.5" aria-hidden="true"></i>Tips</h4>
       <ul class="space-y-1.5 text-xs text-brand-700 leading-relaxed">
-        <li>• Upload to R2 for full content protection</li>
+        <li>• Upload to R2 for course access checks</li>
         <li>• First 1-2 lessons → mark as Free Preview</li>
         <li>• Add notes for extra learning resources</li>
         <li>• Set accurate duration for student planning</li>

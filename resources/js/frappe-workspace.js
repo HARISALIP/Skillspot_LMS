@@ -13,10 +13,12 @@ import SimpleImage from '@editorjs/simple-image';
 import Embed from '@editorjs/embed';
 import InlineCode from '@editorjs/inline-code';
 import DragDrop from 'editorjs-drag-drop';
-import { ArrowLeft, BookOpen, Check, Plus, Users } from 'lucide-vue-next';
+import { ArrowLeft, BookOpen, Check, ChevronRight, CircleHelp, NotebookPen, Plus, Users } from 'lucide-vue-next';
 import './frappe-workspace.css';
+import './frappe-lesson-editor.css';
 
 const root = document.querySelector('#frappe-course-workspace');
+const lessonRoot = document.querySelector('#frappe-lesson-editor');
 const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
 const courseId = root?.dataset.courseId;
 const api = '/instructor/workspace/courses';
@@ -52,10 +54,92 @@ const structuredTool = (label, icon) => class extends StructuredBlock { static l
 const Quiz = structuredTool('Quiz', 'Q');
 const Assignment = structuredTool('Assignment', 'A');
 const Program = structuredTool('Programming exercise', '</>');
-const Media = structuredTool('Video / audio / PDF', '▶');
-const InstructorNote = structuredTool('Instructor-only note', 'N');
 
-function editorTools() {
+class UploadBlock {
+  static get toolbox() {
+    return { title: 'Upload', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 14v5h14v-5"/></svg>' };
+  }
+  static get isReadOnlySupported() { return true; }
+  constructor({ data, config, readOnly, block }) {
+    this.data = data || {};
+    this.config = config || {};
+    this.readOnly = readOnly;
+    this.block = block;
+  }
+  render() {
+    this.wrapper = document.createElement('div');
+    this.wrapper.className = 'frappe-upload-block';
+    if (this.data.file_url) this.renderFile();
+    else if (!this.readOnly) this.renderUploader();
+    return this.wrapper;
+  }
+  renderUploader() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*,audio/*,.pdf';
+    input.hidden = true;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'frappe-upload-button';
+    button.textContent = 'Upload File';
+    const error = document.createElement('p');
+    error.className = 'frappe-upload-error';
+    button.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => input.files[0] && this.upload(input.files[0], button, error));
+    this.wrapper.replaceChildren(button, input, error);
+    queueMicrotask(() => input.click());
+  }
+  upload(file, button, error) {
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'mp4', 'mov', 'mp3', 'pdf'].includes(extension)) {
+      error.textContent = 'Only JPG, PNG, MP4, MOV, MP3 and PDF files are allowed.';
+      return;
+    }
+    const body = new FormData();
+    body.append('file', file);
+    body.append('course_id', String(this.config.courseId));
+    body.append('is_public', '0');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/admin/media/upload');
+    xhr.responseType = 'json';
+    xhr.setRequestHeader('Accept', 'application/json');
+    xhr.setRequestHeader('X-CSRF-TOKEN', csrf);
+    xhr.upload.addEventListener('progress', event => {
+      if (event.lengthComputable) button.textContent = `Uploading ${Math.round(event.loaded / event.total * 100)}%`;
+    });
+    xhr.addEventListener('load', () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        error.textContent = xhr.response?.message || xhr.response?.error || 'The file could not be uploaded.';
+        button.textContent = 'Upload File';
+        return;
+      }
+      this.data = { file_url: xhr.response.url, file_type: xhr.response.type, file_name: xhr.response.name };
+      this.renderFile();
+      this.block?.dispatchChange();
+    });
+    xhr.addEventListener('error', () => { error.textContent = 'The upload was interrupted. Try again.'; button.textContent = 'Upload File'; });
+    button.textContent = 'Uploading 0%';
+    error.textContent = '';
+    xhr.send(body);
+  }
+  renderFile() {
+    let url;
+    try { url = new URL(this.data.file_url, location.origin); } catch { return; }
+    if (!['http:', 'https:'].includes(url.protocol)) return;
+    let media;
+    if (this.data.file_type === 'video') { media = document.createElement('video'); media.controls = true; }
+    else if (this.data.file_type === 'audio') { media = document.createElement('audio'); media.controls = true; }
+    else if (this.data.file_type === 'pdf') { media = document.createElement('iframe'); media.title = this.data.file_name || 'PDF document'; }
+    else { media = document.createElement('img'); media.alt = this.data.file_name || ''; }
+    media.src = url.href;
+    media.className = `frappe-upload-preview frappe-upload-${this.data.file_type || 'image'}`;
+    this.wrapper.replaceChildren(media);
+  }
+  validate(data) { return Boolean(data.file_url && data.file_type); }
+  save() { return this.data; }
+}
+
+function editorTools(config = {}) {
   return {
     paragraph: { class: Paragraph, inlineToolbar: true },
     header: { class: Header, inlineToolbar: true, config: { placeholder: 'Heading' } },
@@ -64,13 +148,14 @@ function editorTools() {
     image: { class: SimpleImage },
     embed: { class: Embed, config: { services: { youtube: true, vimeo: true, codepen: true, github: true, codesandbox: true } } },
     inlineCode: InlineCode,
-    quiz: Quiz, assignment: Assignment, program: Program, media: Media, instructorNote: InstructorNote,
+    upload: { class: UploadBlock, config },
+    quiz: Quiz, assignment: Assignment, program: Program,
   };
 }
 
 const BlockEditor = {
   props: { lesson: Object }, emits: ['save'],
-  template: '<div class="block-editor"><p v-if="lesson.legacy_content" class="legacy-banner">Legacy lesson — its original content stays intact until you save this editor.</p><div :id="holderId" class="editorjs-holder"></div><p class="editor-hint">Type <kbd>/</kbd> for EditorJS tools. Use the plus button for Frappe blocks: quiz, assignment, programming exercise, media and instructor notes.</p></div>',
+  template: '<div class="block-editor"><p v-if="lesson.legacy_content" class="legacy-banner">Legacy lesson — its original content stays intact until you save this editor.</p><div :id="holderId" class="editorjs-holder"></div><p class="editor-hint">Type <kbd>/</kbd> or use the plus button to add text, tables, assessments and private file uploads.</p></div>',
   setup(props, { emit }) {
     const holderId = 'editor-' + props.lesson.id;
     let editor; let timer;
@@ -78,7 +163,7 @@ const BlockEditor = {
     const mount = async () => {
       await nextTick(); editor?.destroy();
       editor = new EditorJS({
-        holder: holderId, tools: editorTools(),
+        holder: holderId, tools: editorTools({ courseId: Number(lessonRoot?.dataset.courseId || courseId) }),
         data: props.lesson.blocks || { time: Date.now(), blocks: [], version: '2.29.0' },
         autofocus: true, placeholder: 'Type / to choose a block',
         onReady: () => new DragDrop(editor),
@@ -88,6 +173,114 @@ const BlockEditor = {
     watch(() => props.lesson.id, mount, { immediate: true });
     onBeforeUnmount(() => { clearTimeout(timer); editor?.destroy(); });
     return { holderId };
+  },
+};
+
+const LessonEditor = {
+  components: { BlockEditor, ChevronRight, CircleHelp, NotebookPen },
+  template: `
+    <div v-if="ready" class="frappe-lesson-form">
+      <div class="preview-setting">
+        <button type="button" class="frappe-switch" :class="{ checked: lesson.is_preview }" role="switch" :aria-checked="String(lesson.is_preview)" aria-labelledby="preview-label" @click="togglePreview"><span></span></button>
+        <span id="preview-label">Include in preview</span>
+        <span class="help-icon" title="When on, anyone can preview this lesson without enrolling. Otherwise it is visible only to enrolled students."><CircleHelp :size="16" /></span>
+      </div>
+
+      <textarea ref="titleInput" v-model="lesson.title" rows="1" class="frappe-lesson-title" placeholder="Lesson title" aria-label="Lesson title" @input="titleChanged" @blur="saveMeta" @keydown.enter.prevent="focusContent"></textarea>
+
+      <details class="instructor-notes" @toggle="notesOpen = $event.target.open">
+        <summary>
+          <NotebookPen :size="16" />
+          <span>Instructor notes</span>
+          <small>private</small>
+          <ChevronRight :size="16" class="notes-chevron" />
+        </summary>
+        <div class="notes-editor"><BlockEditor v-if="notesOpen" :lesson="notes" @save="saveNotes" /></div>
+      </details>
+
+      <BlockEditor :lesson="lesson" @save="saveContent" />
+      <p class="save-state" :class="{ error: state === 'Could not save' }" role="status" aria-live="polite">{{ state }}</p>
+    </div>
+    <div v-else class="lesson-loading">Loading lesson…</div>
+  `,
+  setup() {
+    const course = Number(lessonRoot.dataset.courseId);
+    const section = Number(lessonRoot.dataset.sectionId);
+    const initialLesson = Number(lessonRoot.dataset.lessonId) || null;
+    const ready = ref(false);
+    const notesOpen = ref(false);
+    const state = ref('');
+    const titleInput = ref(null);
+    const lesson = ref({ id: initialLesson, editorKey: `content-${initialLesson || 'draft'}`, title: '', is_preview: false, blocks: null, legacy_content: null });
+    const notes = ref({ id: `notes-${initialLesson || 'draft'}`, editorKey: `notes-${initialLesson || 'draft'}`, blocks: null });
+    let saveTimer;
+    let stateTimer;
+    let creating;
+
+    const path = id => `/${course}/sections/${section}/lessons${id ? `/${id}` : ''}`;
+    const mark = value => {
+      state.value = value;
+      clearTimeout(stateTimer);
+      if (value === 'Saved') stateTimer = setTimeout(() => { state.value = ''; }, 1200);
+    };
+    const load = async () => {
+      if (initialLesson) {
+        const data = await request(`/${course}`);
+        const found = data.sections.find(item => item.id === section)?.lessons.find(item => item.id === initialLesson);
+        if (!found) throw new Error('Lesson not found.');
+        Object.assign(lesson.value, found, { editorKey: `content-${initialLesson}` });
+        Object.assign(notes.value, { blocks: found.instructor_notes, editorKey: `notes-${initialLesson}` });
+      }
+      ready.value = true;
+      await nextTick();
+      resizeTitle();
+      if (!initialLesson) titleInput.value?.focus();
+    };
+    const ensureLesson = async () => {
+      if (lesson.value.id) return lesson.value.id;
+      if (!lesson.value.title.trim()) return null;
+      creating ??= request(path(), { method: 'POST', body: JSON.stringify({ title: lesson.value.title.trim(), is_preview: lesson.value.is_preview }) });
+      try {
+        const created = await creating;
+        lesson.value.id = created.id;
+        notes.value.id = `notes-${created.id}`;
+        mark('Saved');
+        history.replaceState(null, '', `/admin/courses/${course}/sections/${section}/lessons/${created.id}/edit?embed=1`);
+        window.parent.postMessage({ type: 'skillspot:lesson-created', sectionId: section, lessonId: created.id, title: created.title }, location.origin);
+        return created.id;
+      } finally {
+        creating = null;
+      }
+    };
+    const patch = async payload => {
+      const id = await ensureLesson();
+      if (!id) return;
+      mark('Saving…');
+      try {
+        const saved = await request(path(id), { method: 'PATCH', body: JSON.stringify(payload) });
+        lesson.value.title = saved.title;
+        lesson.value.is_preview = saved.is_preview;
+        mark('Saved');
+        window.parent.postMessage({ type: 'skillspot:lesson-saved', lessonId: id, title: saved.title, isPreview: saved.is_preview }, location.origin);
+      } catch (error) {
+        mark('Could not save');
+      }
+    };
+    const saveMeta = () => patch({ title: lesson.value.title.trim(), is_preview: lesson.value.is_preview });
+    const titleChanged = () => {
+      resizeTitle();
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveMeta, 650);
+    };
+    const togglePreview = () => { lesson.value.is_preview = !lesson.value.is_preview; saveMeta(); };
+    const saveContent = blocks => { lesson.value.blocks = blocks; patch({ block_document: blocks }); };
+    const saveNotes = blocks => { notes.value.blocks = blocks; patch({ instructor_notes_document: blocks }); };
+    const resizeTitle = () => { if (titleInput.value) { titleInput.value.style.height = 'auto'; titleInput.value.style.height = `${titleInput.value.scrollHeight}px`; } };
+    const focusContent = () => document.querySelector('.frappe-lesson-form .ce-paragraph')?.focus();
+
+    load().catch(() => { ready.value = true; mark('Could not load lesson'); });
+    onBeforeUnmount(() => { clearTimeout(saveTimer); clearTimeout(stateTimer); });
+    return { ready, lesson, notes, notesOpen, state, titleInput, titleChanged, togglePreview, saveMeta, saveContent, saveNotes, focusContent };
   },
 };
 
@@ -144,3 +337,4 @@ const App = {
   },
 };
 if (root) createApp(App).mount(root);
+if (lessonRoot) createApp(LessonEditor).mount(lessonRoot);

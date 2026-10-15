@@ -10,21 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
-  <script src="https://cdn.tailwindcss.com"></script>
   @include('partials.turbo')
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter','sans-serif'] },
-          colors: {
-            brand:  { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a' },
-            accent: { 50:'#f5f3ff',100:'#ede9fe',200:'#ddd6fe',400:'#a78bfa',500:'#8b5cf6',600:'#7c3aed',700:'#6d28d9',900:'#4c1d95' }
-          }
-        }
-      }
-    }
-  </script>
   <style>
     .gradient-bg { background: linear-gradient(135deg, #f8fafc 0%, #edf4ff 50%, #f5f3ff 100%); }
     .blob1 { position:fixed; width:400px; height:400px; background:#2563eb12; border-radius:50%; filter:blur(80px); top:-100px; right:-100px; pointer-events:none; }

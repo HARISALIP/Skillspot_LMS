@@ -26,7 +26,7 @@
         [$enrollments->count(),'Enrolled'],
         [$completedCount,'Completed'],
         [$certCount,'Certs'],
-        [$streak,'Day Streak'],
+        [$streak,'Active days (30d)'],
       ] as [$val,$lbl])
       <div class="text-center">
         <div class="text-lg md:text-2xl font-black">{{ $val }}</div>
@@ -141,22 +141,6 @@
 </div>
 @endif
 
-<!-- ── Stats row ──────────────────────────────────────────────────── -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-  @foreach([
-    ['📚','Enrolled',  $enrollments->count(),   'bg-blue-50',  'text-blue-700'],
-    ['✅','Completed', $completedCount,          'bg-green-50', 'text-green-700'],
-    ['📜','Certs',     $certCount,               'bg-yellow-50','text-yellow-700'],
-    ['⏱','Hours',     $totalHours.'h',           'bg-purple-50','text-purple-700'],
-  ] as [$icon,$lbl,$val,$bg,$text])
-  <div class="{{ $bg }} rounded-2xl p-4 text-center border border-transparent">
-    <div class="text-2xl mb-1">{{ $icon }}</div>
-    <div class="text-xl font-black {{ $text }}">{{ $val }}</div>
-    <div class="text-xs font-medium text-gray-600">{{ $lbl }}</div>
-  </div>
-  @endforeach
-</div>
-
 <!-- ── Bottom grid: Certs + Recommended ──────────────────────────── -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
@@ -174,7 +158,7 @@
           <div class="text-sm font-semibold text-gray-900 truncate">{{ $cert->course?->title }}</div>
           <div class="text-xs text-gray-400">{{ $cert->issued_at?->format('d M Y') ?? $cert->created_at?->format('d M Y') }}</div>
         </div>
-        <a href="#" class="text-xs text-yellow-700 font-bold hover:underline flex-shrink-0">Download</a>
+        <a href="{{ route('student.certs.show', $cert) }}" class="text-xs text-yellow-700 font-bold hover:underline flex-shrink-0">View certificate</a>
       </div>
       @empty
       <div class="text-center py-8">

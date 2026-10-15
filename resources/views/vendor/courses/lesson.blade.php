@@ -155,8 +155,8 @@
             <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3 flex items-start gap-2">
               <span class="text-lg flex-shrink-0">⚠️</span>
               <div class="text-xs text-yellow-700">
-                <strong>External URLs are not secure</strong> — YouTube/Vimeo links can be shared outside the LMS.
-                Use R2 upload for proprietary content.
+                <strong>External link</strong> — Learners may share a YouTube/Vimeo URL outside the LMS.
+                Use R2 upload when you need course access checks.
               </div>
             </div>
             <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Video URL</label>
@@ -468,7 +468,7 @@
       <div class="space-y-3 text-xs text-gray-600">
         <div class="flex items-start gap-2 p-3 bg-green-50 rounded-xl border border-green-100">
           <span>✅</span>
-          <div><strong class="text-green-800">R2 Secure</strong><br>Signed URLs expire in 2hrs. No direct access possible. Right-click blocked.</div>
+          <div><strong class="text-green-800">R2 protected</strong><br>Access requires authorization; temporary links expire after 2 hours. Downloads and screen recording cannot be fully prevented.</div>
         </div>
         <div class="flex items-start gap-2 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
           <span>⚠️</span>
@@ -480,7 +480,7 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <h4 class="font-bold text-gray-900 text-sm mb-3">Lesson Types</h4>
       <div class="space-y-2 text-xs text-gray-600">
-        <div class="flex items-start gap-2"><span>🎬</span><div><strong>Video</strong> — Upload to R2 (secure) or link YouTube/Vimeo</div></div>
+        <div class="flex items-start gap-2"><span>🎬</span><div><strong>Video</strong> — Upload to R2 with access checks or link YouTube/Vimeo</div></div>
         <div class="flex items-start gap-2"><span>📖</span><div><strong>Text</strong> — Written article or HTML content</div></div>
         <div class="flex items-start gap-2"><span>📄</span><div><strong>PDF</strong> — Upload PDF to R2 or link URL</div></div>
         <div class="flex items-start gap-2"><span>📝</span><div><strong>Quiz</strong> — Multiple choice assessment</div></div>
@@ -491,7 +491,7 @@
     <div class="bg-brand-50 border border-brand-200 rounded-2xl p-5">
       <h4 class="font-bold text-brand-800 text-sm mb-2">💡 Tips</h4>
       <ul class="space-y-1.5 text-xs text-brand-700 leading-relaxed">
-        <li>• Upload to R2 for full content protection</li>
+        <li>• Upload to R2 for course access checks</li>
         <li>• First 1-2 lessons → mark as Free Preview</li>
         <li>• Add notes for extra learning resources</li>
         <li>• Set accurate duration for student planning</li>
