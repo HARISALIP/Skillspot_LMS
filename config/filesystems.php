@@ -49,14 +49,14 @@ return [
 
         'r2' => [
             'driver'                  => 's3',
-            'key'                     => env('R2_ACCESS_KEY_ID',     '3b97a14bf16b671848254fc99a42cfe9'),
-            'secret'                  => env('R2_SECRET_ACCESS_KEY', 'e35613b4320363344f9631a9b71f3e24cc044351f47487ddbb7bb8058e7a53c9'),
+            'key'                     => env('R2_ACCESS_KEY_ID'),
+            'secret'                  => env('R2_SECRET_ACCESS_KEY'),
             'region'                  => 'auto',
-            'bucket'                  => env('R2_BUCKET',            'Skillspot'),
-            'endpoint'                => env('R2_ENDPOINT',          'https://0b715904c0596ec9b429fa15e699fcf8.r2.cloudflarestorage.com'),
+            'bucket'                  => env('R2_BUCKET'),
+            'endpoint'                => env('R2_ENDPOINT'),
             'url'                     => env('R2_PUBLIC_URL',        ''),
             'use_path_style_endpoint' => true,
-            'throw'                   => false,
+            'throw'                   => true,
         ],
 
         's3' => [

@@ -72,6 +72,21 @@ class DashboardController extends Controller
         return view('student.courses', compact('enrollments'));
     }
 
+    public function progress()
+    {
+        $enrollments = Enrollment::with(['course.sections.lessons'])
+            ->where('user_id', Auth::id())
+            ->whereIn('status', ['active', 'completed'])
+            ->latest()->get()
+            ->filter(fn ($enrollment) => $enrollment->course !== null);
+        $completedLessonIds = DB::table('lesson_progress')
+            ->where('user_id', Auth::id())
+            ->where('completed', true)
+            ->pluck('lesson_id');
+
+        return view('student.progress', compact('enrollments', 'completedLessonIds'));
+    }
+
     public function browse(Request $request)
     {
         $user  = Auth::user();
@@ -93,7 +108,14 @@ class DashboardController extends Controller
         if ($l = $request->level)    $query->where('level',$l);
         if ($request->free)          $query->where('is_free',1);
 
-        $courses    = $query->latest()->paginate(12);
+        match ($request->sort) {
+            'popular' => $query->orderByDesc('enrollments_count'),
+            'price_lo' => $query->orderByRaw('COALESCE(sale_price, price) ASC'),
+            'price_hi' => $query->orderByRaw('COALESCE(sale_price, price) DESC'),
+            default => $query->latest(),
+        };
+
+        $courses    = $query->paginate(12);
         $categories = \App\Models\CourseCategory::where('is_active',1)->orderBy('order_col')->get();
         $levels     = \App\Models\CourseLevel::where('is_active',1)->orderBy('order_col')->get();
         return view('student.browse', compact('courses','categories','levels'));
@@ -123,8 +145,7 @@ class DashboardController extends Controller
 
     public function settings()
     {
-        $user = Auth::user();
-        return view('student.settings', compact('user'));
+        return redirect()->route('student.profile');
     }
 
     public function updateProfile(Request $request)

@@ -2,10 +2,8 @@
 @section('title','Teachers — Vendor Panel')
 @section('header','Teachers')
 @section('content')
+@php $canManageTeachers = auth()->user()->hasRole(['teacher','admin','super-admin']); @endphp
 <div class="space-y-6 max-w-3xl">
-
-  @if(session('success'))<div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
-  @if(session('error'))<div class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>@endif
 
   {{-- Info banner --}}
   <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-start gap-3">
@@ -15,6 +13,22 @@
       <div class="text-xs text-purple-700 mt-0.5">Teachers can schedule classes, manage courses, upload recordings and documents. Vendors have view-only access.</div>
     </div>
   </div>
+
+  @if($canManageTeachers)
+  <form method="POST" action="{{ route('vendor.teachers.add') }}" class="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm sm:flex-row sm:items-end">
+    @csrf
+    <label class="min-w-0 flex-1">
+      <span class="mb-1 block text-xs font-medium text-gray-600">Add an existing teacher</span>
+      <select name="user_id" required class="min-h-11 w-full rounded-xl border border-gray-200 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <option value="">Select teacher</option>
+        @foreach($allTeacherUsers as $availableTeacher)
+          <option value="{{ $availableTeacher->id }}">{{ $availableTeacher->name }} · {{ $availableTeacher->email }}</option>
+        @endforeach
+      </select>
+    </label>
+    <button class="min-h-11 rounded-xl bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700">Add teacher</button>
+  </form>
+  @endif
 
   <div class="grid grid-cols-1 gap-6">
 
@@ -35,10 +49,12 @@
               <div class="text-xs text-gray-400">{{ $teacher->email }}</div>
             </div>
           </div>
+          @if($canManageTeachers)
           <form method="POST" action="{{ route('vendor.teachers.remove', $teacher) }}" onsubmit="return confirm('Remove teacher?')">
             @csrf @method('DELETE')
-            <button class="text-xs text-gray-400 hover:text-red-600 transition px-2 py-1">✕ Remove</button>
+            <button class="min-h-11 rounded-lg px-3 text-xs text-gray-500 transition hover:bg-red-50 hover:text-red-600">Remove</button>
           </form>
+          @endif
         </div>
         @empty
         <div class="px-5 py-8 text-center text-gray-400 text-sm">No teachers assigned yet.</div>
@@ -74,7 +90,7 @@
             ['Upload Recordings & Docs','❌','✅'],
             ['Issue Certificates','❌','✅'],
             ['Mark Attendance','❌','✅'],
-            ['Manage Teachers','✅','❌'],
+            ['Manage Teachers','❌','✅'],
           ] as [$action,$vendor,$teacher])
           <tr class="hover:bg-gray-50">
             <td class="px-5 py-3 text-gray-700">{{ $action }}</td>

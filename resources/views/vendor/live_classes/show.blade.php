@@ -51,13 +51,13 @@
               <form method="POST" action="{{ route('vendor.live_classes.start', $liveClass->id) }}" class="space-y-4">
                 @csrf
                 <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1.5">Module Name <span class="text-gray-400 font-normal">(optional)</span></label>
-                  <input type="text" name="module_name" placeholder="e.g. Module 1 — Networking Basics"
+                  <label for="module_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Module Name <span class="text-gray-400 font-normal">(optional)</span></label>
+                  <input id="module_name" type="text" name="module_name" placeholder="e.g. Module 1 — Networking Basics"
                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                 </div>
                 <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-1.5">Session Name <span class="text-gray-400 font-normal">(optional)</span></label>
-                  <input type="text" name="session_name" placeholder="e.g. Session 1 — OSI Model"
+                  <label for="session_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Session Name <span class="text-gray-400 font-normal">(optional)</span></label>
+                  <input id="session_name" type="text" name="session_name" placeholder="e.g. Session 1 — OSI Model"
                          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                   <p class="text-xs text-gray-400 mt-1">Auto-fills upload title when session ends.</p>
                 </div>
@@ -78,13 +78,6 @@
   </div>
 
   {{-- Flash messages --}}
-  @if(session('success'))
-    <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>
-  @endif
-  @if(session('error'))
-    <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>
-  @endif
-
   {{-- ── Stats Row ── --}}
   @php
     $completedH = (float) $liveClass->completed_hours;
@@ -127,7 +120,7 @@
       <span class="font-semibold text-gray-700">Overall Progress</span>
       <span class="text-gray-500 font-semibold">{{ $pct }}%</span>
     </div>
-    <div class="w-full bg-gray-100 rounded-full h-3">
+    <div role="progressbar" aria-label="Overall class progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $pct }}" class="w-full bg-gray-100 rounded-full h-3">
       <div class="h-3 rounded-full bg-blue-500 transition-all" style="width:{{ $pct }}%"></div>
     </div>
     <div class="flex justify-between text-xs text-gray-400 mt-1.5">
@@ -148,13 +141,13 @@
     <h3 class="font-bold text-gray-800 mb-3 text-sm">🔗 Share with Students</h3>
     <div class="space-y-2 mb-4">
       <div class="flex items-center gap-2">
-        <input type="text" id="shareLiveUrl" value="{{ $shareUrl }}" readonly
+        <input type="text" id="shareLiveUrl" aria-label="Learner live class link" value="{{ $shareUrl }}" readonly
                class="flex-1 bg-white border border-blue-200 rounded-xl px-3 py-2 text-xs text-gray-600 font-mono focus:outline-none">
         <button onclick="copyLink('shareLiveUrl',this)"
                 class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">Copy</button>
       </div>
       <div class="flex items-center gap-2">
-        <input type="text" id="sharePortalUrl" value="{{ $portalUrl }}" readonly
+        <input type="text" id="sharePortalUrl" aria-label="Vendor portal link" value="{{ $portalUrl }}" readonly
                class="flex-1 bg-white border border-blue-200 rounded-xl px-3 py-2 text-xs text-gray-600 font-mono focus:outline-none">
         <button onclick="copyLink('sharePortalUrl',this)"
                 class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">Copy</button>
@@ -396,7 +389,8 @@
         @if(!in_array($liveClass->status, ['completed','cancelled']))
         <form method="POST" action="{{ route('vendor.live_classes.enroll', $liveClass->id) }}" class="mb-4 space-y-2">
           @csrf
-          <select name="user_id" required
+          <label for="live_class_student" class="sr-only">Student to enroll</label>
+          <select id="live_class_student" name="user_id" required
                   class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">— Select student —</option>
             @foreach($vendorStudents as $s)
@@ -421,7 +415,7 @@
             </div>
             <form method="POST" action="{{ route('vendor.live_classes.unenroll', [$liveClass->id, $enrollment->user_id]) }}">
               @csrf @method('DELETE')
-              <button onclick="return confirm('Remove this student?')"
+              <button aria-label="Remove {{ $enrollment->user->name }}" onclick="return confirm('Remove this student?')"
                       class="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition">✕</button>
             </form>
           </div>
@@ -452,9 +446,9 @@ function copyLink(inputId, btn) {
 function copyAllDetails() {
   const liveUrl   = document.getElementById('shareLiveUrl').value;
   const portalUrl = document.getElementById('sharePortalUrl').value;
-  const title     = {{ json_encode($liveClass->title) }};
-  const mid       = {{ json_encode($liveClass->meeting_id ?? '') }};
-  const mpw       = {{ json_encode($liveClass->meeting_password ?? '') }};
+  const title     = {{ Illuminate\Support\Js::from($liveClass->title) }};
+  const mid       = {{ Illuminate\Support\Js::from($liveClass->meeting_id ?? '') }};
+  const mpw       = {{ Illuminate\Support\Js::from($liveClass->meeting_password ?? '') }};
   let text = `📡 Live Class: ${title}\n\n🔗 Join Link: ${liveUrl}\n🌐 Portal: ${portalUrl}`;
   if (mid)  text += `\n📋 Meeting ID: ${mid}`;
   if (mpw)  text += `\n🔑 Password: ${mpw}`;

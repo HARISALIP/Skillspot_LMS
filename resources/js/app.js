@@ -1,10 +1,13 @@
 import * as Turbo from '@hotwired/turbo';
 
 Turbo.config.drive.progressBarDelay = 120;
+let navigationLoadingTimer;
 
 const storageKey = name => `skillspot:navigation:${name}`;
-const settingsHash = tab => `#settings/${tab}`;
-const settingTabFromHash = () => location.hash.match(/^#settings\/([a-z-]+)$/)?.[1];
+const settingsHash = (tab, gateway) => `#settings/${tab}${gateway ? `/${gateway}` : ''}`;
+const settingTabFromHash = () => location.hash.match(/^#settings\/([a-z-]+)(?:\/[a-z-]+)?$/)?.[1];
+const gatewayNames = ['new', 'braintree', 'gocardless', 'mpesa', 'paymob', 'paypal', 'paytm', 'razorpay', 'stripe'];
+const settingGatewayFromHash = () => gatewayNames.includes(location.hash.split('/')[2]) && location.hash.startsWith('#settings/payment-gateways/') ? location.hash.split('/')[2] : null;
 
 function rememberScroll() {
   document.querySelectorAll('[data-navigation-sidebar]').forEach(element => sessionStorage.setItem(storageKey(`sidebar:${element.dataset.navigationSidebar}`), String(element.scrollTop)));
@@ -31,8 +34,30 @@ function markNonDriveLinks() {
   document.querySelectorAll('a[download], a[target], a[href*="/download"], a[href*="/export"], a[href^="mailto:"], a[href^="tel:"]').forEach(link => { link.dataset.turbo = 'false'; });
 }
 
+function showNavigationLoading() {
+  if (window.self !== window.top && location.pathname === '/admin/settings') return;
+  clearTimeout(navigationLoadingTimer);
+  navigationLoadingTimer = setTimeout(() => {
+    if (document.querySelector('.skillspot-route-loading')) return;
+    const surface = document.createElement('div');
+    surface.className = 'skillspot-route-loading';
+    surface.setAttribute('role', 'status');
+    surface.setAttribute('aria-live', 'polite');
+    surface.innerHTML = '<span class="sr-only">Loading next page</span>';
+    document.body.append(surface);
+  }, 120);
+}
+
+function clearPendingFeedback() {
+  clearTimeout(navigationLoadingTimer);
+  document.querySelector('.skillspot-route-loading')?.remove();
+  document.querySelectorAll('form[aria-busy="true"]').forEach(form => form.removeAttribute('aria-busy'));
+  document.querySelectorAll('[data-pending]').forEach(button => button.removeAttribute('data-pending'));
+}
+
 function initialiseDirtyForms() {
   document.querySelectorAll('form:not([data-turbo="false"])').forEach(form => {
+    if (form.method.toUpperCase() === 'GET' || form.dataset.dirtyTracking === 'false') return;
     if (form.dataset.dirtyTracking === 'true') return;
     form.dataset.dirtyTracking = 'true';
     form.addEventListener('input', () => { form.dataset.dirty = 'true'; }, { passive: true });
@@ -43,15 +68,134 @@ function initialiseDirtyForms() {
 
 const hasDirtyForm = () => Boolean(document.querySelector('form[data-dirty="true"]'));
 
-function syncSettingsHash(tab, push = false) {
-  if (!tab || location.hash === settingsHash(tab)) return;
-  const target = `${location.pathname}${location.search}${settingsHash(tab)}`;
+function initialiseSettingsNavigation() {
+  if (window.self === window.top || location.pathname !== '/admin/settings') return;
+  const workspace = document.querySelector('.settings-workspace');
+  if (!workspace) return;
+  if (window.__skillspotSettingsNavigation) return window.__skillspotSettingsNavigation.reset();
+
+  const cache = new Map();
+  const pending = new Map();
+  const scroll = new Map();
+  let sequence = 0;
+  const keyFor = url => { const params = new URLSearchParams(url.search); params.delete('theme'); params.sort(); return `${url.pathname}?${params}`; };
+  const currentKey = () => keyFor(new URL(location.href));
+  let renderedKey = currentKey();
+  let failedTarget = null;
+  const markup = document => ({ panel: document.querySelector('.settings-content')?.outerHTML, extras: document.querySelector('#settingsExtras')?.outerHTML });
+  const reset = () => {
+    sequence++;
+    cache.clear(); pending.clear(); scroll.clear();
+    renderedKey = currentKey(); failedTarget = null;
+    cache.set(currentKey(), { panel: document.querySelector('.settings-content')?.outerHTML, extras: document.querySelector('#settingsExtras')?.outerHTML });
+  };
+  const load = url => {
+    const key = keyFor(url);
+    if (cache.has(key)) return Promise.resolve(cache.get(key));
+    if (pending.has(key)) return pending.get(key);
+    const request = fetch(url, { headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(async response => {
+        if (!response.ok || new URL(response.url).pathname !== url.pathname) throw new Error('Could not load settings. Check your connection and try again.');
+        const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const result = markup(page);
+        if (!result.panel || !result.extras) throw new Error('Settings are unavailable. Reload this page and sign in again.');
+        cache.set(key, result);
+        return result;
+      }).finally(() => pending.delete(key));
+    pending.set(key, request);
+    return request;
+  };
+  const activate = tab => {
+    document.querySelector('.settings-workspace')?.setAttribute('data-settings-current', tab);
+    document.querySelectorAll('.settings-sidebar [data-settings-tab]').forEach(link => {
+      const active = link.dataset.settingsTab === tab;
+      link.classList.toggle('is-active', active);
+      link.classList.toggle('bg-brand-600', active && link.parentElement?.classList.contains('md:hidden'));
+      link.classList.toggle('text-white', active && link.parentElement?.classList.contains('md:hidden'));
+      link.classList.toggle('bg-white', !active && link.parentElement?.classList.contains('md:hidden'));
+      link.classList.toggle('text-gray-600', !active && link.parentElement?.classList.contains('md:hidden'));
+      if (active) link.setAttribute('aria-current', 'page'); else link.removeAttribute('aria-current');
+    });
+  };
+  const render = (result, url) => {
+    const page = new DOMParser().parseFromString(result.panel + result.extras, 'text/html');
+    document.querySelector('.settings-content')?.replaceWith(page.querySelector('.settings-content'));
+    document.querySelector('#settingsExtras')?.replaceWith(page.querySelector('#settingsExtras'));
+    activate(url.searchParams.get('tab') || 'general');
+    const panel = document.querySelector('.settings-content');
+    if (panel) panel.scrollTop = scroll.get(keyFor(url)) || 0;
+    window.__skillspotInitSettingsPanel?.();
+    initialiseDirtyForms();
+  };
+  const navigate = async (url, { notify = false, force = false } = {}) => {
+    const target = new URL(url, location.href);
+    if (target.origin !== location.origin || target.pathname !== location.pathname || !target.searchParams.has('tab')) return;
+    if (!force && keyFor(target) === renderedKey) return;
+    if (hasDirtyForm() && !window.confirm('You have unsaved changes. Leave this page without saving them?')) {
+      if (!notify) {
+        const current = new URL(location.href);
+        window.parent.postMessage({ type: 'skillspot:settings-tab', tab: current.searchParams.get('tab'), gateway: current.searchParams.get('gateway') }, location.origin);
+      }
+      return;
+    }
+    const oldPanel = document.querySelector('.settings-content');
+    if (oldPanel) scroll.set(currentKey(), oldPanel.scrollTop);
+    const id = ++sequence;
+    const cached = cache.get(keyFor(target));
+    activate(target.searchParams.get('tab'));
+    if (!cached && oldPanel) {
+      oldPanel.setAttribute('aria-busy', 'true');
+      oldPanel.innerHTML = '<div role="status" class="p-8"><span class="sr-only">Loading settings</span><div class="max-w-xl space-y-4"><div class="skillspot-route-loading__line"></div><div class="skillspot-route-loading__line"></div><div class="skillspot-route-loading__line"></div></div></div>';
+    }
+    try {
+      const result = cached || await load(target);
+      if (id !== sequence) return;
+      render(result, target);
+      renderedKey = keyFor(target); failedTarget = null;
+      // Parent hash owns browser history; a second iframe entry makes Back skip tabs.
+      history.replaceState({ ...history.state, settingsTab: target.searchParams.get('tab') }, '', target);
+      if (notify) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: target.searchParams.get('tab'), gateway: target.searchParams.get('gateway'), push: true }, location.origin);
+    } catch (error) {
+      if (id !== sequence) return;
+      failedTarget = target.href;
+      if (oldPanel) {
+        oldPanel.setAttribute('aria-busy', 'false');
+        oldPanel.innerHTML = `<div role="alert" class="m-8 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800">${error.message}<button type="button" class="ml-3 font-semibold underline" data-settings-retry>Retry</button></div>`;
+      }
+    }
+  };
+  document.addEventListener('click', event => {
+    const link = event.target.closest('a[data-settings-tab]');
+    if (!link || !document.querySelector('.settings-workspace')?.contains(link) || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    event.preventDefault();
+    navigate(link.href, { notify: true });
+  }, true);
+  document.addEventListener('click', event => {
+    if (!event.target.closest('[data-settings-retry]')) return;
+    navigate(failedTarget || location.href, { notify: true, force: true });
+  });
+  let hoverTimer;
+  document.addEventListener('pointerover', event => {
+    const link = event.target.closest('a[data-settings-tab]');
+    if (!link || !document.querySelector('.settings-workspace')?.contains(link)) return;
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => load(new URL(link.href)).catch(() => {}), 120);
+  });
+  window.addEventListener('popstate', () => navigate(location.href));
+  window.__skillspotSettingsNavigation = { reset, navigate };
+  window.__skillspotInvalidateSettingsCache = () => { cache.clear(); pending.clear(); };
+  reset();
+}
+
+function syncSettingsHash(tab, push = false, gateway = null) {
+  if (!tab || location.hash === settingsHash(tab, gateway)) return;
+  const target = `${location.pathname}${location.search}${settingsHash(tab, gateway)}`;
   if (push) history.pushState({ settingsTab: tab }, '', target);
   else history.replaceState({ ...history.state, settingsTab: tab }, '', target);
 }
 
 function visitSettingsInFrame(frame, tab, theme) {
-  frame?.contentWindow?.postMessage({ type: 'skillspot:open-settings-tab', tab, theme }, location.origin);
+  frame?.contentWindow?.postMessage({ type: 'skillspot:open-settings-tab', tab, gateway: tab === 'payment-gateways' ? settingGatewayFromHash() : null, theme }, location.origin);
 }
 
 function initialiseAdminWorkspace() {
@@ -86,6 +230,7 @@ function initialiseAdminWorkspace() {
     settingsSurface?.setAttribute('aria-busy', 'true');
     const url = new URL(settingsFrame.dataset.settingsUrl, location.origin);
     url.searchParams.set('tab', tab); url.searchParams.set('embed', '1'); url.searchParams.set('theme', workspaceTheme());
+    if (tab === 'payment-gateways' && settingGatewayFromHash()) url.searchParams.set('gateway', settingGatewayFromHash());
     settingsFrame.src = url.toString(); settingsFrame.dataset.tab = tab; settingsFrame.dataset.loading = 'true';
   };
   const showSettings = (tab = 'general', addHistory = false) => {
@@ -126,7 +271,7 @@ function initialiseAdminWorkspace() {
   const onMessage = event => {
     if (event.origin !== location.origin) return;
     if (event.data === 'skillspot:close-settings') return closeSettings();
-    if (event.data?.type === 'skillspot:settings-tab' && /^[a-z-]+$/.test(event.data.tab)) { settingsFrame.dataset.tab = event.data.tab; syncSettingsHash(event.data.tab, event.data.push === true); }
+    if (event.data?.type === 'skillspot:settings-tab' && /^[a-z-]+$/.test(event.data.tab)) { settingsFrame.dataset.tab = event.data.tab; const gateway = event.data.tab === 'payment-gateways' && gatewayNames.includes(event.data.gateway) ? event.data.gateway : null; syncSettingsHash(event.data.tab, event.data.push === true, gateway); }
   };
   const onKeydown = event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openPalette(); } if (event.key === 'Escape') { closePalette(); closeMobileSidebar(); closeSettings(); appMenu?.classList.remove('is-open'); themeMenu?.classList.remove('is-open'); } };
   window.addEventListener('popstate', onPopState);
@@ -141,8 +286,6 @@ function initialiseAdminWorkspace() {
     delete window.__skillspotAdminCleanup;
   };
   if (settingTabFromHash()) showSettings(settingTabFromHash());
-  else if ('requestIdleCallback' in window) window.requestIdleCallback(() => { if (settingsFrame?.isConnected) loadSettingsFrame('general'); }, { timeout: 1200 });
-  else window.setTimeout(() => { if (settingsFrame?.isConnected) loadSettingsFrame('general'); }, 250);
 }
 
 function initialiseVendorWorkspace() {
@@ -195,7 +338,7 @@ function initialiseLanding() {
   mobileMenu?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => { mobileMenu.classList.remove('open'); document.getElementById('icon-open')?.classList.remove('hidden'); document.getElementById('icon-close')?.classList.add('hidden'); document.body.style.overflow = ''; }));
 }
 
-document.addEventListener('turbo:before-cache', rememberScroll);
+document.addEventListener('turbo:before-cache', () => { rememberScroll(); clearPendingFeedback(); });
 document.addEventListener('turbo:before-render', event => {
   // Existing Blade screens contain page-local inline scripts. Turbo evaluates
   // incoming body scripts in the same document, so convert their top-level
@@ -205,12 +348,27 @@ document.addEventListener('turbo:before-render', event => {
   });
 });
 document.addEventListener('turbo:before-visit', event => { if (hasDirtyForm() && !window.confirm('You have unsaved changes. Leave this page without saving them?')) event.preventDefault(); });
+document.addEventListener('turbo:before-visit', event => { if (!event.defaultPrevented) showNavigationLoading(); });
+document.addEventListener('turbo:submit-start', showNavigationLoading);
+document.addEventListener('turbo:submit-end', clearPendingFeedback);
+document.addEventListener('turbo:fetch-request-error', clearPendingFeedback);
+document.addEventListener('submit', event => {
+  const button = event.submitter;
+  if (!button || event.target.dataset.ajax !== undefined || button.dataset.pending !== undefined) return;
+  queueMicrotask(() => {
+    if (event.defaultPrevented) return;
+    const form = event.target;
+    form.setAttribute('aria-busy', 'true');
+    if (button.id !== 'loginBtn') button.dataset.pending = form.querySelector('input[type="file"]') ? 'Uploading…' : form.method.toUpperCase() === 'GET' ? 'Loading…' : 'Saving…';
+  });
+}, true);
 window.addEventListener('beforeunload', event => { if (hasDirtyForm()) { event.preventDefault(); event.returnValue = ''; } });
 document.addEventListener('turbo:load', () => {
-  markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseCourseWorkspace(); initialiseLanding();
-  if (window.self !== window.top && location.pathname === '/admin/settings') window.parent.postMessage({ type: 'skillspot:settings-tab', tab: new URL(location.href).searchParams.get('tab') || 'general' }, location.origin);
+  clearPendingFeedback();
+  markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseCourseWorkspace(); initialiseLanding(); initialiseSettingsNavigation();
+  if (window.self !== window.top && location.pathname === '/admin/settings') { const url = new URL(location.href); window.parent.postMessage({ type: 'skillspot:settings-tab', tab: url.searchParams.get('tab') || 'general', gateway: url.searchParams.get('gateway') }, location.origin); }
 });
-document.addEventListener('click', event => { const link = event.target.closest('[data-settings-tab]'); if (link && window.self !== window.top) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: link.dataset.settingsTab, push: true }, location.origin); });
+document.addEventListener('click', event => { const link = event.target.closest('[data-settings-tab]'); if (link && window.self !== window.top && !event.defaultPrevented) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: link.dataset.settingsTab, gateway: link.dataset.settingsGateway, push: true }, location.origin); });
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.data?.type !== 'skillspot:open-settings-tab' || window.self === window.top) return;
   const theme = ['light', 'dark'].includes(event.data.theme) ? event.data.theme : null;
@@ -219,5 +377,8 @@ window.addEventListener('message', event => {
     document.querySelector('.settings-workspace')?.setAttribute('data-theme', theme);
   }
   const url = new URL(location.href); url.searchParams.set('tab', event.data.tab); url.searchParams.set('embed', '1'); if (theme) url.searchParams.set('theme', theme);
-  if (url.toString() !== location.href) Turbo.visit(url.toString());
+  if (event.data.tab === 'payment-gateways' && gatewayNames.includes(event.data.gateway)) url.searchParams.set('gateway', event.data.gateway); else url.searchParams.delete('gateway');
+  const current = new URL(location.href);
+  if (url.searchParams.get('tab') === current.searchParams.get('tab') && url.searchParams.get('gateway') === current.searchParams.get('gateway')) return;
+  window.__skillspotSettingsNavigation?.navigate(url.toString());
 });

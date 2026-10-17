@@ -8,10 +8,6 @@
     <p class="text-sm text-gray-500 mt-0.5">Completed live class history</p>
   </div>
 
-  @if(session('success'))
-    <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>
-  @endif
-
   @forelse($completed as $class)
   @php
     $sessCount = $class->sessions->count();

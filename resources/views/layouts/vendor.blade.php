@@ -25,6 +25,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="font-sans bg-gray-50 text-gray-900 antialiased">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
 @if(session("impersonating_as"))
 <div class="bg-purple-600 text-white px-4 py-2.5 flex items-center justify-between text-sm sticky top-0 z-50">
   <span class="font-semibold">&#128100; Impersonating: <strong>{{ auth()->user()->name }}</strong> &middot; {{ auth()->user()->roles->first()?->name ?? "user" }}</span>
@@ -78,7 +79,7 @@
           $navItems = [
               ['icon'=>'📊','label'=>'Dashboard',   'route'=>'vendor.dashboard',  'href'=>route('vendor.dashboard')],
               ['icon'=>'📡','label'=>'Live Classes', 'route'=>'vendor.live_classes.index', 'href'=>route('vendor.live_classes.index')],
-              ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.live_classes.my_courses', 'href'=>route('vendor.live_classes.my_courses')],
+              ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.courses', 'href'=>route('vendor.courses')],
               ['icon'=>'👥','label'=>'Students',     'route'=>'vendor.students*',  'href'=>route('vendor.students')],
               ['icon'=>'💰','label'=>'Earnings',      'route'=>'vendor.earnings',   'href'=>route('vendor.earnings')],
           ];
@@ -89,9 +90,9 @@
           $navItems = [
               ['icon'=>'📊','label'=>'Dashboard',   'route'=>'vendor.dashboard',   'href'=>route('vendor.dashboard')],
               ['icon'=>'📡','label'=>'Live Classes', 'route'=>'vendor.live_classes.index', 'href'=>route('vendor.live_classes.index')],
-              ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.live_classes.my_courses', 'href'=>route('vendor.live_classes.my_courses')],
+              ['icon'=>'🎓','label'=>'My Courses',  'route'=>'vendor.courses', 'href'=>route('vendor.courses')],
               ['icon'=>'👥','label'=>'Students',     'route'=>'vendor.students*',   'href'=>route('vendor.students')],
-              ['icon'=>'💰','label'=>'Earnings',      'route'=>'vendor.earnings',    'href'=>route('vendor.earnings')],
+              ...(!$isTeacherOnly ? [['icon'=>'💰','label'=>'Earnings','route'=>'vendor.earnings','href'=>route('vendor.earnings')]] : []),
               ...($isAdminRole ? [['icon'=>'👩‍🏫','label'=>'Teachers','route'=>'vendor.teachers','href'=>route('vendor.teachers')]] : []),
               ...(!$isTeacherOnly ? [['icon'=>'🎨','label'=>'Branding','route'=>'vendor.profile*','href'=>route('vendor.profile')]] : []),
               ['icon'=>'👤','label'=>'My Profile',   'route'=>'vendor.my-profile*', 'href'=>route('vendor.my-profile')],
@@ -102,9 +103,11 @@
       @foreach($navItems as $item)
       <a href="{{ $item['href'] }}"
          @php
-          $isActiveNav = ($item['route'] === 'vendor.live_classes.index')
-            ? request()->routeIs('vendor.live_classes.*') && !request()->routeIs('vendor.live_classes.my_courses')
-            : request()->routeIs($item['route']);
+          $isActiveNav = match ($item['route']) {
+              'vendor.live_classes.index' => request()->routeIs('vendor.live_classes.*'),
+              'vendor.courses' => request()->routeIs('vendor.courses*'),
+              default => request()->routeIs($item['route']),
+          };
         @endphp
          class="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 transition group {{ $isActiveNav ? 'active-nav' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
         <span class="nav-icon text-lg flex-shrink-0">{{ $item['icon'] }}</span>
@@ -178,12 +181,12 @@
     </header>
 
     <!-- Page content -->
-    <main data-navigation-main class="flex-1 overflow-y-auto p-4 md:p-6">
+    <main id="main-content" tabindex="-1" data-navigation-main class="flex-1 overflow-y-auto p-4 md:p-6">
       @if(session('success'))
-        <div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 mb-4 text-sm">{{ session('success') }}</div>
+        <div role="status" class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 mb-4 text-sm">{{ session('success') }}</div>
       @endif
       @if(session('error'))
-        <div class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm">{{ session('error') }}</div>
+        <div role="alert" class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm">{{ session('error') }}</div>
       @endif
       @yield('content')
     </main>

@@ -27,7 +27,8 @@ class AuthController extends Controller
             }
             return view('auth.login');
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login System Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
+            report($e);
+            abort(500);
         }
     }
 
@@ -149,7 +150,8 @@ class AuthController extends Controller
                 ->withErrors(['login' => "Incorrect {$label} or password. Please try again."])
                 ->withInput($request->only('login'));
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Login Process Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
+            report($e);
+            abort(500);
         }
     }
 
@@ -167,7 +169,8 @@ class AuthController extends Controller
             }
             return view('auth.register');
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Register Page Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
+            report($e);
+            abort(500);
         }
     }
 
@@ -241,7 +244,8 @@ class AuthController extends Controller
             // ── No OTP — register directly ─────────────────────────────────
             return $this->createUser($pending);
         } catch (\Throwable $e) {
-            return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Register Process Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>', 500);
+            report($e);
+            abort(500);
         }
     }
 
@@ -408,11 +412,11 @@ class AuthController extends Controller
     private function redirectByRole(User $user)
     {
         if ($user->hasRole('super-admin') || $user->hasRole('admin')) {
-            if (Setting::get('site_email', '') === '') {
-                return redirect()->route('admin.settings')
-                    ->with('success', 'Welcome! Please configure your academy settings first. 👋');
-            }
             return redirect()->route('admin.dashboard');
+        }
+
+        if ($user->instructorProfile) {
+            return redirect()->route('student.dashboard');
         }
 
         if ($user->hasRole('teacher')) {

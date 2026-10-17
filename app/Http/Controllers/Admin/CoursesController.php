@@ -14,6 +14,7 @@ use App\Models\Vendor;
 use App\Models\User;
 use App\Models\Setting;
 use App\Services\LessonQuiz;
+use App\Services\CourseService;
 use App\Services\ScormPackageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -374,6 +375,7 @@ class CoursesController extends Controller
             $validation->errorBag = 'addChapter';
             throw $validation;
         }
+        if ($section?->is_scorm) CourseService::refreshEnrollmentProgress($course);
         return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter added.');
     }
 
@@ -381,6 +383,7 @@ class CoursesController extends Controller
     public function updateSection(Request $request, Course $course, Section $section)
     {
         $this->authorizeCourseOwner($course);
+        abort_unless($section->course_id === $course->id, 404);
         $request->validate(['title' => 'required|string|max:255']);
         $section->update(['title' => $request->title]);
         return back()->with('success', 'Section updated ✅');
@@ -391,8 +394,10 @@ class CoursesController extends Controller
     {
         $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id, 404);
+        $hadLessons = $section->lessons()->exists();
         $scormPackages->delete($section);
         $section->delete();
+        if ($hadLessons) CourseService::refreshEnrollmentProgress($course);
         if (request()->expectsJson()) return response()->noContent();
         return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter deleted.');
     }
@@ -443,6 +448,7 @@ class CoursesController extends Controller
             if ($quiz) LessonQuiz::save($lesson, $quiz);
             return $lesson;
         });
+        CourseService::refreshEnrollmentProgress($course);
         if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode(route('admin.courses.edit', $course->id).'#editor').')</script>');
         return redirect()->route('admin.courses.edit', $course->id)
             ->with('success', "Lesson \"{$lesson->title}\" added ✅");
@@ -489,7 +495,9 @@ class CoursesController extends Controller
     public function destroyLesson(Course $course, Section $section, Lesson $lesson)
     {
         $this->authorizeCourseOwner($course);
+        abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $lesson->delete();
+        CourseService::refreshEnrollmentProgress($course);
         return back()->with('success', 'Lesson deleted.');
     }
 
@@ -497,6 +505,7 @@ class CoursesController extends Controller
     public function reorderLessons(Request $request, Course $course, Section $section)
     {
         $this->authorizeCourseOwner($course);
+        abort_unless($section->course_id === $course->id, 404);
         foreach ($request->order ?? [] as $pos => $lessonId) {
             Lesson::where('id', $lessonId)->where('section_id', $section->id)
                   ->update(['order' => $pos + 1]);
@@ -644,12 +653,13 @@ class CoursesController extends Controller
             'live_meeting_id'    => 'nullable|string|max:100',
             'live_password'      => 'nullable|string|max:100',
             'notes'           => 'nullable|string',
-            'duration'        => 'nullable|integer|min:0',
+            'duration'        => 'nullable|integer|min:0|max:1440',
             'is_preview'      => 'boolean',
         ], self::MATERIAL_RULES));
         $data['is_preview']    = $request->boolean('is_preview');
         $data['video_storage'] = $request->input('video_storage', 'external');
         $data['resources'] = $this->validatedMaterials($data['resources'] ?? []);
+        if (isset($data['duration'])) $data['duration'] *= 60;
         return $data;
     }
 

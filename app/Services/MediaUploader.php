@@ -52,7 +52,12 @@ class MediaUploader
         $fileName  = $uuid . '_' . $safeName . '.' . $ext;
         $path      = "uploads/{$folder}/{$fileName}";
 
-        $disk = Setting::get('storage_driver','r2') === 'r2' ? 'r2' : 'public';
+        $disk = !$isPublic && Setting::get('storage_driver', 'r2') !== 'r2'
+            ? 'local' : (Setting::get('storage_driver', 'r2') === 'r2' ? 'r2' : 'public');
+        if ($disk === 'r2' && collect(['key', 'secret', 'bucket', 'endpoint'])
+            ->contains(fn ($field) => blank(config("filesystems.disks.r2.$field")))) {
+            throw new \RuntimeException('R2 storage is not configured. Ask an administrator to check Storage settings.');
+        }
 
         // Upload to R2 (or local if not configured)
         $options = $isPublic ? ['visibility' => 'public'] : [];
@@ -62,7 +67,7 @@ class MediaUploader
 
         // Determine URL
         $publicBase = Setting::get('r2_public_url','');
-        $url = $disk === 'public' ? ''
+        $url = !$isPublic || $disk !== 'r2' ? ''
             : ($publicBase ? rtrim($publicBase,'/') . '/' . $path : '');
 
         return Upload::create([

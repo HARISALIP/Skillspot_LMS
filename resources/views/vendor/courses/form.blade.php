@@ -1,16 +1,13 @@
 @extends('layouts.vendor')
-@section('title', ($isEdit ? 'Edit' : 'New').' Course — ITForge Admin')
-@section('page-title', $isEdit ? 'Edit Course' : 'Create New Course')
+@section('title', ($isEdit ? 'Edit' : 'New').' Course — Skillspot Studio')
+@section('header', $isEdit ? 'Edit Course' : 'Create New Course')
 @section('page-sub',   $isEdit ? $course->title : 'Fill in course details, then add sections & lessons')
 
-@section('admin-content')
-
-@if(session('success'))
-<div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
-  <span>✅</span> {{ session('success') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-green-400 text-xl">×</button>
-</div>
+@section('content')
+@if($isEdit)
+<div class="mb-4 flex flex-wrap justify-end gap-2"><a href="{{ route('courses.teaching.show',$course) }}" class="inline-flex min-h-11 items-center rounded-lg border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">Assignments &amp; announcements</a><a href="{{ route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']) }}" class="inline-flex min-h-11 items-center rounded-lg border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">Preview as learner</a></div>
 @endif
+
 @if($errors->any())
 <div class="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm">
   @foreach($errors->all() as $e)<div>• {{ $e }}</div>@endforeach
@@ -42,6 +39,13 @@
                  class="w-full px-4 py-3 rounded-xl border {{ $errors->has('title') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
         </div>
 
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Short Introduction <span class="text-red-400">*</span></label>
+          <input type="text" name="short_introduction" value="{{ old('short_introduction',$course->short_introduction) }}" maxlength="300"
+                 placeholder="A clear one-line summary shown in course listings"
+                 class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
+        </div>
+
         {{-- Description --}}
         <div>
           <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
@@ -53,13 +57,8 @@
         {{-- Vendor Assignment + Course Type --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Assign to Vendor</label>
-            <select name="vendor_id" class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
-              <option value="">— ITForge (No Vendor) —</option>
-              @foreach($vendors ?? [] as $v)
-              <option value="{{ $v->id }}" {{ old('vendor_id', $course->vendor_id) == $v->id ? 'selected' : '' }}>{{ $v->brand_name }}</option>
-              @endforeach
-            </select>
+            <span class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Organization</span>
+            <div class="flex min-h-12 items-center rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm font-semibold text-gray-700">{{ $vendor->brand_name }}</div>
           </div>
           <div>
             <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Course Type</label>
@@ -305,7 +304,7 @@
               <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">Preview</span>
               @endif
               @if($lesson->duration)
-              <span class="text-xs text-gray-400">{{ $lesson->duration }}m</span>
+              <span class="text-xs text-gray-400">{{ (int) ceil($lesson->duration / 60) }}m</span>
               @endif
               <span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-lg capitalize">{{ $lesson->type }}</span>
               <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -362,39 +361,33 @@
 
   {{-- ── RIGHT: Sidebar info ───────────────────────────────────────── --}}
   <div class="space-y-5">
-    {{-- Visibility card --}}
+    {{-- Publication card --}}
     @if($isEdit)
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <h4 class="font-bold text-gray-900 text-sm mb-3">Visibility</h4>
-      @php $vis = $course->visibility ?? 'draft'; @endphp
-      <div class="space-y-2 mb-4">
-        @foreach(['draft'=>['🔒','Draft','Not visible to anyone','border-gray-200 bg-gray-50','text-gray-600'],'public'=>['🌐','Public','All students can see & enroll','border-green-200 bg-green-50','text-green-700'],'restricted'=>['🔑','Restricted','Only specific students','border-brand-200 bg-brand-50','text-brand-700']] as $key=>[$icon,$label,$desc,$bg,$text])
-        <form method="POST" action="{{ route('vendor.courses.update',$course->id) }}">
-          @csrf @method('PUT')
-          @foreach(request()->except(['_token','_method','visibility']) as $k=>$v)
-            @if(is_array($v)) @foreach($v as $item)<input type="hidden" name="{{ $k }}[]" value="{{ $item }}">@endforeach
-            @else <input type="hidden" name="{{ $k }}" value="{{ $v }}"> @endif
-          @endforeach
-          {{-- Pass current course values --}}
-          <input type="hidden" name="title"       value="{{ $course->title }}">
-          <input type="hidden" name="category"    value="{{ $course->category }}">
-          <input type="hidden" name="level"       value="{{ $course->level }}">
-          <input type="hidden" name="language"    value="{{ $course->language ?? 'en' }}">
-          <input type="hidden" name="price"       value="{{ $course->price }}">
-          <input type="hidden" name="is_free"     value="{{ $course->is_free ? 1 : 0 }}">
-          <input type="hidden" name="is_featured" value="{{ $course->is_featured ? 1 : 0 }}">
-          <input type="hidden" name="visibility"  value="{{ $key }}">
-          <button type="submit"
-                  class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition text-left {{ $vis===$key ? $bg.' '.$text : 'border-gray-100 hover:border-gray-200 text-gray-600' }}">
-            <span>{{ $icon }}</span>
-            <div>
-              <div class="font-bold">{{ $label }} {{ $vis===$key ? '✓' : '' }}</div>
-              <div class="text-xs font-normal opacity-70">{{ $desc }}</div>
-            </div>
-          </button>
+      <h4 class="font-bold text-gray-900 text-sm">Publication</h4>
+      <p class="mt-2 text-xs leading-5 text-gray-500">
+        @if($course->marketplace_status === 'live')
+          Approved by Skillspot · {{ $course->marketplace_visible ? 'visible to learners' : 'currently unpublished' }}.
+        @elseif($course->marketplace_status === 'submitted')
+          Awaiting administrator review. You can keep editing the saved draft.
+        @else
+          First publication requires administrator approval.
+        @endif
+      </p>
+      @if($course->review_feedback)
+        <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">{{ $course->review_feedback }}</p>
+      @endif
+      @if($course->marketplace_status === 'live')
+        <form method="POST" action="{{ route('vendor.courses.toggle-publish', $course) }}" class="mt-4">
+          @csrf @method('PATCH')
+          <button class="min-h-11 w-full rounded-xl px-4 text-sm font-bold {{ $course->marketplace_visible ? 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50' : 'bg-brand-600 text-white hover:bg-brand-700' }}">{{ $course->marketplace_visible ? 'Unpublish course' : 'Publish approved course' }}</button>
         </form>
-        @endforeach
-      </div>
+      @elseif(in_array($course->marketplace_status, ['draft','needs_changes','rejected'], true))
+        <form method="POST" action="{{ route('vendor.courses.submit-review', $course) }}" class="mt-4">
+          @csrf
+          <button class="min-h-11 w-full rounded-xl bg-brand-600 px-4 text-sm font-bold text-white hover:bg-brand-700">Submit for approval</button>
+        </form>
+      @endif
     </div>
     @endif
 
@@ -412,14 +405,8 @@
       <div class="p-4">
         <form method="POST" action="{{ route('vendor.courses.grant-access',$course->id) }}" class="mb-3">
           @csrf
-          <div class="relative mb-2">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-            <input type="text" id="restrictedSearch" placeholder="Search student…" autocomplete="off"
-                   class="w-full pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 bg-gray-50">
-            <div id="restrictedDropdown" class="hidden absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 shadow-xl z-20 max-h-40 overflow-y-auto"></div>
-          </div>
-          <input type="hidden" name="user_id" id="restrictedUserId">
-          <div id="restrictedSelected" class="hidden text-xs text-brand-600 font-semibold mb-2"></div>
+          <input type="email" name="email" required placeholder="Registered student email"
+                 class="mb-2 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500">
           <input type="text" name="note" placeholder="Note (optional)" class="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-xs bg-gray-50 focus:outline-none focus:ring-1 focus:ring-brand-400 mb-2">
           <button type="submit" class="w-full py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-xs transition">+ Grant Access</button>
         </form>
@@ -495,7 +482,7 @@
     const modal = document.getElementById('editSectionModal');
     const form  = document.getElementById('editSectionForm');
     document.getElementById('editSectionTitle').value = currentTitle;
-    form.action = '/admin/courses/{{ $course->id ?? 0 }}/sections/' + id;
+    form.action = '/vendor/courses/{{ $course->id ?? 0 }}/sections/' + id;
     modal.classList.remove('hidden');
   }
 
@@ -503,46 +490,6 @@
   document.getElementById('editSectionModal')?.addEventListener('click', function(e) {
     if (e.target === this) this.classList.add('hidden');
   });
-</script>
-
-<script>
-// Restricted student search
-const rsInput = document.getElementById('restrictedSearch');
-if (rsInput) {
-  let rsTimer;
-  rsInput.addEventListener('input', function() {
-    clearTimeout(rsTimer);
-    const q = this.value.trim();
-    if (q.length < 2) { document.getElementById('restrictedDropdown').classList.add('hidden'); return; }
-    rsTimer = setTimeout(async () => {
-      const res   = await fetch('{{ route("admin.enrollments.search-users") }}?q='+encodeURIComponent(q), {credentials:'same-origin',headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'}});
-      const users = await res.json();
-      const dd    = document.getElementById('restrictedDropdown');
-      dd.innerHTML = '';
-      if (!users.length) {
-        dd.innerHTML = '<div class="px-3 py-2 text-xs text-gray-400">No students found</div>';
-      } else {
-        users.forEach(u => {
-          const d = document.createElement('div');
-          d.className = 'flex items-center gap-2 px-3 py-2 hover:bg-brand-50 cursor-pointer text-xs';
-          d.innerHTML = `<div class="w-6 h-6 bg-brand-400 rounded-lg flex items-center justify-center text-white font-black text-xs">${u.name[0].toUpperCase()}</div><div><div class="font-semibold">${u.name}</div><div class="text-gray-400">${u.email}</div></div>`;
-          d.onclick = () => {
-            document.getElementById('restrictedUserId').value = u.id;
-            rsInput.value = u.name;
-            document.getElementById('restrictedSelected').textContent = '✓ '+u.name;
-            document.getElementById('restrictedSelected').classList.remove('hidden');
-            dd.classList.add('hidden');
-          };
-          dd.appendChild(d);
-        });
-      }
-      dd.classList.remove('hidden');
-    }, 300);
-  });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('#restrictedSearch')) document.getElementById('restrictedDropdown')?.classList.add('hidden');
-  });
-}
 </script>
 
 <script>

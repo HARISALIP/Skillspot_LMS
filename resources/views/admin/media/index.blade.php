@@ -6,15 +6,15 @@
 @section('admin-content')
 
 @if(session('success'))
-<div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
+<div role="status" class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
   ✅ {{ session('success') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-green-400 text-xl">×</button>
+  <button type="button" aria-label="Dismiss success message" onclick="this.parentElement.remove()" class="ml-auto text-green-400 text-xl">×</button>
 </div>
 @endif
 @if(session('error'))
-<div class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
+<div role="alert" class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
   ❌ {{ session('error') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-red-400 text-xl">×</button>
+  <button type="button" aria-label="Dismiss error message" onclick="this.parentElement.remove()" class="ml-auto text-red-400 text-xl">×</button>
 </div>
 @endif
 
@@ -53,9 +53,8 @@
       </div>
       <div class="p-5">
         {{-- Drop zone --}}
-        <div id="dropZone"
+        <label for="fileInput" id="dropZone"
              class="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition mb-4"
-             onclick="document.getElementById('fileInput').click()"
              ondragover="event.preventDefault();this.classList.add('border-brand-500','bg-brand-50')"
              ondragleave="this.classList.remove('border-brand-500','bg-brand-50')"
              ondrop="handleDrop(event)">
@@ -63,14 +62,14 @@
           <p class="text-sm font-semibold text-gray-600">Drop files here</p>
           <p class="text-xs text-gray-400 mt-1">or click to browse</p>
           <p class="text-xs text-gray-400 mt-2">Images, Videos, PDFs, Docs, PPTs, Audio<br>Max {{ \App\Models\Setting::get('max_upload_mb',500) }}MB</p>
-        </div>
-        <input type="file" id="fileInput" class="hidden" multiple
+        </label>
+        <input type="file" id="fileInput" class="sr-only" multiple aria-label="Choose media files"
                accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt,.ppt,.pptx,.m4a"
                onchange="uploadFiles(this.files)">
 
         {{-- Folder select --}}
         <div class="mb-4">
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Upload to folder</label>
+          <label for="uploadFolder" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Upload to folder</label>
           <select id="uploadFolder" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option value="general">general</option>
             <option value="courses">courses</option>
@@ -91,7 +90,7 @@
         </label>
 
         {{-- Progress area --}}
-        <div id="uploadProgress" class="hidden space-y-2"></div>
+        <div id="uploadProgress" role="status" aria-live="polite" class="hidden space-y-2"></div>
       </div>
     </div>
   </div>
@@ -104,18 +103,21 @@
       <form method="GET" action="{{ route('admin.media') }}"
             class="flex flex-wrap gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50/50">
         <div class="relative flex-1 min-w-[150px]">
+          <label for="media-search" class="sr-only">Search files</label>
           <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-          <input type="text" name="search" value="{{ request('search') }}" placeholder="Search files…"
+          <input id="media-search" type="search" name="search" value="{{ request('search') }}" placeholder="Search files…"
                  class="w-full pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
         </div>
-        <select name="type" onchange="this.form.submit()"
+        <label for="media-type" class="sr-only">File type</label>
+        <select id="media-type" name="type" onchange="this.form.submit()"
                 class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
           <option value="">All Types</option>
           @foreach(['image','video','audio','presentation','pdf','document','other'] as $t)
           <option value="{{ $t }}" {{ request('type')===$t?'selected':'' }}>{{ ucfirst($t) }}s</option>
           @endforeach
         </select>
-        <select name="folder" onchange="this.form.submit()"
+        <label for="media-folder" class="sr-only">Folder</label>
+        <select id="media-folder" name="folder" onchange="this.form.submit()"
                 class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
           <option value="">All Folders</option>
           @foreach($folders as $folder)
@@ -134,7 +136,9 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-4 2xl:grid-cols-6 gap-3" id="fileGrid">
           @foreach($files as $file)
           <div class="group relative bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden hover:border-brand-300 hover:shadow-md transition cursor-pointer"
-               onclick="showFileDetail({{ $file->id }}, '{{ addslashes($file->original_name) }}', '{{ addslashes($file->public_url) }}', '{{ $file->type }}', '{{ $file->human_size }}', '{{ $file->extension }}', '{{ $file->created_at?->format('d M Y') }}')">
+               role="button" tabindex="0" aria-label="View details for {{ $file->original_name }}"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}"
+               onclick="showFileDetail({{ $file->id }}, {{ Illuminate\Support\Js::from($file->original_name) }}, {{ Illuminate\Support\Js::from($file->public_url) }}, {{ Illuminate\Support\Js::from($file->type) }}, {{ Illuminate\Support\Js::from($file->human_size) }}, {{ Illuminate\Support\Js::from($file->extension) }}, {{ Illuminate\Support\Js::from($file->created_at?->format('d M Y')) }})">
 
             {{-- Thumbnail --}}
             <div class="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
@@ -164,10 +168,10 @@
             {{-- Delete btn (hover) --}}
             <form method="POST" action="{{ route('admin.media.destroy', $file->id) }}"
                   onsubmit="return confirm('Delete file?')"
-                  class="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition"
+                  class="absolute top-1.5 right-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition"
                   onclick="event.stopPropagation()">
               @csrf @method('DELETE')
-              <button class="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs flex items-center justify-center shadow">×</button>
+              <button type="submit" aria-label="Delete {{ $file->original_name }}" class="w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full text-xs flex items-center justify-center shadow">×</button>
             </form>
 
             {{-- Public indicator --}}
@@ -197,11 +201,11 @@
 </div>
 
 {{-- File detail modal --}}
-<div id="fileDetailModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+<div id="fileDetailModal" role="dialog" aria-modal="true" aria-labelledby="modalFileName" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
     <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
       <h3 class="font-black text-gray-900" id="modalFileName">File Details</h3>
-      <button onclick="document.getElementById('fileDetailModal').classList.add('hidden')"
+      <button id="modalCloseButton" type="button" aria-label="Close file details" onclick="closeFileDetail()"
               class="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
     </div>
     <div class="p-6">
@@ -214,11 +218,11 @@
       </div>
       {{-- URL copy --}}
       <div class="mb-4">
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">File URL</label>
+        <label for="modalUrl" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">File URL</label>
         <div class="flex gap-2">
           <input type="text" id="modalUrl" readonly
                  class="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 text-xs font-mono focus:outline-none">
-          <button onclick="copyUrl()"
+          <button type="button" onclick="copyUrl()"
                   class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition" id="copyBtn">📋 Copy</button>
         </div>
       </div>
@@ -227,7 +231,7 @@
            class="flex-1 text-center py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-sm font-semibold transition">
           🔗 Open File
         </a>
-        <button onclick="document.getElementById('fileDetailModal').classList.add('hidden')"
+        <button type="button" onclick="closeFileDetail()"
                 class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-semibold transition">
           Close
         </button>
@@ -264,12 +268,13 @@ async function uploadFiles(fileList) {
     item.className = 'bg-gray-100 rounded-xl p-3';
     item.innerHTML = `
       <div class="flex items-center gap-2 mb-1.5">
-        <span class="text-sm truncate flex-1 font-medium">${file.name}</span>
+        <span data-upload-name class="text-sm truncate flex-1 font-medium"></span>
         <span class="text-xs text-gray-400" id="${id}-status">Uploading…</span>
       </div>
       <div class="bg-gray-200 rounded-full h-1.5 overflow-hidden">
         <div class="bg-brand-500 h-full rounded-full transition-all duration-300" id="${id}-bar" style="width:0%"></div>
       </div>`;
+    item.querySelector('[data-upload-name]').textContent = file.name;
     progress.prepend(item);
 
     const formData = new FormData();
@@ -289,16 +294,15 @@ async function uploadFiles(fileList) {
         }
       };
       xhr.onload = () => {
-        const res = JSON.parse(xhr.responseText);
-        if (res.success) {
+        let res = {};
+        try { res = JSON.parse(xhr.responseText); } catch (_) {}
+        if (xhr.status >= 200 && xhr.status < 300 && res.success) {
           document.getElementById(id+'-status').textContent = '✅ Done';
           document.getElementById(id+'-bar').classList.replace('bg-brand-500','bg-green-500');
           document.getElementById(id+'-bar').style.width = '100%';
-          // Add to grid
-          prependToGrid(res);
-          setTimeout(() => item.remove(), 3000);
+          setTimeout(() => location.reload(), 300);
         } else {
-          document.getElementById(id+'-status').textContent = '❌ ' + (res.error || 'Failed');
+          document.getElementById(id+'-status').textContent = '❌ ' + (res.error || 'Upload failed');
           document.getElementById(id+'-bar').classList.replace('bg-brand-500','bg-red-500');
         }
       };
@@ -312,24 +316,10 @@ async function uploadFiles(fileList) {
   }
 }
 
-// Prepend uploaded file to grid
-function prependToGrid(file) {
-  const grid = document.getElementById('fileGrid');
-  if (!grid) { location.reload(); return; }
-  const icons = {image:'🖼️',video:'🎬',pdf:'📄',document:'📝',other:'📎'};
-  const thumb = file.type === 'image' && file.url
-    ? `<img src="${file.url}" class="w-full h-full object-cover" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'text-4xl\\'>🖼️</span>'">`
-    : `<div class='flex flex-col items-center'><span class='text-4xl'>${icons[file.type]||'📎'}</span><span class='text-xs text-gray-500 mt-1'>${file.type.toUpperCase()}</span></div>`;
-  const div = document.createElement('div');
-  div.className = 'group relative bg-gray-50 rounded-2xl border border-gray-200 overflow-hidden hover:border-brand-300 hover:shadow-md transition cursor-pointer';
-  div.innerHTML = `
-    <div class='aspect-square bg-gray-100 flex items-center justify-center overflow-hidden'>${thumb}</div>
-    <div class='p-2'><p class='text-xs font-semibold text-gray-700 truncate'>${file.name}</p><p class='text-xs text-gray-400'>${file.size}</p></div>`;
-  grid.prepend(div);
-}
-
 // File detail modal
+let modalTrigger = null;
 function showFileDetail(id, name, url, type, size, ext, date) {
+  modalTrigger = document.activeElement;
   document.getElementById('modalFileName').textContent = name;
   document.getElementById('modalType').textContent     = type;
   document.getElementById('modalSize').textContent     = size;
@@ -339,15 +329,34 @@ function showFileDetail(id, name, url, type, size, ext, date) {
   document.getElementById('modalOpenBtn').href         = url;
 
   const preview = document.getElementById('modalPreview');
+  preview.replaceChildren();
   if (type === 'image' && url) {
-    preview.innerHTML = `<img src="${url}" class="max-h-48 mx-auto rounded-xl object-contain" onerror="this.remove()">`;
+    const image = document.createElement('img');
+    image.src = url;
+    image.alt = name;
+    image.className = 'max-h-48 mx-auto rounded-xl object-contain';
+    image.onerror = () => image.remove();
+    preview.appendChild(image);
   } else if (type === 'video' && url) {
-    preview.innerHTML = `<video src="${url}" controls class="max-h-48 mx-auto rounded-xl w-full"></video>`;
+    const video = document.createElement('video');
+    video.src = url;
+    video.controls = true;
+    video.className = 'max-h-48 mx-auto rounded-xl w-full';
+    preview.appendChild(video);
   } else {
-    preview.innerHTML = `<div class="text-6xl">${{image:'🖼️',video:'🎬',pdf:'📄',document:'📝',other:'📎'}[type]||'📎'}</div>`;
+    const icon = document.createElement('div');
+    icon.className = 'text-6xl';
+    icon.textContent = ({image:'🖼️',video:'🎬',pdf:'📄',document:'📝',other:'📎'})[type] || '📎';
+    preview.appendChild(icon);
   }
 
   document.getElementById('fileDetailModal').classList.remove('hidden');
+  document.getElementById('modalCloseButton').focus();
+}
+
+function closeFileDetail() {
+  document.getElementById('fileDetailModal').classList.add('hidden');
+  modalTrigger?.focus();
 }
 
 // Copy URL
@@ -362,7 +371,10 @@ function copyUrl() {
 
 // Close modal on backdrop
 document.getElementById('fileDetailModal').addEventListener('click', function(e) {
-  if (e.target === this) this.classList.add('hidden');
+  if (e.target === this) closeFileDetail();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('fileDetailModal').classList.contains('hidden')) closeFileDetail();
 });
 </script>
 @endpush

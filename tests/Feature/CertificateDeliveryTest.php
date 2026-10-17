@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CertificateDeliveryTest extends TestCase
@@ -35,5 +36,27 @@ class CertificateDeliveryTest extends TestCase
             ->assertSeeText('ITF-TEST-2026');
 
         $this->actingAs($other)->get(route('student.certs.show', $certificate))->assertForbidden();
+    }
+
+    public function test_admin_certificate_pages_have_named_filters_and_a_return_path(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $learner = User::factory()->create();
+        $course = Course::create(['title' => 'Audited Course']);
+        $certificate = Certificate::create([
+            'user_id' => $learner->id, 'course_id' => $course->id,
+            'certificate_number' => 'ITF-AUDIT-2026', 'issued_at' => now(),
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.certs'))
+            ->assertOk()->assertSee('for="certificate-search"', false)
+            ->assertSee('for="certificate-course"', false)
+            ->assertSee('aria-label="Revoke certificate ITF-AUDIT-2026"', false);
+        $this->get(route('admin.certs.verify', $certificate))
+            ->assertOk()->assertSee(route('admin.certs'))
+            ->assertSee('for="revocation-reason"', false)
+            ->assertSee("confirm('Revoke this certificate?')", false);
     }
 }

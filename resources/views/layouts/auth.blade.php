@@ -19,6 +19,7 @@
   @stack('styles')
 </head>
 <body class="font-sans gradient-bg min-h-screen flex flex-col antialiased text-slate-800">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
   <div class="blob1"></div>
   <div class="blob2"></div>
 
@@ -32,11 +33,11 @@
   </div>
 
   <!-- Main -->
-  <div class="relative z-10 flex-1 flex items-center justify-center px-4 py-2 md:py-4">
+  <main id="main-content" tabindex="-1" class="relative z-10 flex-1 flex items-center justify-center px-4 py-2 md:py-4">
     <div class="w-full @yield('container-class', 'max-w-[420px]') bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-200/80 overflow-hidden transition-all duration-300">
       @yield('content')
     </div>
-  </div>
+  </main>
 
   <!-- Footer -->
   <div class="relative z-10 text-center text-slate-400 text-xs py-2 md:py-3">

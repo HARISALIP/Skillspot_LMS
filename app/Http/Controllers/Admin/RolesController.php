@@ -100,6 +100,7 @@ class RolesController extends Controller
     // ── Edit form ──────────────────────────────────────────────────────
     public function edit(Role $role)
     {
+        abort_if(in_array($role->name, self::SYSTEM_ROLES, true) && !auth()->user()->hasRole('super-admin'), 403);
         $permissionGroups = self::PERMISSION_GROUPS;
         $allPerms         = Permission::orderBy('name')->get();
         $rolePerms        = $role->permissions->pluck('name')->toArray();
@@ -109,6 +110,7 @@ class RolesController extends Controller
     // ── Update role ────────────────────────────────────────────────────
     public function update(Request $request, Role $role)
     {
+        abort_if(in_array($role->name, self::SYSTEM_ROLES, true) && !$request->user()->hasRole('super-admin'), 403);
         $request->validate([
             'name'        => ['required', 'string', 'max:60', 'unique:roles,name,'.$role->id],
             'permissions' => ['nullable', 'array'],
@@ -146,6 +148,7 @@ class RolesController extends Controller
     // ── Seed all permissions ───────────────────────────────────────────
     public function seedPermissions()
     {
+        abort_unless(auth()->user()->hasRole('super-admin'), 403);
         $count = 0;
         foreach (self::PERMISSION_GROUPS as $group => $perms) {
             foreach ($perms as $perm) {

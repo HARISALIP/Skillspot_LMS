@@ -24,6 +24,19 @@ class Upload extends Model
         static::creating(function ($m) {
             if (empty($m->uuid)) $m->uuid = (string) Str::uuid();
         });
+        static::saved(function ($m) {
+            $course = Course::find(data_get($m->used_in, 'course_id'));
+            if ($course?->marketplace_status === 'live' && ($m->wasRecentlyCreated || $m->wasChanged())) {
+                CourseChangeAudit::create(['course_id' => $course->id, 'actor_id' => auth()->id(),
+                    'subject_type' => 'upload', 'subject_id' => $m->id,
+                    'changed_fields' => $m->wasRecentlyCreated ? ['created'] : array_keys($m->getChanges())]);
+            }
+        });
+        static::deleted(function ($m) {
+            $course = Course::find(data_get($m->used_in, 'course_id'));
+            if ($course?->marketplace_status === 'live') CourseChangeAudit::create(['course_id' => $course->id,
+                'actor_id' => auth()->id(), 'subject_type' => 'upload', 'subject_id' => $m->id, 'changed_fields' => ['deleted']]);
+        });
     }
 
     public function uploader() { return $this->belongsTo(User::class,'uploaded_by'); }
@@ -55,6 +68,7 @@ class Upload extends Model
     // ── Full accessible URL ────────────────────────────────────────────
     public function getPublicUrlAttribute(): string
     {
+        if (!$this->is_public) return '';
         if ($this->disk === 'public') {
             return route('media.public', $this->uuid);
         }

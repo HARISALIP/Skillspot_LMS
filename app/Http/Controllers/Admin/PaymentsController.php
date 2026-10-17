@@ -6,6 +6,7 @@ use App\Models\PaymentOrder;
 use App\Models\Course;
 use App\Models\User;
 use App\Services\MarketplaceService;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 
 class PaymentsController extends Controller
@@ -47,12 +48,27 @@ class PaymentsController extends Controller
 
     public function refund(Request $request, PaymentOrder $payment)
     {
-        if ($payment->status !== 'paid') {
-            return back()->with('error', 'Only paid orders can be refunded.');
+        if ($payment->status !== 'paid' || $payment->refund_requested_at) {
+            return back()->with('error', 'Only paid orders without an outstanding refund can be refunded.');
         }
-        // Mark as refunded (actual Razorpay refund via API in future)
-        $payment->update(['status' => 'refunded']);
-        MarketplaceService::reverseSale($payment);
-        return back()->with('success', "Payment #{$payment->razorpay_payment_id} marked as refunded.");
+        try {
+            $refundId = app(PaymentService::class)->requestFullRefund($payment);
+            return back()->with('success', "Refund {$refundId} accepted by Razorpay. It remains pending until the provider confirms processing.");
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Razorpay refund failed or needs reconciliation', ['payment_order_id' => $payment->id, 'error' => $e->getMessage()]);
+            return back()->with('error', 'Refund was not confirmed. Check Razorpay and reconcile this payment before trying again.');
+        }
+    }
+
+    public function reconcileRefund(PaymentOrder $payment)
+    {
+        try {
+            return back()->with('success', app(PaymentService::class)->reconcileRefund($payment));
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Razorpay refund reconciliation failed', ['payment_order_id' => $payment->id, 'error' => $e->getMessage()]);
+            return back()->with('error', 'Could not check Razorpay. The refund remains blocked until reconciliation succeeds.');
+        }
     }
 }

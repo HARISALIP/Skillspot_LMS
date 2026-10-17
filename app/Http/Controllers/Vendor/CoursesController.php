@@ -11,6 +11,7 @@ use App\Models\CourseLevel;
 use App\Models\CourseLanguage;
 use App\Models\User;
 use App\Services\LessonQuiz;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -94,6 +95,10 @@ class CoursesController extends Controller
         abort_if($course->vendor_id !== $vendor->id, 403);
         $data = $this->validateCourse($request, $course->id);
         $data['vendor_id'] = $vendor->id; // keep locked to vendor
+        if (!$course->isMarketplaceLive()) {
+            $data['visibility'] = 'draft';
+            $data['is_published'] = false;
+        }
         $course->update($data);
         return back()->with('success', "Course updated ✅");
     }
@@ -103,9 +108,10 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
-        if (!$course->isMarketplaceLive()) return back()->with('error', 'Submit this course for marketplace review before publishing it.');
-        $course->update(['visibility' => 'public', 'is_published' => true]);
-        return back()->with('success', "\"{$course->title}\" is live in the Skillspot marketplace.");
+        if ($course->marketplace_status !== 'live') return back()->with('error', 'Submit this course for marketplace review before publishing it.');
+        $publish = ! $course->marketplace_visible;
+        $course->update(['marketplace_visible' => $publish, 'visibility' => $publish ? 'public' : 'draft', 'is_published' => $publish]);
+        return back()->with('success', $publish ? "\"{$course->title}\" is live in the Skillspot marketplace." : "\"{$course->title}\" has been unpublished.");
     }
 
     // ── Delete ───────────────────────────────────────────────────────────
@@ -124,6 +130,7 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        $course->loadCount('enrollments');
         $allowed  = $course->allowedUsers()->get();
         $enrolled = $course->enrollments()->with('user')->get();
         $isVendorOnly = $this->isVendorOnly();
@@ -172,6 +179,7 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($section->course_id === $course->id, 404);
         $request->validate(['title' => 'required|string|max:255']);
         $section->update(['title' => $request->title]);
         return back()->with('success', 'Section updated ✅');
@@ -182,7 +190,10 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($section->course_id === $course->id, 404);
+        $hadLessons = $section->lessons()->exists();
         $section->delete();
+        if ($hadLessons) CourseService::refreshEnrollmentProgress($course);
         return back()->with('success', 'Section deleted.');
     }
 
@@ -203,6 +214,7 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($section->course_id === $course->id, 404);
         return view('vendor.courses.lesson', [
             'vendor'  => $vendor,
             'course'  => $course,
@@ -226,6 +238,7 @@ class CoursesController extends Controller
             if ($quiz) LessonQuiz::save($lesson, $quiz);
             return $lesson;
         });
+        CourseService::refreshEnrollmentProgress($course);
         return redirect()->route('vendor.courses.edit', $course->id)
             ->with('success', "Lesson \"{$lesson->title}\" added ✅");
     }
@@ -267,7 +280,9 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $lesson->delete();
+        CourseService::refreshEnrollmentProgress($course);
         return back()->with('success', 'Lesson deleted.');
     }
 
@@ -276,6 +291,7 @@ class CoursesController extends Controller
     {
         $data = $request->validate([
             'title'             => 'required|string|max:255',
+            'short_introduction'=> 'nullable|string|max:300',
             'description'       => 'nullable|string',
             'category'          => 'required|string|max:100',
             'level'             => 'required|string|max:60',
@@ -337,11 +353,12 @@ class CoursesController extends Controller
             'live_meeting_id'    => 'nullable|string|max:100',
             'live_password'      => 'nullable|string|max:100',
             'notes'              => 'nullable|string',
-            'duration'           => 'nullable|integer|min:0',
+            'duration'           => 'nullable|integer|min:0|max:1440',
             'is_preview'         => 'boolean',
         ]);
         $data['is_preview']    = $request->boolean('is_preview');
         $data['video_storage'] = $request->input('video_storage', 'external');
+        if (isset($data['duration'])) $data['duration'] *= 60;
         return $data;
     }
 }

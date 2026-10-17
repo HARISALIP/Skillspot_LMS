@@ -12,9 +12,6 @@
     
   </div>
 
-  @if(session('success'))<div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
-  @if(session('error'))<div class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>@endif
-
   <div class="grid grid-cols-1 gap-4">
     @forelse($batches as $batch)
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

@@ -15,7 +15,6 @@ use App\Models\Vendor;
 use App\Services\MarketplaceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
 
 class MarketplaceController extends Controller
 {
@@ -41,17 +40,28 @@ class MarketplaceController extends Controller
 
     public function apply(Request $request)
     {
+        abort_unless(!in_array($request->user()->instructorProfile?->status, ['approved', 'suspended'], true), 403);
         $data = $request->validate([
             'legal_name' => ['required', 'string', 'max:255'],
             'bio' => ['required', 'string', 'min:40', 'max:5000'],
-            'payout_account_name' => ['required', 'string', 'max:255'],
-            'payout_account_number' => ['required', 'string', 'min:6', 'max:80'],
-            'payout_ifsc' => ['required', 'string', 'min:6', 'max:30'],
         ]);
         $profile = InstructorProfile::updateOrCreate(['user_id' => $request->user()->id], $data + [
             'status' => 'pending', 'reviewed_by' => null, 'review_note' => null, 'approved_at' => null,
         ]);
-        return redirect()->route('marketplace.dashboard')->with('success', $profile->wasRecentlyCreated ? 'Instructor application submitted for review.' : 'Instructor application updated and resubmitted for review.');
+        return redirect()->route('studio.dashboard')->with('success', $profile->wasRecentlyCreated ? 'Instructor application submitted for review.' : 'Instructor application updated and resubmitted for review.');
+    }
+
+    public function updatePayout(Request $request)
+    {
+        $profile = $request->user()->instructorProfile;
+        abort_unless($profile?->status === 'approved', 403);
+        $data = $request->validate([
+            'payout_account_name' => ['required', 'string', 'max:255'],
+            'payout_account_number' => ['required', 'string', 'min:6', 'max:80'],
+            'payout_ifsc' => ['required', 'string', 'min:6', 'max:30'],
+        ]);
+        $profile->update($data);
+        return back()->with('success', 'Payout details saved securely.');
     }
 
     public function dashboard()
@@ -59,12 +69,13 @@ class MarketplaceController extends Controller
         $user = auth()->user();
         MarketplaceService::releaseAvailableEarnings();
         $profile = $user->instructorProfile;
-        $courses = Course::where('primary_instructor_id', $user->id)->orWhereHas('teachers', fn ($q) => $q->where('users.id', $user->id))->latest()->get();
+        $courses = Course::where('primary_instructor_id', $user->id)->latest()->get();
         $sales = MarketplaceSale::where('seller_user_id', $user->id)->with('course')->latest()->get();
         $balances = [
             'pending' => $sales->where('status', 'pending')->sum('seller_share'),
             'available' => $sales->where('status', 'available')->sum('seller_share'),
             'paid' => $sales->where('status', 'paid')->sum('seller_share'),
+            'ledger' => EarningLedgerEntry::where('payee_type', 'instructor')->where('payee_user_id', $user->id)->sum('amount'),
         ];
         return view('marketplace.dashboard', compact('profile', 'courses', 'sales', 'balances'));
     }
@@ -94,7 +105,8 @@ class MarketplaceController extends Controller
     public function submitCourse(Request $request, Course $course)
     {
         $this->authorizeCourseOwner($request->user(), $course);
-        abort_unless($request->user()->instructorProfile?->status === 'approved' || $course->vendor_id, 403, 'An approved instructor profile is required before submitting a marketplace course.');
+        abort_unless(in_array($course->marketplace_status, ['draft', 'needs_changes', 'rejected'], true), 422, 'This course is not awaiting its first review.');
+        abort_unless($request->user()->hasRole(['admin', 'super-admin']) || ($course->vendor_id ? $request->user()->hasRole(['vendor', 'teacher']) : $request->user()->instructorProfile?->status === 'approved'), 403, 'An approved creator profile is required before submitting a course.');
         $problems = $this->courseQualityProblems($course);
         if ($problems) return back()->withErrors(['marketplace' => implode(' ', $problems)]);
         $course->update(['marketplace_status' => 'submitted', 'marketplace_visible' => false, 'is_published' => false, 'visibility' => 'draft', 'submitted_at' => now(), 'review_feedback' => null]);
@@ -112,19 +124,32 @@ class MarketplaceController extends Controller
     {
         $this->admin();
         $data = $request->validate(['status' => ['required', 'in:approved,rejected,suspended'], 'review_note' => ['nullable', 'string', 'max:3000']]);
-        $profile->update($data + ['reviewed_by' => $request->user()->id, 'approved_at' => $data['status'] === 'approved' ? now() : null]);
-        if ($data['status'] === 'approved') {
-            Role::findOrCreate('teacher', 'web');
-            $profile->user->syncRoles(array_unique(array_merge($profile->user->getRoleNames()->all(), ['teacher', 'student'])));
-        }
+        DB::transaction(function () use ($profile, $data, $request) {
+            $profile->update($data + ['reviewed_by' => $request->user()->id, 'approved_at' => $data['status'] === 'approved' ? now() : null]);
+            if ($data['status'] === 'suspended') {
+                Course::where('primary_instructor_id', $profile->user_id)->whereNull('vendor_id')
+                    ->where('marketplace_status', 'live')->get()->each(function (Course $course) use ($request, $data) {
+                        $course->update(['marketplace_status' => 'suspended', 'marketplace_visible' => false,
+                            'is_published' => false, 'visibility' => 'draft', 'reviewed_at' => now(),
+                            'reviewed_by' => $request->user()->id, 'review_feedback' => $data['review_note'] ?? 'Creator suspended']);
+                        CourseReview::create(['course_id' => $course->id, 'submitted_by' => $course->primary_instructor_id,
+                            'reviewed_by' => $request->user()->id, 'status' => 'suspended',
+                            'feedback' => $data['review_note'] ?? 'Creator suspended',
+                            'submitted_at' => $course->submitted_at ?? now(), 'reviewed_at' => now()]);
+                    });
+            }
+        });
         return back()->with('success', 'Instructor application updated.');
     }
 
     public function reviewQueue()
     {
         $this->admin();
-        $courses = Course::whereIn('marketplace_status', ['submitted', 'needs_changes'])->with(['primaryInstructor', 'vendor'])->latest('submitted_at')->paginate(20);
-        return view('marketplace.review-queue', compact('courses'));
+        $courses = Course::whereIn('marketplace_status', ['submitted', 'needs_changes'])
+            ->orWhere(fn ($query) => $query->where('marketplace_status', 'live')->whereNull('reviewed_at'))
+            ->with(['primaryInstructor', 'vendor', 'sections.lessons'])->latest('submitted_at')->paginate(20);
+        $recentChanges = \App\Models\CourseChangeAudit::with(['course', 'actor'])->latest('created_at')->limit(30)->get();
+        return view('marketplace.review-queue', compact('courses', 'recentChanges'));
     }
 
     public function reviewCourse(Request $request, Course $course)
@@ -132,7 +157,7 @@ class MarketplaceController extends Controller
         $this->admin();
         $data = $request->validate(['status' => ['required', 'in:live,needs_changes,rejected,suspended,archived'], 'feedback' => ['nullable', 'string', 'max:5000']]);
         $live = $data['status'] === 'live';
-        abort_if($live && $course->vendor_id && !$course->vendor?->marketplace_verified_at, 422, 'Verify this organization’s payout account before publishing its course.');
+        abort_if($live && !$course->isMarketplaceLive() && $course->marketplace_status !== 'submitted', 422, 'The creator must submit this course for review first.');
         $course->update([
             'marketplace_status' => $data['status'], 'marketplace_visible' => $live,
             'is_published' => $live, 'visibility' => $live ? 'public' : 'draft',
@@ -140,6 +165,23 @@ class MarketplaceController extends Controller
         ]);
         CourseReview::create(['course_id' => $course->id, 'submitted_by' => $course->primary_instructor_id ?: $request->user()->id, 'reviewed_by' => $request->user()->id, 'status' => $data['status'], 'feedback' => $data['feedback'] ?? null, 'submitted_at' => $course->submitted_at ?: now(), 'reviewed_at' => now()]);
         return back()->with('success', 'Course review recorded.');
+    }
+
+    public function publishAdminCourse(Request $request, Course $course)
+    {
+        $this->admin();
+        abort_unless($course->primary_instructor_id === $request->user()->id && !$course->vendor_id, 403);
+        abort_if($course->isMarketplaceLive(), 422, 'This course is already live.');
+        $data = $request->validate(['reason' => ['required', 'string', 'min:10', 'max:2000']]);
+        DB::transaction(function () use ($course, $request, $data) {
+            $course->update(['marketplace_status' => 'live', 'marketplace_visible' => true,
+                'visibility' => 'public', 'is_published' => true, 'reviewed_at' => now(),
+                'reviewed_by' => $request->user()->id, 'review_feedback' => $data['reason']]);
+            CourseReview::create(['course_id' => $course->id, 'submitted_by' => $request->user()->id,
+                'reviewed_by' => $request->user()->id, 'status' => 'admin_override',
+                'feedback' => $data['reason'], 'submitted_at' => now(), 'reviewed_at' => now()]);
+        });
+        return back()->with('success', 'Admin-authored course published with an audit record.');
     }
 
     public function commissions()
@@ -172,7 +214,11 @@ class MarketplaceController extends Controller
         MarketplaceService::releaseAvailableEarnings();
         $sales = MarketplaceSale::where('status', 'available')->with(['course', 'seller', 'organization'])->latest()->get();
         $batches = PayoutBatch::with('items.sale.course')->latest()->paginate(15);
-        return view('marketplace.payouts', compact('sales', 'batches'));
+        $negativeBalances = EarningLedgerEntry::selectRaw('payee_type, payee_user_id, organization_id, SUM(amount) as balance')
+            ->whereIn('payee_type', ['instructor', 'organization'])
+            ->groupBy('payee_type', 'payee_user_id', 'organization_id')
+            ->havingRaw('SUM(amount) < 0')->get();
+        return view('marketplace.payouts', compact('sales', 'batches', 'negativeBalances'));
     }
 
     public function createPayout(Request $request)
@@ -182,6 +228,22 @@ class MarketplaceController extends Controller
         $sales = MarketplaceSale::whereIn('id', $data['sale_ids'])->where('status', 'available')->get();
         abort_unless($sales->count() === count($data['sale_ids']), 422, 'Only currently available earnings can be added to a payout.');
         abort_unless($sales->pluck('seller_user_id')->unique()->count() === 1 && $sales->pluck('organization_id')->unique()->count() === 1, 422, 'A payout batch can pay one seller only.');
+        if ($sellerId = $sales->first()->seller_user_id) {
+            $profile = InstructorProfile::where('user_id', $sellerId)->first();
+            abort_unless($profile?->payout_account_name && $profile?->payout_account_number && $profile?->payout_ifsc, 422, 'The creator must add payout details before a payout can be prepared.');
+        } else {
+            $organization = Vendor::findOrFail($sales->first()->organization_id);
+            abort_unless($organization->marketplace_verified_at && $organization->payout_account_name
+                && $organization->payout_account_number && $organization->payout_ifsc, 422,
+                'Verify the organization and its bank details before preparing a payout.');
+        }
+        $ledgerBalance = EarningLedgerEntry::where('payee_type', $sales->first()->organization_id ? 'organization' : 'instructor')
+            ->when($sales->first()->organization_id, fn ($query) => $query->where('organization_id', $sales->first()->organization_id))
+            ->when($sellerId ?? null, fn ($query) => $query->where('payee_user_id', $sellerId))->sum('amount');
+        $pendingShare = MarketplaceSale::where('status', 'pending')
+            ->when($sales->first()->organization_id, fn ($query) => $query->where('organization_id', $sales->first()->organization_id))
+            ->when($sellerId ?? null, fn ($query) => $query->where('seller_user_id', $sellerId))->sum('seller_share');
+        abort_unless($ledgerBalance - $pendingShare >= $sales->sum('seller_share'), 422, 'Outstanding refund debt must be reconciled before this full payout can be prepared.');
         $batch = DB::transaction(function () use ($sales, $data, $request) {
             $batch = PayoutBatch::create(['seller_user_id' => $sales->first()->seller_user_id, 'organization_id' => $sales->first()->organization_id, 'note' => $data['note'] ?? null, 'created_by' => $request->user()->id]);
             foreach ($sales as $sale) PayoutItem::create(['payout_batch_id' => $batch->id, 'marketplace_sale_id' => $sale->id, 'amount' => $sale->seller_share]);
@@ -193,7 +255,7 @@ class MarketplaceController extends Controller
     public function markPayoutPaid(Request $request, PayoutBatch $batch)
     {
         $this->admin();
-        $data = $request->validate(['reference' => ['required', 'string', 'max:255']]);
+        $data = $request->validate(['reference' => ['required', 'string', 'max:255'], 'transfer_confirmed' => ['accepted']]);
         DB::transaction(function () use ($batch, $data, $request) {
             abort_unless($batch->status === 'draft', 422, 'This payout batch has already been processed.');
             $items = $batch->items()->with('sale')->lockForUpdate()->get();
@@ -213,7 +275,7 @@ class MarketplaceController extends Controller
         if ($user->hasRole(['admin', 'super-admin'])) return;
         abort_unless(
             $course->primary_instructor_id === $user->id
-            || $course->teachers()->where('users.id', $user->id)->exists()
+            || ($course->vendor_id && $course->teachers()->where('users.id', $user->id)->exists())
             || ($course->vendor_id && $course->vendor?->managers()->where('users.id', $user->id)->exists()),
             403
         );
@@ -226,12 +288,9 @@ class MarketplaceController extends Controller
         $outcomes = (array) $course->outcomes;
         $requirements = (array) $course->requirements;
         $problems = [];
-        if (!filled($course->short_introduction) || !filled($course->description) || !filled($course->thumbnail)) $problems[] = 'Add a complete sales page, description, and thumbnail.';
+        if (!filled($course->short_introduction) || !filled($course->description)) $problems[] = 'Add an introduction and description.';
         if ($course->price <= 0 && !$course->is_free) $problems[] = 'Set a valid marketplace price or mark the course free.';
-        if (count($outcomes) < 1 || count($requirements) < 1) $problems[] = 'Add at least one learning outcome and one requirement.';
-        if ($lessons->count() < 5) $problems[] = 'Marketplace courses need at least five lessons.';
-        if ($lessons->sum('duration') < 1800) $problems[] = 'Marketplace courses need at least 30 minutes of learning content.';
-        if (!$lessons->contains('is_preview', true)) $problems[] = 'Mark at least one lesson as a free preview.';
+        if ($lessons->isEmpty()) $problems[] = 'Add at least one lesson.';
         return $problems;
     }
 

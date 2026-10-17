@@ -1,7 +1,7 @@
 @extends('layouts.student')
 @section('title', $course->title.' — Learn')
 @section('page-title', $course->title)
-@section('page-sub', $enrollment ? $enrollment->progress.'% complete' : 'Enrolled')
+@section('page-sub', !empty($isCreatorPreview) ? 'Learner preview · saved content' : ($enrollment ? $enrollment->progress.'% complete' : 'Enrolled'))
 
 @push('styles')
 <style>
@@ -21,6 +21,17 @@
 
 @section('student-content')
 
+@if(!empty($isCreatorPreview))
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4" role="status">
+  <div><strong class="text-sm text-blue-950">Preview as learner</strong><p class="mt-1 text-xs text-blue-900">This shows saved course content. Progress, assignment submissions, quiz submissions and attendance are disabled.</p></div>
+  <a href="{{ $previewEditorUrl }}" class="inline-flex min-h-11 items-center rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800">Return to editor</a>
+</div>
+@endif
+
+@if($course->announcements->isNotEmpty())
+<section class="mb-5 rounded-xl border border-brand-100 bg-brand-50 p-4" aria-label="Course announcements"><h2 class="text-sm font-bold text-brand-900">Announcements</h2><div class="mt-2 space-y-3">@foreach($course->announcements->take(5) as $announcement)<article><h3 class="text-sm font-semibold text-gray-900">{{ $announcement->title }}</h3><p class="whitespace-pre-wrap text-sm text-gray-700">{{ $announcement->body }}</p><p class="text-xs text-gray-500">{{ $announcement->created_at->format('d M Y') }}</p></article>@endforeach</div></section>
+@endif
+
 {{-- Certificate Banner --}}
 @if($certificate)
 <div class="mb-5 bg-gradient-to-r from-yellow-400 to-amber-500 text-white rounded-2xl p-4 flex items-center gap-4">
@@ -29,14 +40,14 @@
     <div class="font-black text-base">Course Completed! Certificate Earned!</div>
     <div class="text-yellow-100 text-xs">Certificate ID: {{ $certificate->certificate_number }}</div>
   </div>
-  <a href="#" class="bg-white text-yellow-700 font-black text-xs px-4 py-2 rounded-xl hover:bg-yellow-50 transition">⬇️ Download</a>
+  <a href="{{ route('student.certs.show', $certificate) }}" class="bg-white text-yellow-700 font-black text-xs px-4 py-2 rounded-xl hover:bg-yellow-50 transition">View / save certificate</a>
 </div>
 @endif
 
 <div class="flex flex-col xl:flex-row gap-5" style="min-height: calc(100vh - 200px)">
 
   {{-- ── Video / Content Player ──────────────────────────────────── --}}
-  <div class="flex-1 min-w-0 space-y-4">
+  <div class="min-w-0 space-y-4 xl:flex-1">
 
     {{-- Player area --}}
     <div class="bg-black rounded-2xl overflow-hidden relative" id="playerBox">
@@ -78,17 +89,17 @@
         <div id="livePlatformName" class="font-black text-xl text-gray-900 mb-2"></div>
         <div id="liveSchedule" class="text-gray-500 text-sm mb-5"></div>
         <div id="liveMeetingInfo" class="hidden mb-5 bg-gray-50 rounded-xl p-4 text-left space-y-2 text-sm"></div>
-        <a id="liveJoinBtn" href="#" target="_blank"
+        <a id="liveJoinBtn" href="#" target="_blank" @if(!empty($isCreatorPreview)) hidden @endif
            class="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-8 py-3 rounded-2xl transition shadow-lg text-sm">
           📡 Join Live Class
         </a>
       </div>
 
       {{-- Loading --}}
-      <div id="playerLoading" class="aspect-video flex items-center justify-center bg-gray-900">
+      <div id="playerLoading" class="aspect-video flex items-center justify-center bg-gray-900" role="status" aria-live="polite">
         <div class="text-center text-white">
           <div class="text-4xl mb-3">📚</div>
-          <div class="text-sm text-gray-400">Select a lesson to start learning</div>
+          <div id="playerStatus" class="text-sm text-gray-400">Select a lesson to start learning</div>
         </div>
       </div>
     </div>
@@ -100,7 +111,7 @@
           <h2 id="lessonTitle" class="font-black text-gray-900 text-lg mb-1"></h2>
           <div id="lessonMeta" class="text-xs text-gray-400"></div>
         </div>
-        <button id="markDoneBtn" onclick="markLessonDone()"
+        <button id="markDoneBtn" onclick="markLessonDone()" @if(!empty($isCreatorPreview)) hidden @endif
                 class="flex-shrink-0 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition">
           ✅ Mark Complete
         </button>
@@ -113,7 +124,7 @@
     </div>
 
     {{-- Progress bar --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 {{ !empty($isCreatorPreview) ? 'hidden' : '' }}">
       <div class="flex items-center justify-between mb-2 text-xs text-gray-500">
         <span>Course Progress</span>
         <span id="progressText" class="font-bold text-brand-600">{{ $enrollment?->progress ?? 0 }}%</span>
@@ -130,9 +141,13 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden xl:sticky xl:top-20">
       <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
         <div class="font-black text-gray-900 text-sm">📋 Course Content</div>
+        @if(!empty($isCreatorPreview))
+        <div class="text-xs text-gray-400 mt-0.5">Saved course content · read-only</div>
+        @else
         <div id="lessonsDoneCount" class="text-xs text-gray-400 mt-0.5">
           {{ $completedIds->count() }}/{{ $course->sections->sum(fn($s)=>$s->lessons->count()) }} lessons done
         </div>
+        @endif
       </div>
       <div class="overflow-y-auto max-h-[60vh] xl:max-h-[calc(100vh-250px)]">
         @foreach($course->sections as $section)
@@ -163,7 +178,7 @@
                 {{ $lesson->title }}
               </div>
               @if($lesson->duration)
-              <div class="text-xs text-gray-400 mt-0.5">{{ $lesson->duration }}m</div>
+              <div class="text-xs text-gray-400 mt-0.5">{{ (int) ceil($lesson->duration / 60) }}m</div>
               @endif
               @if($prog > 0 && !$done)
               <div class="mt-1 bg-gray-200 rounded-full h-1 overflow-hidden">
@@ -306,9 +321,11 @@ document.getElementById('materialViewer').addEventListener('click', event => {
 });
 const CSRF    = '{{ csrf_token() }}';
 const COURSE  = {{ $course->id }};
-const API_BASE= '/learn/{{ $course->id }}';
+const CREATOR_PREVIEW = @json(!empty($isCreatorPreview));
+const API_BASE= CREATOR_PREVIEW ? @json(route('instructor.courses.preview', $course)) : '/learn/{{ $course->id }}';
 let currentLessonId = {{ $currentLesson?->id ?? 'null' }};
 let saveTimer;
+let activeLessonRequest;
 let scormState = {};
 let scormCompleted = false;
 
@@ -335,6 +352,10 @@ window.API_1484_11 = {
 
 // Load a lesson
 async function loadLesson(lessonId) {
+  activeLessonRequest?.abort();
+  activeLessonRequest = new AbortController();
+  clearTimeout(saveTimer);
+  document.getElementById('videoPlayer').pause();
   currentLessonId = lessonId;
 
   // Update active state in sidebar
@@ -344,15 +365,17 @@ async function loadLesson(lessonId) {
 
   // Show loading
   hideAllPlayers();
+  document.getElementById('playerStatus').textContent = 'Loading lesson…';
   document.getElementById('playerLoading').classList.remove('hidden');
   document.getElementById('lessonInfo').classList.add('hidden');
 
   try {
     const res  = await fetch(`${API_BASE}/lesson/${lessonId}`, {
       headers: {'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json'},
+      signal: activeLessonRequest.signal,
     });
     const data = await res.json();
-    if (!res.ok) { alert(data.error || 'Failed to load lesson.'); return; }
+    if (!res.ok) { document.getElementById('playerStatus').textContent = data.error || 'Could not load this lesson. Select it to retry.'; return; }
 
     document.getElementById('playerLoading').classList.add('hidden');
     document.getElementById('lessonInfo').classList.remove('hidden');
@@ -379,7 +402,7 @@ async function loadLesson(lessonId) {
       doneBtn.disabled   = false;
       doneBtn.className  = 'flex-shrink-0 flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition';
     }
-    doneBtn.classList.toggle('hidden', data.type === 'quiz' || data.type === 'scorm');
+    doneBtn.classList.toggle('hidden', CREATOR_PREVIEW || data.type === 'quiz' || data.type === 'assignment' || data.type === 'scorm');
 
     // Render based on type
     if (data.type === 'scorm' && data.scorm_launch_url) {
@@ -392,10 +415,14 @@ async function loadLesson(lessonId) {
       document.getElementById('iframeWrap').classList.remove('hidden');
     } else if (data.type === 'video' && data.video_url) {
       renderVideo(data.video_url, data.progress);
+    } else if (data.type === 'video') {
+      renderContent('<p class="text-gray-500">No video has been saved for this lesson yet.</p>', data.title);
     } else if (data.type === 'live') {
       renderLive(data);
     } else if (data.type === 'quiz' && data.quiz) {
       renderQuiz(data.quiz, data.completed);
+    } else if (data.type === 'assignment' && data.assignment) {
+      renderAssignment(data.assignment);
     } else if (data.type === 'text') {
       renderContent(data.block_document ? renderBlockDocument(data.block_document) : (data.content || '<p class="text-gray-400">No content available.</p>'), data.title);
     } else if (data.type === 'pdf' && data.content) {
@@ -404,8 +431,7 @@ async function loadLesson(lessonId) {
       renderContent('<p class="text-gray-400">Content not available.</p>');
     }
   } catch(e) {
-    document.getElementById('playerLoading').classList.add('hidden');
-    alert('Error loading lesson: '+e.message);
+    if (e.name !== 'AbortError') document.getElementById('playerStatus').textContent = 'Could not load this lesson. Select it to retry.';
   }
 }
 
@@ -529,6 +555,64 @@ function updateProgressDisplay(progress) {
     document.querySelectorAll('.lesson-item.done').length + '/' + document.querySelectorAll('.lesson-item').length + ' lessons done';
 }
 
+function renderAssignment(assignment) {
+  const container = document.getElementById('lessonContent');
+  container.replaceChildren();
+  const title = document.createElement('h2'); title.textContent = 'Assignment';
+  const instructions = document.createElement('p'); instructions.className = 'whitespace-pre-wrap'; instructions.textContent = assignment.instructions;
+  container.append(title, instructions);
+  if (assignment.due_at) {
+    const due = document.createElement('p'); due.className = 'text-sm text-gray-600';
+    due.textContent = 'Due ' + new Date(assignment.due_at).toLocaleString(); container.append(due);
+  }
+  if (assignment.submission) {
+    const status = document.createElement('p'); status.className = 'rounded-lg bg-blue-50 p-3 text-sm text-blue-900';
+    status.textContent = assignment.submission.status === 'graded'
+      ? `Grade: ${assignment.submission.score}% · ${assignment.submission.feedback || 'No feedback yet'}`
+      : 'Submitted privately · waiting for grading';
+    container.append(status);
+    if (assignment.submission.file_url) {
+      const file = document.createElement('a'); file.href = assignment.submission.file_url;
+      file.className = 'text-sm font-semibold text-brand-700 underline';
+      file.textContent = 'Download your submission: ' + assignment.submission.file_name; container.append(file);
+    }
+  }
+  const passed = assignment.submission?.status === 'graded' && assignment.submission.score >= assignment.pass_score;
+  const closed = assignment.due_at && new Date(assignment.due_at) < new Date();
+  if (CREATOR_PREVIEW || passed || closed) {
+    const notice = document.createElement('p'); notice.className = 'mt-3 text-sm text-gray-600';
+    notice.textContent = CREATOR_PREVIEW ? 'Preview only — submissions are disabled.' : (passed ? 'Assignment passed.' : 'Submissions are closed.');
+    container.append(notice);
+  } else {
+    const form = document.createElement('form'); form.className = 'mt-4 space-y-3'; form.dataset.ajax = '';
+    const answer = document.createElement('textarea'); answer.name = 'answer'; answer.rows = 6;
+    answer.className = 'w-full rounded-xl border-gray-200'; answer.placeholder = 'Write your answer';
+    answer.value = assignment.submission?.answer || '';
+    const file = document.createElement('input'); file.type = 'file'; file.name = 'file';
+    file.accept = '.pdf,.doc,.docx,.txt,.png,.jpg,.jpeg'; file.className = 'block w-full text-sm';
+    const button = document.createElement('button'); button.type = 'submit';
+    button.className = 'rounded-xl bg-brand-600 px-5 py-3 text-sm font-bold text-white'; button.textContent = 'Submit assignment';
+    const feedback = document.createElement('p'); feedback.setAttribute('role', 'status'); feedback.className = 'text-sm';
+    form.append(answer, file, button, feedback);
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!answer.value.trim() && !file.files.length) { feedback.textContent = 'Write an answer or attach a file.'; return; }
+      button.disabled = true; button.textContent = 'Submitting…';
+      try {
+        const response = await fetch(`/learn/{{ $course->id }}/assignment/${assignment.id}`, {
+          method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }, body: new FormData(form),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Could not submit assignment.');
+        feedback.className = 'text-sm text-green-700'; feedback.textContent = data.message;
+        button.textContent = 'Submitted';
+      } catch (error) { feedback.className = 'text-sm text-red-700'; feedback.textContent = error.message; button.disabled = false; button.textContent = 'Submit assignment'; }
+    });
+    container.append(form);
+  }
+  document.getElementById('contentWrap').classList.remove('hidden');
+}
+
 function renderQuiz(quiz, completed) {
   const container = document.getElementById('lessonContent');
   container.replaceChildren();
@@ -538,30 +622,40 @@ function renderQuiz(quiz, completed) {
   const subtitle = document.createElement('p');
   subtitle.textContent = `Answer all ${quiz.questions.length} questions. Pass score: ${quiz.pass_score}%.`;
   container.appendChild(subtitle);
-  if (completed) {
+  if (completed || quiz.pending) {
     const passed = document.createElement('p');
-    passed.className = 'rounded-xl bg-green-50 text-green-700 p-4 font-bold';
-    passed.textContent = '✅ You passed this quiz.';
+    passed.className = quiz.pending ? 'rounded-xl bg-blue-50 text-blue-900 p-4 font-bold' : 'rounded-xl bg-green-50 text-green-700 p-4 font-bold';
+    passed.textContent = quiz.pending ? 'Open answers submitted — waiting for teacher grading.' : '✅ You passed this quiz.';
     container.appendChild(passed);
   } else {
     const form = document.createElement('form');
+    form.dataset.ajax = '';
     form.className = 'space-y-5';
     quiz.questions.forEach((question, index) => {
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'rounded-xl border border-gray-200 p-4';
+      fieldset.disabled = CREATOR_PREVIEW;
       const legend = document.createElement('legend');
       legend.className = 'font-bold';
       legend.textContent = `${index + 1}. ${question.question}`;
       fieldset.appendChild(legend);
-      question.options.forEach((option, choice) => {
-        const label = document.createElement('label');
-        label.className = 'flex items-center gap-3 p-2 rounded-lg hover:bg-brand-50 cursor-pointer';
-        const input = document.createElement('input');
-        input.type = 'radio'; input.name = `q${question.id}`; input.value = choice;
-        input.required = true;
-        label.append(input, document.createTextNode(option));
-        fieldset.appendChild(label);
-      });
+      if (question.type === 'open') {
+        const input = document.createElement('textarea'); input.name = `q${question.id}`;
+        input.required = true; input.rows = 5; input.maxLength = 10000;
+        input.className = 'mt-2 w-full rounded-xl border-gray-200';
+        fieldset.appendChild(input);
+      } else {
+        (question.options || []).forEach((option, choice) => {
+          const label = document.createElement('label');
+          label.className = 'flex items-center gap-3 p-2 rounded-lg hover:bg-brand-50 cursor-pointer';
+          const input = document.createElement('input');
+          input.type = question.type === 'multiple' ? 'checkbox' : 'radio';
+          input.name = `q${question.id}`; input.value = choice;
+          input.required = question.type !== 'multiple';
+          label.append(input, document.createTextNode(option));
+          fieldset.appendChild(label);
+        });
+      }
       form.appendChild(fieldset);
     });
     const button = document.createElement('button');
@@ -569,11 +663,20 @@ function renderQuiz(quiz, completed) {
     button.textContent = 'Submit quiz';
     const result = document.createElement('p');
     result.className = 'font-bold';
-    form.append(button, result);
+    if (CREATOR_PREVIEW) {
+      const notice = document.createElement('p');
+      notice.className = 'rounded-lg bg-blue-50 p-3 text-sm text-blue-900';
+      notice.textContent = 'Preview only — answers cannot be submitted.';
+      form.appendChild(notice);
+    } else form.append(button, result);
     form.addEventListener('submit', async e => {
       e.preventDefault();
+      if (CREATOR_PREVIEW) return;
       button.disabled = true;
-      const answers = Object.fromEntries(quiz.questions.map(q => [q.id, Number(new FormData(form).get(`q${q.id}`))]));
+      const fields = new FormData(form);
+      const answers = Object.fromEntries(quiz.questions.map(q => [q.id, q.type === 'open'
+        ? fields.get(`q${q.id}`) : (q.type === 'multiple'
+          ? fields.getAll(`q${q.id}`).map(Number) : Number(fields.get(`q${q.id}`)))]));
       try {
         const response = await fetch(`${API_BASE}/lesson/${currentLessonId}/quiz`, {
           method: 'POST', headers: {'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
@@ -581,14 +684,14 @@ function renderQuiz(quiz, completed) {
         });
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Could not submit quiz.');
-        result.textContent = data.passed ? `✅ Passed — ${data.score}%.` : `Try again — ${data.score}%. You need ${data.pass_score}%.`;
+        result.textContent = data.pending ? 'Submitted — open answers are waiting for manual grading.' : (data.passed ? `✅ Passed — ${data.score}%.` : `Try again — ${data.score}%. You need ${data.pass_score}%.`);
         result.className = `font-bold ${data.passed ? 'text-green-700' : 'text-amber-700'}`;
         if (data.passed) {
           const item = document.querySelector(`.lesson-item[data-lesson-id="${currentLessonId}"]`);
           if (item) { item.classList.add('done'); item.querySelector('.lesson-icon').textContent = '✅'; }
           updateProgressDisplay(data.course_progress);
           if (data.certificate) { document.getElementById('certNumber').textContent = 'Certificate ID: ' + data.certificate; document.getElementById('certModal').classList.remove('hidden'); }
-        } else button.disabled = false;
+        } else if (!data.pending) button.disabled = false;
       } catch (error) { result.textContent = error.message; button.disabled = false; }
     });
     container.appendChild(form);
@@ -614,7 +717,8 @@ function renderLive(data) {
     if (data.live_password)   info.innerHTML += `<div><span class="text-gray-400">Password:</span> <strong class="font-mono">${data.live_password}</strong></div>`;
     info.classList.remove('hidden');
   }
-  document.getElementById('liveJoinBtn').href = data.live_url || '#';
+  document.getElementById('liveJoinBtn').href = data.live_url || '';
+  document.getElementById('liveJoinBtn').classList.toggle('hidden', CREATOR_PREVIEW || !data.live_url);
   document.getElementById('liveWrap').classList.remove('hidden');
 }
 
@@ -634,7 +738,7 @@ async function markLessonDone() {
 }
 
 async function saveLessonProgress(percent, seconds, scormData = null) {
-  if (!currentLessonId) return;
+  if (CREATOR_PREVIEW || !currentLessonId) return;
   try {
     const res  = await fetch(`${API_BASE}/lesson/${currentLessonId}/progress`, {
       method : 'POST',

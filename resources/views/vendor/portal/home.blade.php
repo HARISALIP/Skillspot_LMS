@@ -29,20 +29,23 @@
       <span class="font-bold text-gray-900 text-base">{{ $vendor->brand_name }}</span>
     </div>
     <div class="flex items-center gap-3">
-      @auth
+      @if($canOpenDashboard)
         <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition">My Dashboard</a>
         <form method="POST" action="{{ route('vendor.portal.logout', $vendor->slug) }}" class="inline">
           @csrf
           <button class="text-sm text-gray-500 hover:text-red-600 transition ml-1">Sign out</button>
         </form>
+      @elseif(auth()->check())
+        <a href="{{ route('student.dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900">Skillspot Dashboard</a>
       @else
         <a href="{{ route('vendor.portal.login', $vendor->slug) }}" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition">Login</a>
         <a href="{{ route('vendor.portal.register.general', $vendor->slug) }}" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition ml-1">Register</a>
-      @endauth
+      @endif
     </div>
   </div>
 </nav>
 
+<main>
 <!-- Hero -->
 <div class="hero-bg text-white">
   @if($vendor->banner_image)
@@ -91,9 +94,13 @@
           <div class="text-xs text-gray-400 mt-1">📅 {{ $course->batch_start_date->format('d M Y') }} → {{ $course->batch_end_date?->format('d M Y') ?? 'TBD' }}</div>
         @endif
         <div class="mt-4">
-          <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" class="block w-full text-center btn-primary text-white py-2.5 rounded-xl font-semibold text-sm transition">
-            Register Now
-          </a>
+          @if(!$course->is_free && (float) $course->price > 0 && !$course->isMarketplaceLive())
+            <span class="block w-full rounded-xl bg-gray-100 py-2.5 text-center text-sm font-semibold text-gray-500">Enrollment unavailable</span>
+          @else
+            <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" class="block w-full text-center btn-primary text-white py-2.5 rounded-xl font-semibold text-sm transition">
+              {{ !$course->is_free && (float) $course->price > 0 ? 'View & purchase' : 'Register Now' }}
+            </a>
+          @endif
         </div>
       </div>
     </div>
@@ -103,6 +110,7 @@
   <div class="text-center py-16 text-gray-400">No courses available yet. Check back soon!</div>
   @endif
 </div>
+</main>
 
 <!-- Footer -->
 <footer class="bg-white border-t border-gray-100 mt-8 py-6">

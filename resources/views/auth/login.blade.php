@@ -68,12 +68,7 @@
     <!-- Bottom trust badge -->
     <div class="relative z-10 pt-4 mt-6 border-t border-white/15 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <div class="flex -space-x-1.5">
-          <div class="w-6 h-6 rounded-full bg-brand-400 border border-white flex items-center justify-center text-white text-[9px] font-bold">A</div>
-          <div class="w-6 h-6 rounded-full bg-purple-500 border border-white flex items-center justify-center text-white text-[9px] font-bold">R</div>
-          <div class="w-6 h-6 rounded-full bg-emerald-500 border border-white flex items-center justify-center text-white text-[9px] font-bold">S</div>
-        </div>
-        <span class="text-[11px] text-white font-medium">10,000+ Active Students</span>
+        <span class="text-[11px] text-white font-medium">Your learning, all in one place</span>
       </div>
       <span class="text-[10px] text-blue-100 font-semibold px-2 py-0.5 rounded-full bg-white/15 border border-white/20">Skillspot.in</span>
     </div>

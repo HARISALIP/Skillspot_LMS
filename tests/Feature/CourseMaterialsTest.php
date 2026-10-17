@@ -20,9 +20,9 @@ class CourseMaterialsTest extends TestCase
     {
         config(['app.key' => str_repeat('a', 32)]);
         Storage::fake('public');
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $student = User::factory()->create();
         $paper = $this->upload('question-paper.pdf', 'application/pdf');
         $image = $this->upload('diagram.png', 'image/png');
@@ -63,9 +63,9 @@ class CourseMaterialsTest extends TestCase
     {
         config(['app.key' => str_repeat('a', 32)]);
         Storage::fake('public');
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $student = User::factory()->create();
         $course = Course::create(['title' => 'Programming', 'slug' => 'programming', 'category' => 'Coding', 'visibility' => 'public', 'is_published' => true, 'is_free' => true, 'primary_instructor_id' => $teacher->id, 'marketplace_status' => 'live', 'marketplace_visible' => true]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
@@ -98,9 +98,9 @@ class CourseMaterialsTest extends TestCase
     public function test_slide_preview_is_required_and_private_file_cannot_be_attached(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $course = Course::create(['title' => 'Programming', 'slug' => 'programming', 'category' => 'Coding', 'primary_instructor_id' => $teacher->id]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
         $deck = $this->upload('slides.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
