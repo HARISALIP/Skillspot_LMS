@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\Certificate;
+use App\Models\Enrollment;
 use App\Models\Section;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,12 +31,98 @@ class StudentCourseNavigationTest extends TestCase
             ->assertDontSeeText('Day Streak');
     }
 
+    public function test_progress_page_uses_the_learners_real_enrollments(): void
+    {
+        $student = User::factory()->create();
+        $course = Course::create(['title' => 'Progress course', 'category' => 'Technology']);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
+        $lesson = $section->lessons()->create(['title' => 'First step', 'type' => 'text']);
+        Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id,
+            'status' => 'active', 'access_type' => 'lifetime', 'progress' => 50]);
+        \DB::table('lesson_progress')->insert(['user_id' => $student->id, 'lesson_id' => $lesson->id,
+            'progress' => 100, 'completed' => true, 'created_at' => now(), 'updated_at' => now()]);
+
+        $this->actingAs($student)->get(route('student.progress'))
+            ->assertOk()
+            ->assertSeeText('Progress course')
+            ->assertSeeText('1/1 lessons complete')
+            ->assertSeeText('50%')
+            ->assertSee('role="progressbar"', false)
+            ->assertSee(route('student.learn', $course))
+            ->assertDontSeeText('coming soon');
+    }
+
+    public function test_live_classes_do_not_offer_empty_join_links(): void
+    {
+        $student = User::factory()->create();
+        $course = Course::create(['title' => 'Scheduled course', 'slug' => 'scheduled-course']);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Live sessions']);
+        $section->lessons()->create([
+            'title' => 'Waiting for host link',
+            'type' => 'live',
+            'live_scheduled_at' => now()->addHour(),
+            'live_duration_min' => 60,
+        ]);
+        $section->lessons()->create([
+            'title' => 'Ready session',
+            'type' => 'live',
+            'live_scheduled_at' => now()->addHours(2),
+            'live_duration_min' => 60,
+            'live_url' => 'https://meet.example.test/ready',
+        ]);
+        Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id, 'status' => 'active']);
+
+        $this->actingAs($student)->get(route('student.live'))
+            ->assertOk()
+            ->assertSeeText('Meeting link not added yet')
+            ->assertSeeText('Link not added yet')
+            ->assertDontSee('href=""', false)
+            ->assertSee('data-copy-link="https://meet.example.test/ready"', false);
+    }
+
+    public function test_profile_form_controls_have_accessible_names(): void
+    {
+        $student = User::factory()->create();
+
+        $this->actingAs($student)->withSession(['success' => 'Saved'])->get(route('student.profile'))
+            ->assertOk()
+            ->assertSee('for="profile-name"', false)
+            ->assertSee('for="profile-phone"', false)
+            ->assertSee('for="cpwd"', false)
+            ->assertSee('autocomplete="username"', false)
+            ->assertSee('autocomplete="current-password"', false)
+            ->assertSee('autocomplete="new-password"', false)
+            ->assertSee('aria-label="Show current password"', false)
+            ->assertSee('aria-label="Dismiss message"', false);
+
+        $this->get(route('student.settings'))->assertRedirect(route('student.profile'));
+        $this->get(route('student.saved'))->assertRedirect('/dashboard/browse');
+        $this->get(route('student.profile'))->assertOk()->assertSee(route('studio.dashboard'));
+    }
+
+    public function test_browse_filters_are_named_and_price_sort_is_applied(): void
+    {
+        $student = User::factory()->create();
+        foreach ([['Expensive course', 500], ['Affordable course', 100]] as [$title, $price]) {
+            Course::create(['title' => $title, 'price' => $price, 'is_free' => false,
+                'visibility' => 'public', 'is_published' => true,
+                'marketplace_status' => 'live', 'marketplace_visible' => true]);
+        }
+
+        $this->actingAs($student)->get(route('student.browse', ['sort' => 'price_lo']))
+            ->assertOk()
+            ->assertSeeInOrder(['Affordable course', 'Expensive course'])
+            ->assertSee('for="course-category"', false)
+            ->assertSee('for="course-level"', false)
+            ->assertSee('for="course-sort"', false);
+    }
+
     public function test_editing_course_details_keeps_a_published_course_public(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $course = Course::create([
             'title' => 'Web Development', 'slug' => 'web-development',
             'category' => 'Web Development', 'level' => 'beginner',
@@ -83,7 +170,10 @@ class StudentCourseNavigationTest extends TestCase
 
         $this->get(route('student.course-detail', $course->slug))
             ->assertOk()
-            ->assertSeeText($course->title);
+            ->assertSeeText($course->title)
+            ->assertSeeText('No payment required')
+            ->assertDontSeeText('Secure payment via Razorpay')
+            ->assertDontSeeText('money-back guarantee');
 
         $this->post(route('student.enroll-free', $course))
             ->assertRedirect(route('student.learn', $course));
@@ -153,9 +243,9 @@ class StudentCourseNavigationTest extends TestCase
     public function test_teacher_can_build_a_quiz_in_the_lesson_editor(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $course = Course::create(['title' => 'Robotics & IoT', 'slug' => 'robotics-iot', 'category' => 'Robotics & IoT', 'primary_instructor_id' => $teacher->id]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Sensors']);
         $this->actingAs($teacher)->get(route('admin.courses.lessons.create', [$course, $section]))
@@ -173,6 +263,7 @@ class StudentCourseNavigationTest extends TestCase
         ])->assertRedirect(route('admin.courses.edit', $course));
 
         $lesson = $section->lessons()->firstOrFail();
+        $this->assertSame(300, $lesson->duration);
         $this->assertSame(3, $lesson->quiz->questions()->count());
         $this->get(route('admin.courses.lessons.edit', [$course, $section, $lesson]))
             ->assertOk()->assertSee('Question 1?');

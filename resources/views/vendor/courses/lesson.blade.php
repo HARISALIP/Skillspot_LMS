@@ -1,9 +1,10 @@
 @extends('layouts.vendor')
-@section('title', ($isEdit ? 'Edit' : 'Add').' Lesson — ITForge Admin')
-@section('page-title', $isEdit ? 'Edit Lesson' : 'Add Lesson')
+@section('title', ($isEdit ? 'Edit' : 'Add').' Lesson — Skillspot Studio')
+@section('header', $isEdit ? 'Edit Lesson' : 'Add Lesson')
 @section('page-sub', $course->title.' → '.$section->title)
+@section('header-actions')<a href="{{ route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']) }}" class="inline-flex min-h-10 items-center rounded-lg border border-brand-200 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-50">Preview as learner</a>@endsection
 
-@section('admin-content')
+@section('content')
 
 @if($errors->any())
 <div class="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 text-sm">
@@ -430,7 +431,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Duration (minutes)</label>
-            <input type="number" name="duration" value="{{ old('duration',$lesson->duration) }}" min="0"
+            <input type="number" name="duration" value="{{ old('duration', $lesson->duration ? (int) ceil($lesson->duration / 60) : null) }}" min="0" max="1440"
                    placeholder="e.g. 15"
                    class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           </div>
@@ -535,15 +536,8 @@
 
 @push('scripts')
 <script>
-const _uploadUrl = '{{ route('admin.media.upload') }}';
-const _csrf      = '{{ csrf_token() }}';
-
-function onTypeChange(type) {
-  const videoFields   = ['video','live'];
-  const contentFields = ['text','pdf'];
-  document.getElementById('fieldVideoUrl').classList.toggle('hidden', !videoFields.includes(type));
-  document.getElementById('fieldContent').classList.toggle('hidden',  !contentFields.includes(type));
-}
+var _uploadUrl = '{{ route('courses.teaching.media.store', $course) }}';
+var _csrf      = '{{ csrf_token() }}';
 
 function switchVideoTab(tab) {
   document.getElementById('videoTabR2').classList.toggle('hidden',       tab !== 'r2');
@@ -630,13 +624,9 @@ function mpPickerSelect(url, path) {
   }
 }
 
-// Init on load
-const currentType = document.querySelector('input[name="type"]:checked')?.value ?? 'video';
-onTypeChange(currentType);
-
 // Media picker for video gallery
-const _mpApiUrl = '{{ route('admin.media.list') }}';
-const _mpState  = {};
+var _mpApiUrl = '{{ route('courses.teaching.media.index', $course) }}';
+var _mpState  = {};
 
 function openMediaPicker(modalId, pickerId, type, folder) {
   _mpState[modalId] = { page:1, type, folder, pickerId };
@@ -684,7 +674,7 @@ document.getElementById('videoPickerModal')?.addEventListener('click', function(
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script>
 // Initialize Quill rich text editor
-let quill = null;
+var quill = null;
 
 function initQuill() {
   if (quill) return;
@@ -732,7 +722,8 @@ function onTypeChange(type) {
 }
 
 // Auto-init if type is already text on load
-const _initType = document.querySelector('input[name="type"]:checked')?.value ?? 'video';
+var _initType = document.querySelector('input[name="type"]:checked')?.value ?? 'video';
+onTypeChange(_initType);
 if (_initType === 'text') setTimeout(initQuill, 200);
 
 // Sync content before form submit
@@ -780,7 +771,7 @@ async function uploadPdfFile(file) {
   formData.append('_token', '{{ csrf_token() }}');
 
   const xhr = new XMLHttpRequest();
-  xhr.open('POST', '{{ route("admin.media.upload") }}');
+  xhr.open('POST', '{{ route("courses.teaching.media.store", $course) }}');
   xhr.setRequestHeader('Accept', 'application/json');
 
   xhr.upload.onprogress = (e) => {

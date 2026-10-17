@@ -51,7 +51,7 @@
   </div>
 
   {{-- Right register form --}}
-  <div class="flex-1 flex items-center justify-center p-6">
+  <main class="flex-1 flex items-center justify-center p-6">
     <div class="w-full max-w-md">
 
       {{-- Mobile logo --}}
@@ -68,7 +68,7 @@
       <p class="text-gray-500 text-sm mb-8">Join {{ $vendor->brand_name }} and start learning today.</p>
 
       @if($errors->any())
-        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">
           {{ $errors->first() }}
         </div>
       @endif
@@ -77,30 +77,30 @@
         @csrf
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span class="text-red-400">*</span></label>
-          <input type="text" name="name" value="{{ old('name') }}" required autofocus
+          <label for="portal-register-name" class="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span class="text-red-400">*</span></label>
+          <input id="portal-register-name" type="text" name="name" value="{{ old('name') }}" autocomplete="name" required autofocus
                  placeholder="Your full name"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email <span class="text-red-400">*</span></label>
-          <input type="email" name="email" value="{{ old('email') }}" required
+          <label for="portal-register-email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email <span class="text-red-400">*</span></label>
+          <input id="portal-register-email" type="email" name="email" value="{{ old('email') }}" autocomplete="email" required
                  placeholder="your@email.com"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phone <span class="text-gray-400 font-normal">(optional)</span></label>
-          <input type="tel" name="phone" value="{{ old('phone') }}"
+          <label for="portal-register-phone" class="block text-sm font-semibold text-gray-700 mb-1.5">Phone <span class="text-gray-400 font-normal">(optional)</span></label>
+          <input id="portal-register-phone" type="tel" name="phone" value="{{ old('phone') }}" autocomplete="tel"
                  placeholder="+91 98765 43210"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
 
         @if($courses->count())
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Course <span class="text-gray-400 font-normal">(optional)</span></label>
-          <select name="course_id" class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
+          <label for="portal-register-course" class="block text-sm font-semibold text-gray-700 mb-1.5">Course <span class="text-gray-400 font-normal">(optional)</span></label>
+          <select id="portal-register-course" name="course_id" class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
             <option value="">— Select a course (optional) —</option>
             @foreach($courses as $c)
               <option value="{{ $c->id }}" {{ old('course_id') == $c->id ? 'selected' : '' }}>
@@ -112,20 +112,20 @@
         @endif
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password <span class="text-red-400">*</span></label>
-          <input type="password" name="password" required
+          <label for="portal-register-password" class="block text-sm font-semibold text-gray-700 mb-1.5">Password <span class="text-red-400">*</span></label>
+          <input id="portal-register-password" type="password" name="password" autocomplete="new-password" required
                  placeholder="Min. 8 characters"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span class="text-red-400">*</span></label>
-          <input type="password" name="password_confirmation" required
+          <label for="portal-register-password-confirmation" class="block text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <span class="text-red-400">*</span></label>
+          <input id="portal-register-password-confirmation" type="password" name="password_confirmation" autocomplete="new-password" required
                  placeholder="Repeat password"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
 
-        <x-human-verify :formKey="'portal_reg_' . $vendor->slug"/>
+        <x-human-verify :formKey="'portal_register_' . $vendor->slug"/>
 
         <button type="submit" class="btn-primary w-full text-white font-bold py-3 rounded-xl transition text-sm mt-2">
           Create Account →
@@ -142,7 +142,7 @@
       </div>
 
     </div>
-  </div>
+  </main>
 
 @stack('scripts')
 </body>

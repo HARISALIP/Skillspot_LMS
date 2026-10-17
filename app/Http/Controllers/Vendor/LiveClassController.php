@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class LiveClassController extends Controller
 {
@@ -42,7 +43,8 @@ class LiveClassController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('vendor.live_classes.index', compact('vendor', 'classes'));
+        $isVendorOnly = $this->isVendorOnly();
+        return view('vendor.live_classes.index', compact('vendor', 'classes', 'isVendorOnly'));
     }
 
     // ── Create form ────────────────────────────────────────────────────
@@ -124,11 +126,11 @@ class LiveClassController extends Controller
     // ── Show / Manage ──────────────────────────────────────────────────
     public function show(LiveClass $liveClass)
     {
-        $vendor = $this->vendor();
         // Allow access if user manages this class's vendor
         $myVendors = $this->myVendors();
         abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
 
+        $vendor = $liveClass->vendor;
         $liveClass->load(['sessions.teacher', 'enrollments.user']);
         $activeSession = $liveClass->activeSession();
 
@@ -151,7 +153,7 @@ class LiveClassController extends Controller
         $myVendors = $this->myVendors();
         abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
 
-        if ($liveClass->isLive()) {
+        if ($liveClass->isLive() || $liveClass->activeSession()) {
             return back()->with('error', 'Class is already live.');
         }
         if (in_array($liveClass->status, ['completed', 'cancelled'])) {
@@ -215,13 +217,20 @@ class LiveClassController extends Controller
         $myVendors = $this->myVendors();
         abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
 
-        $request->validate(['user_id' => 'required|exists:users,id']);
+        $request->validate([
+            'user_id' => [
+                'required',
+                Rule::exists('student_vendor_access', 'user_id')
+                    ->where(fn ($query) => $query->where('vendor_id', $liveClass->vendor_id)),
+            ],
+        ]);
 
-        if ($liveClass->max_students > 0 && $liveClass->enrollments()->count() >= $liveClass->max_students) {
+        $enrollment = $liveClass->enrollments()->where('user_id', $request->user_id)->first();
+        if (!$enrollment && $liveClass->max_students > 0 && $liveClass->enrollments()->count() >= $liveClass->max_students) {
             return back()->with('error', 'Max students limit reached.');
         }
 
-        LiveClassEnrollment::firstOrCreate(
+        LiveClassEnrollment::updateOrCreate(
             ['live_class_id' => $liveClass->id, 'user_id' => $request->user_id],
             ['enrolled_by' => auth()->id(), 'status' => 'active']
         );
@@ -300,6 +309,7 @@ class LiveClassController extends Controller
     {
         $myVendors = $this->myVendors();
         abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        abort_unless($file->live_class_id === $liveClass->id, 403);
         $file->update(['is_visible' => !$file->is_visible]);
         return back()->with('success', $file->is_visible ? 'File visible to students ✅' : 'File hidden from students.');
     }
@@ -309,6 +319,7 @@ class LiveClassController extends Controller
     {
         $myVendors = $this->myVendors();
         abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        abort_unless($file->live_class_id === $liveClass->id, 403);
         \Illuminate\Support\Facades\Storage::disk($file->disk)->delete($file->path);
         $file->delete();
         return back()->with('success', 'File deleted.');
@@ -317,8 +328,10 @@ class LiveClassController extends Controller
     // ── Secure view / stream ───────────────────────────────────────────
     public function viewFile(LiveClass $liveClass, \App\Models\LiveClassSessionFile $file)
     {
-        $vendor = $this->vendor();
         abort_unless($this->myVendors()->contains('id', $liveClass->vendor_id), 403);
+        abort_unless($file->live_class_id === $liveClass->id, 403);
+
+        $vendor = $liveClass->vendor;
 
         $signedUrl = \Illuminate\Support\Facades\Storage::disk($file->disk)
             ->temporaryUrl($file->path, now()->addHours(2));

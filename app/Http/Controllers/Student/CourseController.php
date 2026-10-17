@@ -59,13 +59,11 @@ class CourseController extends Controller
             ? $course->outcomes
             : (json_decode($course->outcomes ?? '[]', true) ?? []);
 
-        $razorpayKey = Setting::get('razorpay_mode','live') === 'test'
-            ? Setting::get('razorpay_test_key_id')
-            : Setting::get('razorpay_key_id');
+        $checkoutIssue = app(\App\Services\PaymentService::class)->checkoutUnavailableReason();
 
         return view('student.course-detail', compact(
             'course','enrollment','hasAccess','isExpired',
-            'totalLessons','totalDuration','requirements','outcomes','razorpayKey'
+            'totalLessons','totalDuration','requirements','outcomes','checkoutIssue'
         ));
     }
 
@@ -89,100 +87,15 @@ class CourseController extends Controller
     // ── Create Razorpay order for course ──────────────────────────────
     public function createOrder(Request $request, Course $course)
     {
-        $user = Auth::user();
-        abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for purchase.');
-
-        if (CourseService::hasAccess($user, $course)) {
-            return response()->json(['error'=>'Already enrolled.'], 422);
-        }
-
-        $amount = (int)(($course->sale_price ?? $course->price) * 100);
-        $mode   = Setting::get('razorpay_mode','live');
-        $keyId  = $mode === 'test' ? Setting::get('razorpay_test_key_id') : Setting::get('razorpay_key_id');
-        $secret = $mode === 'test' ? Setting::get('razorpay_test_key_secret') : Setting::get('razorpay_key_secret');
-
-        try {
-            $api   = new \Razorpay\Api\Api($keyId, $secret);
-            $order = $api->order->create([
-                'amount'          => $amount,
-                'currency'        => Setting::get('currency','INR'),
-                'receipt'         => 'rcpt_'.$user->id.'_'.$course->id.'_'.time(),
-                'payment_capture' => 1,
-                'notes'           => [
-                    'user_id'    => $user->id,
-                    'course_id'  => $course->id,
-                    'user_email' => $user->email,
-                    'course'     => $course->title,
-                ],
-            ]);
-
-            \App\Models\PaymentOrder::create([
-                'user_id'           => $user->id,
-                'course_id'         => $course->id,
-                'razorpay_order_id' => $order->id,
-                'amount'            => $course->sale_price ?? $course->price,
-                'currency'          => Setting::get('currency','INR'),
-                'mode'              => $mode,
-                'status'            => 'created',
-            ]);
-
-            return response()->json([
-                'order_id'   => $order->id,
-                'amount'     => $amount,
-                'currency'   => Setting::get('currency','INR'),
-                'key_id'     => $keyId,
-                'course'     => $course->title,
-                'user_name'  => $user->name,
-                'user_email' => $user->email,
-                'user_phone' => $user->phone ?? '',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error'=>'Payment init failed: '.$e->getMessage()], 500);
-        }
+        $request->merge(['course_id' => $course->id]);
+        return app(\App\Http\Controllers\Payment\PaymentController::class)->createOrder($request);
     }
 
     // ── Verify payment & enroll ────────────────────────────────────────
     public function verifyPayment(Request $request, Course $course)
     {
-        $request->validate([
-            'razorpay_order_id'   => 'required|string',
-            'razorpay_payment_id' => 'required|string',
-            'razorpay_signature'  => 'required|string',
-        ]);
-
-        $mode   = Setting::get('razorpay_mode','live');
-        $secret = $mode === 'test' ? Setting::get('razorpay_test_key_secret') : Setting::get('razorpay_key_secret');
-
-        $generated = hash_hmac('sha256',
-            $request->razorpay_order_id.'|'.$request->razorpay_payment_id, $secret);
-
-        if (!hash_equals($generated, $request->razorpay_signature)) {
-            return response()->json(['error'=>'Payment verification failed.'], 422);
-        }
-
-        $paymentOrder = \App\Models\PaymentOrder::where('razorpay_order_id',$request->razorpay_order_id)->first();
-        abort_unless($paymentOrder && $paymentOrder->user_id === Auth::id() && $paymentOrder->course_id === $course->id, 404);
-        if ($paymentOrder) {
-            $paymentOrder->update([
-                'razorpay_payment_id' => $request->razorpay_payment_id,
-                'razorpay_signature'  => $request->razorpay_signature,
-                'status'              => 'paid',
-                'paid_at'             => now(),
-            ]);
-        }
-
-        $enrollment = CourseService::enrollAfterPayment(
-            Auth::user(), $course,
-            (float)($course->sale_price ?? $course->price),
-            $request->razorpay_payment_id
-        );
-        \App\Services\MarketplaceService::recordPaidSale($paymentOrder->fresh(['course']));
-
-        return response()->json([
-            'success'  => true,
-            'redirect' => route('student.learn', $course->id),
-            'message'  => 'Payment successful! You are now enrolled. 🎉',
-        ]);
+        $request->merge(['course_id' => $course->id]);
+        return app(\App\Http\Controllers\Payment\PaymentController::class)->verify($request);
     }
 
     // ── Course learn page ──────────────────────────────────────────────
@@ -195,7 +108,7 @@ class CourseController extends Controller
                 ->with('error','Please enroll to access this course.');
         }
 
-        $course->load('sections.lessons');
+        $course->load('sections.lessons', 'announcements.author');
         $materialsByLesson = $this->materialsForLessons($course->sections->flatMap->lessons);
         $courseMaterials = $this->materialsForLessons(collect([$course]))[$course->id] ?? [];
         $enrollment = Enrollment::where('user_id',$user->id)->where('course_id',$course->id)->first();
@@ -228,6 +141,46 @@ class CourseController extends Controller
         ));
     }
 
+    public function preview(Course $course)
+    {
+        $this->authorizePreview($course);
+        $course->load('sections.lessons', 'announcements.author');
+        $materialsByLesson = $this->materialsForLessons($course->sections->flatMap->lessons, $course);
+        $courseMaterials = $this->materialsForLessons(collect([$course]), $course)[$course->id] ?? [];
+        $enrollment = null;
+        $lessonProgress = collect();
+        $completedIds = collect();
+        $currentLesson = $course->sections->first()?->lessons->first();
+        $certificate = null;
+        $isCreatorPreview = true;
+        $previewEditorUrl = match (request()->query('from')) {
+            'vendor' => $course->vendor_id === session('active_vendor_id') ? route('vendor.courses.edit', $course) : route('admin.courses.edit', $course),
+            'instructor' => route('instructor.courses.show', $course),
+            default => Auth::user()->hasRole(['admin', 'super-admin']) ? route('admin.courses.edit', $course)
+                : ($course->vendor_id && $course->vendor_id === session('active_vendor_id')
+                    ? route('vendor.courses.edit', $course) : route('instructor.courses.show', $course)),
+        };
+
+        return view('student.learn', compact(
+            'course', 'enrollment', 'lessonProgress', 'completedIds',
+            'currentLesson', 'certificate', 'materialsByLesson', 'courseMaterials', 'isCreatorPreview', 'previewEditorUrl'
+        ));
+    }
+
+    public function previewLesson(Course $course, Lesson $lesson)
+    {
+        $this->authorizePreview($course);
+        abort_unless($lesson->section?->course_id === $course->id, 404);
+
+        return $this->lessonResponse($course, $lesson, true);
+    }
+
+    private function authorizePreview(Course $course): void
+    {
+        $user = Auth::user();
+        abort_unless($user && $course->canManageContent($user), 403);
+    }
+
     // ── Get lesson for player (AJAX) ───────────────────────────────────
     public function getLesson(Course $course, Lesson $lesson)
     {
@@ -247,6 +200,12 @@ class CourseController extends Controller
             }
         }
 
+        return $this->lessonResponse($course, $lesson);
+    }
+
+    private function lessonResponse(Course $course, Lesson $lesson, bool $preview = false)
+    {
+        $user = Auth::user();
         // Signed video URL for R2 videos
         $videoUrl = null;
         if ($lesson->video_storage === 'r2' && $lesson->video_r2_path) {
@@ -259,18 +218,38 @@ class CourseController extends Controller
             $videoUrl = $lesson->video_url;
         }
 
-        $progress = DB::table('lesson_progress')
+        $progress = $preview ? null : DB::table('lesson_progress')
             ->where('user_id',$user->id)->where('lesson_id',$lesson->id)
             ->first();
 
         $quizData = null;
         if ($lesson->type === 'quiz' && $quiz = $lesson->quiz()->with('questions')->first()) {
+            $latestAttempt = $preview ? null : $quiz->attempts()->where('user_id', $user->id)->latest('id')->first();
             $quizData = [
                 'title' => $quiz->title,
                 'pass_score' => $quiz->pass_score,
+                'pending' => $latestAttempt?->status === 'pending',
+                'feedback' => $latestAttempt?->feedback,
+                'last_score' => $latestAttempt?->status === 'graded' ? $latestAttempt->score : null,
                 'questions' => $quiz->questions->sortBy('order')->map(fn($q) => [
                     'id' => $q->id, 'question' => $q->question, 'options' => $q->options,
+                    'type' => $q->question_type ?: 'single',
                 ])->values(),
+            ];
+        }
+
+        $assignmentData = null;
+        if ($lesson->type === 'assignment' && $assignment = $lesson->assignment) {
+            $submission = $preview ? null : $assignment->submissions()->where('user_id', $user->id)->first();
+            $assignmentData = [
+                'id' => $assignment->id, 'instructions' => $assignment->instructions,
+                'pass_score' => $assignment->pass_score, 'due_at' => $assignment->due_at?->toIso8601String(),
+                'submission' => $submission ? [
+                    'status' => $submission->status, 'answer' => $submission->answer,
+                    'score' => $submission->score, 'feedback' => $submission->feedback,
+                    'file_name' => $submission->file_name,
+                    'file_url' => $submission->file_path ? route('courses.teaching.submissions.file', [$course, $submission]) : null,
+                ] : null,
             ];
         }
 
@@ -283,14 +262,15 @@ class CourseController extends Controller
             // New editor documents are rendered client-side; legacy content remains unchanged.
             'block_document' => $lesson->block_document,
             'notes'        => $lesson->notes,
-            'materials'    => $this->materialsForLessons(collect([$lesson]))[$lesson->id] ?? [],
-            'duration'     => $lesson->duration,
+            'materials'    => $this->materialsForLessons(collect([$lesson]), $preview ? $course : null)[$lesson->id] ?? [],
+            'duration'     => $lesson->duration ? (int) ceil($lesson->duration / 60) : 0,
             'is_preview'   => $lesson->is_preview,
             'progress'     => $progress?->progress ?? 0,
             'completed'    => (bool)($progress?->completed ?? false),
             'scorm_launch_url' => $lesson->type === 'scorm' ? $this->scormLaunchUrl($course, $lesson->section) : null,
             'scorm_data'   => $lesson->type === 'scorm' ? ($progress?->scorm_data ?? '') : null,
             'quiz'         => $quizData,
+            'assignment'   => $assignmentData,
             'live_platform'=> $lesson->live_platform,
             'live_url'     => $lesson->live_url,
             'live_scheduled_at' => $lesson->live_scheduled_at?->toIso8601String(),
@@ -299,12 +279,14 @@ class CourseController extends Controller
         ]);
     }
 
-    private function materialsForLessons($lessons): array
+    private function materialsForLessons($lessons, ?Course $previewCourse = null): array
     {
         $ids = $lessons->flatMap(fn($lesson) => collect($lesson->resources ?? [])
             ->flatMap(fn($resource) => [$resource['upload_id'] ?? null, $resource['preview_upload_id'] ?? null]))
             ->filter()->unique();
-        $uploads = Upload::whereIn('id', $ids)->where('is_public', true)->get()->keyBy('id');
+        $query = Upload::whereIn('id', $ids);
+        if (!$previewCourse) $query->where('is_public', true);
+        $uploads = $query->get()->keyBy('id');
         $materials = [];
         foreach ($lessons as $lesson) {
             $materials[$lesson->id] = [];
@@ -316,9 +298,9 @@ class CourseController extends Controller
                     'title' => $resource['title'] ?? $file->original_name,
                     'kind' => $resource['kind'] ?? 'study_material',
                     'type' => $file->type,
-                    'url' => $file->public_url,
-                    'preview_url' => $preview?->public_url,
-                    'download_url' => route('media.download', $file->uuid),
+                    'url' => $previewCourse ? route('media.course', [$previewCourse, $file->uuid]) : $file->public_url,
+                    'preview_url' => $preview ? ($previewCourse ? route('media.course', [$previewCourse, $preview->uuid]) : $preview->public_url) : null,
+                    'download_url' => $previewCourse ? route('media.course', [$previewCourse, $file->uuid]) : route('media.download', $file->uuid),
                 ];
             }
         }
@@ -329,7 +311,7 @@ class CourseController extends Controller
     public function saveProgress(Request $request, Course $course, Lesson $lesson)
     {
         abort_unless($lesson->section?->course_id === $course->id && CourseService::hasAccess(Auth::user(), $course), 403);
-        abort_if($lesson->type === 'quiz', 422, 'Pass the quiz to complete this lesson.');
+        abort_if(in_array($lesson->type, ['quiz', 'assignment'], true), 422, 'Complete the graded activity to finish this lesson.');
         $request->validate([
             'progress'        => 'required|numeric|min:0|max:100',
             'watched_seconds' => 'nullable|integer|min:0',
@@ -366,9 +348,7 @@ class CourseController extends Controller
     {
         abort_unless($section->course_id === $course->id && $section->is_scorm, 404);
         $user = Auth::user();
-        $ownsCourse = $user->hasRole(['admin', 'super-admin'])
-            || $course->primary_instructor_id === $user->id
-            || $course->teachers()->where('users.id', $user->id)->exists();
+        $ownsCourse = $course->canManageContent($user);
         abort_unless($ownsCourse || CourseService::hasAccess($user, $course), 403);
 
         $asset = $scormPackages->assetPath($section, $path);
@@ -394,26 +374,27 @@ class CourseController extends Controller
         abort_unless($lesson->type === 'quiz', 404);
         $data = $request->validate([
             'answers' => 'required|array',
-            'answers.*' => 'required|integer|between:0,3',
         ]);
         $quiz = $lesson->quiz()->with('questions')->firstOrFail();
+        abort_if($quiz->attempts()->where('user_id', $user->id)->latest('id')->value('status') === 'pending', 422, 'Your open answers are awaiting grading.');
         $questions = $quiz->questions;
         abort_unless($questions->isNotEmpty() && $questions->every(fn($q) => array_key_exists($q->id, $data['answers'])), 422, 'Answer every question.');
-
-        $correct = $questions->filter(fn($q) => (string)$data['answers'][$q->id] === $q->correct_answer)->count();
-        $score = (int) round($correct / $questions->count() * 100);
-        $passed = $score >= $quiz->pass_score;
-        DB::table('quiz_attempts')->insert([
-            'user_id' => $user->id, 'quiz_id' => $quiz->id,
-            'score' => $score, 'passed' => $passed,
-            'answers' => json_encode($data['answers']),
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+        try {
+            $score = \App\Services\QuizGrader::score($questions, $data['answers']);
+        } catch (\DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+        $pending = $questions->contains(fn ($question) => $question->question_type === 'open');
+        $passed = !$pending && $score >= $quiz->pass_score;
+        $quiz->attempts()->create(['user_id' => $user->id, 'score' => $score,
+            'passed' => $passed, 'answers' => $data['answers'],
+            'status' => $pending ? 'pending' : 'graded', 'graded_at' => $pending ? null : now()]);
         $result = $passed ? CourseService::updateLessonProgress($user, $lesson, 100) : null;
 
         return response()->json([
             'score' => $score,
             'passed' => $passed,
+            'pending' => $pending,
             'pass_score' => $quiz->pass_score,
             'course_progress' => $result['progress'] ?? Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->value('progress') ?? 0,
             'certificate' => $result['certificate']?->certificate_number ?? null,

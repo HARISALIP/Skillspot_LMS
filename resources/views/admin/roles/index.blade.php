@@ -30,6 +30,7 @@
        class="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition shadow-sm">
       ➕ Create Role
     </a>
+    @if(auth()->user()->hasRole('super-admin'))
     <form method="POST" action="{{ route('admin.roles.seed') }}">
       @csrf
       <button type="submit"
@@ -38,6 +39,7 @@
         🌱 Seed Permissions
       </button>
     </form>
+    @endif
   </div>
   <div class="text-xs text-gray-400 bg-gray-100 px-3 py-2 rounded-xl">
     🔒 System roles: <strong>{{ implode(', ', $systemRoles) }}</strong> — cannot be deleted
@@ -94,15 +96,17 @@
 
       <!-- Actions -->
       <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
+        @if(!$isSystem || auth()->user()->hasRole('super-admin'))
         <a href="{{ route('admin.roles.edit', $role->id) }}"
            class="flex-1 text-center py-2 rounded-xl bg-gray-100 hover:bg-brand-50 hover:text-brand-700 text-gray-700 text-xs font-bold transition">
           ✏️ Edit Permissions
         </a>
+        @endif
         @if(!$isSystem)
         <form method="POST" action="{{ route('admin.roles.destroy', $role->id) }}"
               onsubmit="return confirm('Delete role &quot;{{ $role->name }}&quot;?')">
           @csrf @method('DELETE')
-          <button class="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition">🗑️</button>
+          <button type="submit" aria-label="Delete {{ $role->name }} role" class="py-2 px-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition">🗑️</button>
         </form>
         @endif
       </div>

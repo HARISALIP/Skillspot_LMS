@@ -1,37 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ $liveClass->title }} — {{ $vendor->brand_name }}</title>
-  @if($vendor->favicon)<link rel="icon" href="{{ Storage::disk('public')->url($vendor->favicon) }}">@endif
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-  @include('partials.styles')
+@extends('vendor.portal.layout')
+@section('title', $liveClass->title . ' — ' . $vendor->brand_name)
+@push('styles')
   <style>
-    :root { --primary: {{ $vendor->primary_color ?? '#2563eb' }}; --accent: {{ $vendor->accent_color ?? '#7c3aed' }}; }
     .hero-bg { background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); }
     .btn-primary { background: var(--primary); }
-    body { font-family: 'Inter', sans-serif; }
   </style>
-</head>
-<body class="bg-gray-50 antialiased">
-
-{{-- Nav --}}
-<nav class="bg-white border-b border-gray-100 sticky top-0 z-20">
-  <div class="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      @if($vendor->logo)
-        <img src="{{ Storage::disk('public')->url($vendor->logo) }}" class="w-8 h-8 rounded-xl object-cover">
-      @else
-        <div class="w-8 h-8 hero-bg rounded-xl flex items-center justify-center text-white font-black text-sm">{{ strtoupper(substr($vendor->brand_name,0,1)) }}</div>
-      @endif
-      <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="text-sm text-gray-500 hover:text-gray-700">← Dashboard</a>
-    </div>
-    <span class="text-sm text-gray-600 hidden sm:block">{{ auth()->user()->name }}</span>
-  </div>
-</nav>
+@endpush
+@section('content')
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+  <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900">← Back to dashboard</a>
 
   @if(session('success'))
     <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>
@@ -78,7 +57,7 @@
         <div class="flex justify-between text-xs text-white/70 mb-1">
           <span>Overall Progress</span><span>{{ $liveClass->progressPercent() }}%</span>
         </div>
-        <div class="w-full bg-white/20 rounded-full h-2">
+        <div role="progressbar" aria-label="Overall class progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $liveClass->progressPercent() }}" class="w-full bg-white/20 rounded-full h-2">
           <div class="h-2 rounded-full bg-white transition-all" style="width:{{ $liveClass->progressPercent() }}%"></div>
         </div>
       </div>
@@ -243,5 +222,4 @@
 <script>setTimeout(() => location.reload(), 30000);</script>
 @endif
 
-</body>
-</html>
+@endsection

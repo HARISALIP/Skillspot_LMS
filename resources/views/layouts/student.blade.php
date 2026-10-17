@@ -69,11 +69,10 @@
         ['icon'=>'📚','label'=>'My Courses',  'route'=>'student.courses',  'href'=>'/dashboard/courses'],
         ['icon'=>'📡','label'=>'Live Classes','route'=>'student.live',    'href'=>'/dashboard/live'],
         ['icon'=>'🔍','label'=>'Browse',      'route'=>'student.browse',   'href'=>'/dashboard/browse'],
-        ['icon'=>'🔖','label'=>'Saved',       'route'=>'student.saved',    'href'=>'/dashboard/saved'],
         ['icon'=>'📜','label'=>'Certificates','route'=>'student.certs',    'href'=>'/dashboard/certs'],
         ['icon'=>'📊','label'=>'Progress',    'route'=>'student.progress', 'href'=>'/dashboard/progress'],
         ['icon'=>'👤','label'=>'Profile',     'route'=>'student.profile',  'href'=>'/dashboard/profile'],
-        ['icon'=>'⚙️','label'=>'Settings',    'route'=>'student.settings', 'href'=>'/dashboard/settings'],
+        ['icon'=>'🎓','label'=>'Creator Studio', 'route'=>'studio.dashboard', 'href'=>route('studio.dashboard')],
       ]; @endphp
 
       @foreach($navItems as $item)
@@ -109,10 +108,6 @@
         <a href="/dashboard/browse" class="hidden sm:flex items-center gap-1.5 text-xs bg-brand-50 text-brand-700 hover:bg-brand-100 font-semibold px-3 py-2 rounded-xl transition">
           🔍 Browse Courses
         </a>
-        <button class="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition relative">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-brand-500 rounded-full"></span>
-        </button>
       </div>
     </header>
 

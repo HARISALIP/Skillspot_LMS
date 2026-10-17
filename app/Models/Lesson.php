@@ -5,6 +5,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class Lesson extends Model
 {
+    protected static function booted(): void
+    {
+        static::saved(function (Lesson $lesson) {
+            $course = $lesson->section?->course;
+            if ($course?->marketplace_status === 'live' && ($lesson->wasRecentlyCreated || $lesson->wasChanged())) {
+                CourseChangeAudit::create(['course_id' => $course->id, 'actor_id' => auth()->id(),
+                    'subject_type' => 'lesson', 'subject_id' => $lesson->id,
+                    'changed_fields' => $lesson->wasRecentlyCreated ? ['created'] : array_keys($lesson->getChanges())]);
+            }
+        });
+        static::deleted(function (Lesson $lesson) {
+            $course = $lesson->section?->course;
+            if ($course?->marketplace_status === 'live') CourseChangeAudit::create(['course_id' => $course->id, 'actor_id' => auth()->id(),
+                'subject_type' => 'lesson', 'subject_id' => $lesson->id, 'changed_fields' => ['deleted']]);
+        });
+    }
     protected $fillable = [
         'section_id','title','description','type','content',
         'video_url','video_storage','video_r2_path',
@@ -24,6 +40,7 @@ class Lesson extends Model
 
     public function section() { return $this->belongsTo(Section::class); }
     public function quiz()    { return $this->hasOne(Quiz::class); }
+    public function assignment() { return $this->hasOne(Assignment::class); }
 
     public function isLiveNow(): bool
     {

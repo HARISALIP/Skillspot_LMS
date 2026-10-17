@@ -2,15 +2,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Password as PasswordBroker;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Rules\Password;
 use Spatie\Permission\Models\Role;
 
 class UsersController extends Controller
 {
+    private function assertCanManage(User $user): void
+    {
+        abort_if($user->hasRole('super-admin') && !auth()->user()->hasRole('super-admin'), 403);
+    }
+
     private array $countries = [
         'IN'=>'India','US'=>'United States','GB'=>'United Kingdom',
         'AE'=>'UAE','SA'=>'Saudi Arabia','QA'=>'Qatar','KW'=>'Kuwait',
@@ -73,13 +82,24 @@ class UsersController extends Controller
     {
         $user      = new User();
         $countries = $this->countries;
-        return view('admin.users.form', compact('user', 'countries'));
+        $inviteMailReady = $this->inviteMailReady();
+        return view('admin.users.form', compact('user', 'countries', 'inviteMailReady'));
+    }
+
+    private function inviteMailReady(): bool
+    {
+        return config('mail.default') === 'smtp'
+            && filled(config('mail.mailers.smtp.host'))
+            && filled(config('mail.from.address'))
+            && filled(Setting::get('mail_invites_verified_at'));
     }
 
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {
-        $allRoles = Role::pluck('name')->toArray();
+        $allRoles = Role::query()
+            ->when(!$request->user()->hasRole('super-admin'), fn ($query) => $query->where('name', '!=', 'super-admin'))
+            ->pluck('name')->toArray();
 
         $request->validate([
             'name'          => ['required', 'string', 'max:255'],
@@ -88,10 +108,13 @@ class UsersController extends Controller
             'country'       => ['required', 'string', 'max:5'],
             'role'          => ['required', 'string', 'in:' . implode(',', $allRoles)],
             'portal_access' => ['nullable', 'in:Skillspot_only,vendor_only,both'],
-            'password'      => ['required', Password::min(8)],
         ]);
 
-        $plainPassword = $request->password;
+        if (!$this->inviteMailReady()) {
+            throw ValidationException::withMessages([
+                'email' => 'Verify SMTP in Settings → Email Accounts before creating users.',
+            ]);
+        }
 
         $user = User::create([
             'name'           => $request->name,
@@ -99,7 +122,7 @@ class UsersController extends Controller
             'phone'          => $request->phone ?: null,
             'country'        => $request->country,
             'country_name'   => $this->countries[$request->country] ?? $request->country,
-            'password'       => Hash::make($plainPassword),
+            'password'       => Hash::make(Str::random(64)),
             'registered_via' => 'admin',
             'portal_access'  => $request->input('role') === 'vendor'
                 ? 'vendor_only'
@@ -110,18 +133,31 @@ class UsersController extends Controller
 
         $user->assignRole($request->role);
 
-        // Send welcome email if requested
-        if ($request->boolean('send_welcome')) {
-            $this->sendWelcomeEmail($user, $plainPassword);
+        try {
+            $status = PasswordBroker::sendResetLink(['email' => $user->email]);
+            if ($status !== PasswordBroker::RESET_LINK_SENT) {
+                throw new \RuntimeException($status);
+            }
+        } catch (\Throwable $exception) {
+            DB::transaction(function () use ($user) {
+                $user->roles()->detach();
+                $user->delete();
+                DB::table(config('auth.passwords.users.table', 'password_reset_tokens'))
+                    ->where('email', $user->email)->delete();
+            });
+            throw ValidationException::withMessages([
+                'email' => 'The invitation could not be sent. No account was created. Check Email Accounts and retry.',
+            ]);
         }
 
         return redirect()->route('admin.users')
-            ->with('success', "User \"{$user->name}\" created successfully ✅");
+            ->with('success', "Invitation sent to {$user->email}. They can set their password using the link.");
     }
 
     // ── Edit form ──────────────────────────────────────────────────────
     public function edit(User $user)
     {
+        $this->assertCanManage($user);
         $relations = ['roles'];
         if (\Illuminate\Support\Facades\Schema::hasTable('student_vendor_access')) {
             $relations[] = 'vendorAccess';
@@ -152,7 +188,10 @@ class UsersController extends Controller
     // ── Update ─────────────────────────────────────────────────────────
     public function update(Request $request, User $user)
     {
-        $allRoles = Role::pluck('name')->toArray();
+        $this->assertCanManage($user);
+        $allRoles = Role::query()
+            ->when(!$request->user()->hasRole('super-admin'), fn ($query) => $query->where('name', '!=', 'super-admin'))
+            ->pluck('name')->toArray();
 
         $request->validate([
             'name'          => ['required', 'string', 'max:255'],
@@ -191,6 +230,7 @@ class UsersController extends Controller
     // ── Delete ─────────────────────────────────────────────────────────
     public function destroy(User $user)
     {
+        abort_if($user->hasRole('super-admin'), 403);
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot delete your own account.');
         }
@@ -202,51 +242,10 @@ class UsersController extends Controller
             ->with('success', "User \"{$name}\" deleted.");
     }
 
-    // ── Send welcome email ─────────────────────────────────────────────
-    private function sendWelcomeEmail(User $user, string $plainPassword): void
-    {
-        $siteName = \App\Models\Setting::get('site_name', 'Skillspot');
-        $siteUrl  = \App\Models\Setting::get('app_url',   'https://Skillspot.in');
-        $role     = $user->roles->first()?->name ?? 'student';
-
-        try {
-            Mail::send([], [], function ($msg) use ($user, $plainPassword, $siteName, $siteUrl, $role) {
-                $msg->to($user->email, $user->name)
-                    ->subject("Welcome to {$siteName} — Your Account Details")
-                    ->html("
-                      <div style='font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#f8fafc;'>
-                        <div style='background:white;border-radius:20px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.06);'>
-                          <h2 style='color:#1e3a8a;margin:0 0 8px;'>Welcome to {$siteName}! 🎉</h2>
-                          <p style='color:#6b7280;margin:0 0 24px;font-size:14px;'>Your account has been created by an administrator. Here are your login details:</p>
-
-                          <div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:20px;'>
-                            <table style='width:100%;font-size:14px;border-collapse:collapse;'>
-                              <tr><td style='color:#6b7280;padding:4px 0;width:120px;'>Name:</td><td style='font-weight:700;color:#111827;'>{$user->name}</td></tr>
-                              <tr><td style='color:#6b7280;padding:4px 0;'>Email:</td><td style='font-weight:700;color:#111827;'>{$user->email}</td></tr>
-                              <tr><td style='color:#6b7280;padding:4px 0;'>Password:</td><td style='font-weight:700;color:#111827;font-family:monospace;'>{$plainPassword}</td></tr>
-                              <tr><td style='color:#6b7280;padding:4px 0;'>Role:</td><td style='font-weight:700;color:#2563eb;text-transform:capitalize;'>{$role}</td></tr>
-                            </table>
-                          </div>
-
-                          <a href='{$siteUrl}/login'
-                             style='display:inline-block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;text-decoration:none;padding:12px 28px;border-radius:12px;font-weight:700;font-size:14px;margin-bottom:20px;'>
-                            Login to Your Account →
-                          </a>
-
-                          <p style='color:#9ca3af;font-size:12px;margin:0;'>Please change your password after first login. If you have any questions, contact us at <a href='mailto:info@Skillspot.in' style='color:#2563eb;'>info@Skillspot.in</a></p>
-                        </div>
-                      </div>
-                    ");
-            });
-        } catch (\Exception $e) {
-            // Silent fail — don't block user creation if email fails
-            \Log::warning('Welcome email failed', ['user' => $user->id, 'error' => $e->getMessage()]);
-        }
-    }
-
     // ── User Vendor Access Management ─────────────────────────────────
     public function access(\App\Models\User $user)
     {
+        $this->assertCanManage($user);
         $user->load('vendorAccess','roles');
         $allVendors = \App\Models\Vendor::orderBy('brand_name')->get(['id','brand_name','slug','status','primary_color']);
         return view('admin.users.access', compact('user','allVendors'));
@@ -254,6 +253,7 @@ class UsersController extends Controller
 
     public function addAccess(\Illuminate\Http\Request $request, \App\Models\User $user)
     {
+        $this->assertCanManage($user);
         $request->validate(['vendor_id' => 'required|exists:vendors,id']);
         \Illuminate\Support\Facades\DB::table('student_vendor_access')->updateOrInsert(
             ['user_id' => $user->id, 'vendor_id' => $request->vendor_id],
@@ -264,6 +264,7 @@ class UsersController extends Controller
 
     public function removeAccess(\App\Models\User $user, \App\Models\Vendor $vendor)
     {
+        $this->assertCanManage($user);
         \Illuminate\Support\Facades\DB::table('student_vendor_access')
             ->where('user_id', $user->id)->where('vendor_id', $vendor->id)->delete();
         return back()->with('success', 'Access removed.');
@@ -271,6 +272,7 @@ class UsersController extends Controller
 
     public function setPortal(\Illuminate\Http\Request $request, \App\Models\User $user)
     {
+        $this->assertCanManage($user);
         $request->validate(['portal_access' => 'required|in:Skillspot_only,vendor_only,both']);
         $user->update(['portal_access' => $request->portal_access]);
         return back()->with('success', 'Portal access updated ✅');
@@ -279,6 +281,7 @@ class UsersController extends Controller
     // ── Teacher: assign to vendor ────────────────────────────────────────
     public function assignTeacherVendor(\Illuminate\Http\Request $request, \App\Models\User $user)
     {
+        $this->assertCanManage($user);
         $request->validate(['vendor_id' => 'required|exists:vendors,id']);
         if (!$user->hasRole('teacher')) $user->assignRole('teacher');
         \Illuminate\Support\Facades\DB::table('vendor_teachers')->updateOrInsert(
@@ -290,6 +293,7 @@ class UsersController extends Controller
 
     public function removeTeacherVendor(\App\Models\User $user, \App\Models\Vendor $vendor)
     {
+        $this->assertCanManage($user);
         \Illuminate\Support\Facades\DB::table('vendor_teachers')
             ->where('vendor_id', $vendor->id)->where('user_id', $user->id)->delete();
         return back()->with('success', 'Vendor removed from teacher.');
@@ -298,6 +302,7 @@ class UsersController extends Controller
     // ── Teacher: assign to Skillspot course ────────────────────────────────
     public function assignTeacherCourse(\Illuminate\Http\Request $request, \App\Models\User $user)
     {
+        $this->assertCanManage($user);
         $request->validate(['course_id' => 'required|exists:courses,id']);
         if (!$user->hasRole('teacher')) $user->assignRole('teacher');
         \Illuminate\Support\Facades\DB::table('course_teachers')->updateOrInsert(
@@ -309,6 +314,7 @@ class UsersController extends Controller
 
     public function removeTeacherCourse(\App\Models\User $user, int $courseId)
     {
+        $this->assertCanManage($user);
         \Illuminate\Support\Facades\DB::table('course_teachers')
             ->where('course_id', $courseId)->where('user_id', $user->id)->delete();
         return back()->with('success', 'Course removed from teacher.');

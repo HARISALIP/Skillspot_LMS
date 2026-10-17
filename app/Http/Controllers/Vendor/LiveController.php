@@ -6,6 +6,7 @@ use App\Models\Vendor;
 use App\Models\Course;
 use App\Models\Section;
 use App\Models\Lesson;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -138,6 +139,7 @@ class LiveController extends Controller
                 }
                 $current->addDay();
             }
+            if ($created) CourseService::refreshEnrollmentProgress($course);
             return back()->with('success', "{$created} recurring sessions scheduled for \"{$request->title}\" ✅");
         } else {
             $maxOrder = $section->lessons()->max('order') + 1;
@@ -146,6 +148,7 @@ class LiveController extends Controller
                 'live_scheduled_at' => $request->live_scheduled_at,
                 'order'             => $maxOrder,
             ]));
+            CourseService::refreshEnrollmentProgress($course);
             return back()->with('success', "Live class \"{$request->title}\" scheduled ✅");
         }
     }
@@ -178,7 +181,9 @@ class LiveController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($lesson->section->course->vendor_id !== $vendor->id, 403);
+        $course = $lesson->section->course;
         $lesson->delete();
+        CourseService::refreshEnrollmentProgress($course);
         return back()->with('success', 'Live session removed.');
     }
 }

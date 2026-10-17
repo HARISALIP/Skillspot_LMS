@@ -94,6 +94,7 @@ class BatchController extends Controller
     public function attendance(Course $course, Lesson $lesson)
     {
         $lesson->load('section.course');
+        abort_unless($lesson->section?->course_id === $course->id, 404);
         $enrolled = $course->enrollments()->with('user')->get();
         $existing = BatchAttendance::where('lesson_id', $lesson->id)->with('markedBy')->get()->keyBy('user_id');
         $summary  = [
@@ -107,8 +108,13 @@ class BatchController extends Controller
 
     public function saveAttendance(Request $request, Course $course, Lesson $lesson)
     {
-        foreach ($request->input('attendance', []) as $userId => $status) {
-            if (!in_array($status, ['present','absent','late'])) continue;
+        abort_unless($lesson->section?->course_id === $course->id, 404);
+        $data = $request->validate(['attendance' => 'sometimes|array', 'attendance.*' => 'in:present,absent,late']);
+        $attendance = $data['attendance'] ?? [];
+        $enrolledUserIds = $course->enrollments()->pluck('user_id');
+        abort_if(collect(array_keys($attendance))->map(fn ($id) => (int) $id)->diff($enrolledUserIds)->isNotEmpty(), 422,
+            'Attendance can only be saved for enrolled learners.');
+        foreach ($attendance as $userId => $status) {
             BatchAttendance::updateOrCreate(
                 ['lesson_id' => $lesson->id, 'user_id' => $userId],
                 ['course_id' => $course->id, 'vendor_id' => $course->vendor_id, 'status' => $status, 'marked_by' => auth()->id()]

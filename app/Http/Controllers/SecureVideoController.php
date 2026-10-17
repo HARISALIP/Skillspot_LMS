@@ -5,6 +5,7 @@ use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\Enrollment;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -22,6 +23,9 @@ class SecureVideoController extends Controller
 
         // Admins always have access
         $isAdmin = $user->hasRole('super-admin') || $user->hasRole('admin');
+        if (!$isAdmin && in_array($course->marketplace_status, ['suspended', 'archived', 'rejected'], true)) {
+            return response()->json(['error' => 'This course is currently unavailable.'], 403);
+        }
 
         // Check enrollment for students
         if (!$isAdmin) {
@@ -31,7 +35,7 @@ class SecureVideoController extends Controller
                 ->first();
 
             // Allow free preview lessons even without enrollment
-            if (!$enrollment && !$lesson->is_preview) {
+            if (!$enrollment && (!$lesson->is_preview || !$course->is_published || $course->visibility !== 'public' || !$course->isMarketplaceLive())) {
                 return response()->json(['error' => 'Access denied. Please enroll to watch this lesson.'], 403);
             }
 
@@ -86,6 +90,8 @@ class SecureVideoController extends Controller
         $user    = Auth::user();
         $section = $lesson->section;
         $course  = $section->course;
+        abort_unless(CourseService::hasAccess($user, $course), 403);
+        abort_unless($lesson->type === 'video', 422);
 
         // Update lesson progress in DB
         \DB::table('lesson_progress')->updateOrInsert(

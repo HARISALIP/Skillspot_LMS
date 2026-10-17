@@ -33,18 +33,14 @@
     </div>
 
     <!-- Stats -->
-    <div class="mt-8 grid grid-cols-3 gap-3 max-w-sm mx-auto">
+    <div class="mt-8 grid grid-cols-2 gap-3 max-w-xs mx-auto">
       <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-xl py-2.5 px-2 text-center shadow-sm">
-        <div class="text-xl md:text-2xl font-black text-slate-900">{{ $stats['courses'] > 0 ? $stats['courses'].'+ ' : '50+' }}</div>
+        <div class="text-xl md:text-2xl font-black text-slate-900">{{ $stats['courses'] }}</div>
         <div class="text-slate-500 text-[11px] font-medium mt-0.5">Courses</div>
       </div>
       <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-xl py-2.5 px-2 text-center shadow-sm">
-        <div class="text-xl md:text-2xl font-black text-slate-900">{{ $stats['students'] > 0 ? $stats['students'].'+ ' : '2K+' }}</div>
+        <div class="text-xl md:text-2xl font-black text-slate-900">{{ $stats['students'] }}</div>
         <div class="text-slate-500 text-[11px] font-medium mt-0.5">Students</div>
-      </div>
-      <div class="bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-xl py-2.5 px-2 text-center shadow-sm">
-        <div class="text-xl md:text-2xl font-black text-slate-900">100%</div>
-        <div class="text-slate-500 text-[11px] font-medium mt-0.5">Certified</div>
       </div>
     </div>
   </div>
@@ -92,7 +88,7 @@
         <div class="inline-block bg-accent-50 text-accent-700 text-xs font-semibold border border-accent-100 px-3.5 py-1 rounded-full mb-2">What We Teach</div>
         <h2 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Our Courses</h2>
       </div>
-      <a href="/register" class="self-start sm:self-auto text-xs text-brand-600 font-bold hover:text-brand-700 transition">View all {{ $stats['courses'] }} courses →</a>
+      <a href="{{ route('marketplace.browse') }}" class="self-start sm:self-auto text-xs text-brand-600 font-bold hover:text-brand-700 transition">Browse all courses →</a>
     </div>
 
     @php
@@ -272,43 +268,11 @@
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<section class="py-14 bg-slate-50/80">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-9">
-      <h2 class="text-2xl md:text-3xl font-black text-slate-900 mb-1.5 tracking-tight">What Our Students Say</h2>
-      <p class="text-slate-500 text-xs">Real results from real students</p>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      @php $testimonials = [
-        ['name'=>'Rahul Sharma','role'=>'Web Developer','text'=>'Skillspot.in completely changed my career. I went from zero coding knowledge to landing a full-stack developer job in 4 months!','stars'=>5,'avatar'=>'R'],
-        ['name'=>'Priya Nair','role'=>'Python Developer','text'=>'The Python & AI course is outstanding. Very practical, well-structured, and the instructor explains everything clearly.','stars'=>5,'avatar'=>'P'],
-        ['name'=>'Mohammed Irfan','role'=>'DevOps Engineer','text'=>'The Cloud & DevOps course got me AWS certified. The hands-on labs are exactly what you need for real job interviews.','stars'=>5,'avatar'=>'M'],
-      ]; @endphp
-      @foreach($testimonials as $t)
-      <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm card-hover">
-        <div class="flex items-center gap-1 mb-3">
-          @for($i=0;$i<$t['stars'];$i++)<i class="fa-solid fa-star text-amber-400 text-xs"></i>@endfor
-        </div>
-        <p class="text-slate-600 text-xs leading-relaxed mb-4">"{{ $t['text'] }}"</p>
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 bg-gradient-to-br from-brand-500 to-accent-600 rounded-lg flex items-center justify-center text-white font-black text-xs flex-shrink-0 shadow-sm">{{ $t['avatar'] }}</div>
-          <div>
-            <div class="font-bold text-slate-900 text-xs">{{ $t['name'] }}</div>
-            <div class="text-slate-400 text-[11px]">{{ $t['role'] }}</div>
-          </div>
-        </div>
-      </div>
-      @endforeach
-    </div>
-  </div>
-</section>
-
 <!-- CTA -->
 <section class="py-14 bg-gradient-to-br from-brand-600 via-indigo-600 to-accent-700 text-center px-4 relative overflow-hidden">
   <div class="max-w-2xl mx-auto relative z-10">
     <h2 class="text-2xl md:text-4xl font-black text-white mb-3 tracking-tight">Ready to start your<br>tech journey?</h2>
-    <p class="text-blue-100 text-sm mb-6">Join thousands of students already learning at Skillspot.in.</p>
+    <p class="text-blue-100 text-sm mb-6">Explore courses and start learning at your pace.</p>
     <div class="flex flex-col sm:flex-row gap-3 justify-center">
       <a href="/register" class="bg-white text-brand-700 hover:bg-slate-50 px-7 py-3 rounded-xl text-sm md:text-base font-bold transition shadow-lg active:scale-[0.98]">
         Register Free →

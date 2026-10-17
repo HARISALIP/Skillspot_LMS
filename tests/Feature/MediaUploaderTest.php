@@ -18,6 +18,22 @@ class MediaUploaderTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_media_manager_exposes_named_keyboard_accessible_controls(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $this->actingAs($admin)->get(route('admin.media'))
+            ->assertOk()
+            ->assertSee('aria-label="Choose media files"', false)
+            ->assertSee('for="uploadFolder"', false)
+            ->assertSee('for="media-search"', false)
+            ->assertSee('role="dialog"', false)
+            ->assertSee("item.querySelector('[data-upload-name]').textContent = file.name", false)
+            ->assertDontSee('${file.name}</span>', false);
+    }
+
     public function test_browser_voice_recording_is_classified_as_audio(): void
     {
         Setting::set('storage_driver', 'local');
@@ -53,14 +69,27 @@ class MediaUploaderTest extends TestCase
         }
     }
 
+    public function test_missing_r2_credentials_fail_before_upload_or_media_record_creation(): void
+    {
+        Setting::set('storage_driver', 'r2');
+        config(['filesystems.disks.r2.key' => null, 'filesystems.disks.r2.secret' => null]);
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('R2 storage is not configured');
+        try {
+            MediaUploader::upload(UploadedFile::fake()->create('guide.pdf', 1, 'application/pdf'));
+        } finally {
+            $this->assertDatabaseCount('uploads', 0);
+        }
+    }
+
     public function test_lesson_uploads_are_private_to_course_managers_and_enrolled_students(): void
     {
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         Role::findOrCreate('student', 'web');
         Setting::set('storage_driver', 'local');
         Storage::fake('public');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $student = User::factory()->create();
         $student->assignRole('student');
         $outsider = User::factory()->create();

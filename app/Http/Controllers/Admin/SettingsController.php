@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
+use App\Models\PaymentGatewayAccount;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -91,15 +92,16 @@ class SettingsController extends Controller
             'max_upload_mb'        => ['label' => 'Max Upload Size (MB)',       'type' => 'text',     'default' => '500'],
         ],
         'payment' => [
-            'razorpay_mode'           => ['label' => 'Mode (live / test)',            'type' => 'text',     'default' => 'live'],
-            'razorpay_key_id'         => ['label' => 'Live Key ID',                   'type' => 'text',     'default' => ''],
-            'razorpay_key_secret'     => ['label' => 'Live Key Secret',               'type' => 'password', 'default' => ''],
-            'razorpay_webhook_secret' => ['label' => 'Live Webhook Secret',           'type' => 'password', 'default' => ''],
-            'razorpay_test_key_id'    => ['label' => 'Test Key ID',                   'type' => 'text',     'default' => ''],
-            'razorpay_test_key_secret'=> ['label' => 'Test Key Secret',               'type' => 'password', 'default' => ''],
             'currency'                => ['label' => 'Currency Code',                 'type' => 'text',     'default' => 'INR'],
             'currency_symbol'         => ['label' => 'Currency Symbol',               'type' => 'text',     'default' => '₹'],
             'enable_free_courses'     => ['label' => 'Enable Free Courses',           'type' => 'boolean',  'default' => '1'],
+            'razorpay_mode'           => ['label' => 'Razorpay mode',                 'type' => 'select',   'default' => 'live', 'options' => ['test' => 'Test', 'live' => 'Live']],
+            'razorpay_enabled'        => ['label' => 'Accept paid course purchases',  'type' => 'boolean',  'default' => '0'],
+        ],
+        'payment-gateways' => [
+            'razorpay_key_id'         => ['label' => 'API Key',                       'type' => 'text',     'default' => ''],
+            'razorpay_key_secret'     => ['label' => 'API Secret',                    'type' => 'password', 'default' => ''],
+            'razorpay_webhook_secret' => ['label' => 'Webhook Secret',                'type' => 'password', 'default' => ''],
         ],
         'license' => [
             'license_key'      => ['label' => 'Platform License Key',        'type' => 'text',     'default' => ''],
@@ -128,14 +130,27 @@ class SettingsController extends Controller
     {
         $activeTab = $request->get('tab', 'general');
         if ($activeTab === 'badges') $activeTab = 'certificates';
-        $knownTabs = ['general', 'signup', 'course-progress', 'certificates', 'badge-assignments', 'categories', 'communication', 'email-template', 'mail', 'members', 'payment', 'payment-gateways', 'transactions', 'coupons', 'storage', 'google-calendar', 'google-meet', 'zoom', 'raven', 'branding', 'sidebar', 'seo'];
-        if (!in_array($activeTab, $knownTabs, true)) $activeTab = 'general';
+        $knownTabs = ['general', 'signup', 'course-progress', 'certificates', 'badge-assignments', 'categories', 'communication', 'email-template', 'mail', 'members', 'payment', 'payment-gateways', 'transactions', 'coupons', 'storage', 'google-calendar', 'google-meet', 'zoom', 'branding', 'sidebar', 'seo'];
+        if (!in_array($activeTab, $knownTabs, true)) {
+            return redirect()->route('admin.settings', array_filter(['tab' => 'general', 'embed' => $request->boolean('embed') ? 1 : null]));
+        }
         $settings  = Setting::allKeyed();
+        $gatewayRecord = $activeTab === 'payment-gateways' ? $request->query('gateway') : null;
+        $legacyGatewayCount = $activeTab === 'payment-gateways' ? PaymentGatewayAccount::count() : 0;
+        if ($gatewayRecord && !in_array($gatewayRecord, ['new', 'razorpay'], true)) {
+            return redirect()->route('admin.settings', array_filter(['tab' => 'payment-gateways', 'embed' => $request->boolean('embed') ? 1 : null]));
+        }
+        $gatewayExists = ($settings['razorpay_gateway_added'] ?? null) === '1'
+            || (!array_key_exists('razorpay_gateway_added', $settings)
+                && (filled($settings['razorpay_key_id'] ?? null) || filled($settings['razorpay_test_key_id'] ?? null)));
+        if ($gatewayRecord === 'razorpay' && !$gatewayExists) {
+            return redirect()->route('admin.settings', array_filter(['tab' => 'payment-gateways', 'embed' => $request->boolean('embed') ? 1 : null]));
+        }
         $schema    = $this->schema;
         $categories = $activeTab === 'categories'
             ? CourseCategory::latest()->get()
             : collect();
-        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories'));
+        return view('admin.settings', compact('activeTab', 'settings', 'schema', 'categories', 'gatewayRecord', 'gatewayExists', 'legacyGatewayCount'));
     }
 
     public function storeCategory(Request $request)
@@ -187,17 +202,43 @@ class SettingsController extends Controller
             return back()->with('error', 'Invalid settings group.');
         }
 
-        foreach ($this->schema[$group] as $key => $meta) {
-            if ($meta['type'] === 'boolean') {
-                $value = $request->has($key) ? '1' : '0';
-            } elseif ($meta['type'] === 'password') {
-                $value = $request->input($key);
-                if (blank($value)) continue; // keep existing
-            } else {
-                $value = $request->input($key, $meta['default']);
-            }
+        if ($group === 'payment') {
+            $request->validate(['razorpay_mode' => ['required', 'in:test,live']]);
+        }
 
-            Setting::set($key, $value, $group, $meta['type'], $meta['label']);
+        if ($group === 'payment-gateways') {
+            $mode = Setting::get('razorpay_mode', 'live') === 'test' ? 'test' : 'live';
+            $keyField = $mode === 'test' ? 'razorpay_test_key_id' : 'razorpay_key_id';
+            $secretField = $mode === 'test' ? 'razorpay_test_key_secret' : 'razorpay_key_secret';
+            $request->validate([
+                'provider' => ['required', 'in:razorpay'],
+                'api_key' => ['required', 'string', 'max:255'],
+                'api_secret' => [filled(Setting::get($secretField)) ? 'nullable' : 'required', 'string', 'max:255'],
+                'webhook_secret' => ['nullable', 'string', 'max:255'],
+                'redirect_to' => ['nullable', 'string', 'max:2048', function ($attribute, $value, $fail) {
+                    if (!str_starts_with($value, '/') || str_starts_with($value, '//') || str_contains($value, '\\') || preg_match('/[\x00-\x1f\x7f]/', $value)) {
+                        $fail('Redirect To must be a path on this site, starting with a single /.');
+                    }
+                }],
+            ]);
+            Setting::set($keyField, $request->input('api_key'), $group, 'text', 'API Key');
+            if ($request->filled('api_secret')) Setting::set($secretField, $request->input('api_secret'), $group, 'password', 'API Secret');
+            if ($request->filled('webhook_secret')) Setting::set('razorpay_webhook_secret', $request->input('webhook_secret'), $group, 'password', 'Webhook Secret');
+            Setting::set('razorpay_redirect_to', $request->input('redirect_to', ''), $group, 'text', 'Redirect To');
+            Setting::set('razorpay_gateway_added', '1', $group, 'boolean', 'Razorpay configured');
+        } else {
+            foreach ($this->schema[$group] as $key => $meta) {
+                if ($meta['type'] === 'boolean') {
+                    $value = $request->has($key) ? '1' : '0';
+                } elseif ($meta['type'] === 'password') {
+                    $value = $request->input($key);
+                    if (blank($value)) continue; // keep existing
+                } else {
+                    $value = $request->input($key, $meta['default']);
+                }
+
+                Setting::set($key, $value, $group, $meta['type'], $meta['label']);
+            }
         }
 
         // Apply platform-wide preferences on the next request as well as retaining them in settings.
@@ -231,6 +272,7 @@ class SettingsController extends Controller
         Artisan::call('config:clear');
 
         $settingsRoute = ['tab' => $group];
+        if ($group === 'payment-gateways' && $request->input('gateway_record') === 'razorpay') $settingsRoute['gateway'] = 'razorpay';
         if ($request->boolean('embed')) {
             $settingsRoute['embed'] = 1;
         }
@@ -238,6 +280,15 @@ class SettingsController extends Controller
         return redirect()
             ->route('admin.settings', $settingsRoute)
             ->with('success', ucfirst($group) . ' settings saved successfully ✅');
+    }
+
+    public function deleteGateway(Request $request)
+    {
+        Setting::set('razorpay_enabled', '0', 'payment-gateways', 'boolean', 'Accept paid course purchases');
+        Setting::set('razorpay_gateway_added', '0', 'payment-gateways', 'boolean', 'Razorpay configured');
+
+        return redirect()->route('admin.settings', array_filter(['tab' => 'payment-gateways', 'embed' => $request->boolean('embed') ? 1 : null]))
+            ->with('success', 'Razorpay removed from checkout. Saved credentials were kept.');
     }
 
     // ── Test mail ──────────────────────────────────────────────────────

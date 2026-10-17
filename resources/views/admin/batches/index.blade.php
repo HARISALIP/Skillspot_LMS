@@ -4,14 +4,14 @@
 @section('admin-content')
 <div class="space-y-6">
 
-  @if(session('success'))<div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
+  @if(session('success'))<div role="status" class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
 
   {{-- Filters --}}
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
     <form method="GET" class="flex flex-wrap gap-3 items-end">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1">Vendor</label>
-        <select name="vendor_id" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <label for="batch-vendor" class="block text-xs font-semibold text-gray-500 mb-1">Vendor</label>
+        <select id="batch-vendor" name="vendor_id" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
           <option value="">All Vendors</option>
           @foreach($vendors as $v)
           <option value="{{ $v->id }}" {{ request('vendor_id') == $v->id ? 'selected' : '' }}>{{ $v->brand_name }}</option>
@@ -19,16 +19,16 @@
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1">Type</label>
-        <select name="type" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <label for="batch-type" class="block text-xs font-semibold text-gray-500 mb-1">Type</label>
+        <select id="batch-type" name="type" class="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
           <option value="">All Types</option>
           <option value="batch" {{ request('type')==='batch'?'selected':'' }}>Batch</option>
           <option value="open"  {{ request('type')==='open'?'selected':'' }}>Open</option>
         </select>
       </div>
       <div class="flex-1 min-w-40">
-        <label class="block text-xs font-semibold text-gray-500 mb-1">Search</label>
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Course title…" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+        <label for="batch-search" class="block text-xs font-semibold text-gray-500 mb-1">Search</label>
+        <input id="batch-search" type="search" name="search" value="{{ request('search') }}" placeholder="Course title…" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
       </div>
       <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition">Filter</button>
       <a href="{{ route('admin.batches') }}" class="text-sm text-gray-500 hover:text-gray-700 py-2">Clear</a>
@@ -37,7 +37,8 @@
   </div>
 
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-    <table class="w-full text-sm">
+    <div class="overflow-x-auto">
+    <table class="min-w-[760px] w-full text-sm">
       <thead class="bg-gray-50 border-b border-gray-100">
         <tr>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Course</th>
@@ -77,6 +78,7 @@
         @endforelse
       </tbody>
     </table>
+    </div>
     @if($batches->hasPages())
     <div class="px-5 py-3 border-t border-gray-100">{{ $batches->links() }}</div>
     @endif

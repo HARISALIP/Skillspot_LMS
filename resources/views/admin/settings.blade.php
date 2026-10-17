@@ -7,8 +7,9 @@
 <style>
   html,body,main { height:100%; background:#fff!important; }
   main { padding:0!important; overflow:hidden!important; }
-  .settings-workspace { height:100vh; min-height:0; background:#fff; color:#1f2937; }
-  .settings-sidebar { height:100%; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent; }
+  .settings-workspace { height:100dvh; min-height:0; background:#fff; color:#1f2937; }
+  .settings-sidebar { height:auto; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:#cbd5e1 transparent; }
+  @media (min-width:768px) { .settings-sidebar { height:100%; } }
   .settings-sidebar::-webkit-scrollbar { width:6px; }
   .settings-sidebar::-webkit-scrollbar-thumb { border-radius:999px; background:#cbd5e1; }
   .settings-content { scrollbar-width:none; -ms-overflow-style:none; }
@@ -57,7 +58,6 @@ $tabs = [
   'google-calendar' => ['group'=>'Integrations','fa'=>'fa-solid fa-calendar','label'=>'Google Calendar','description'=>'Calendar integration'],
   'google-meet' => ['group'=>'Integrations','fa'=>'fa-solid fa-person-chalkboard','label'=>'Google Meet','description'=>'Meeting integration'],
   'zoom' => ['group'=>'Integrations','fa'=>'fa-solid fa-video','label'=>'Zoom','description'=>'Zoom integration'],
-  'raven' => ['group'=>'Integrations','fa'=>'fa-solid fa-comments','label'=>'Raven','description'=>'Messaging integration'],
   'branding' => ['group'=>'Customization','fa'=>'fa-solid fa-palette','label'=>'Branding','description'=>'Academy identity and visual settings'],
   'sidebar' => ['group'=>'Customization','fa'=>'fa-solid fa-table-columns','label'=>'Sidebar','description'=>'Navigation appearance'],
   'seo' => ['group'=>'Customization','fa'=>'fa-solid fa-magnifying-glass','label'=>'SEO','description'=>'Search and social metadata'],
@@ -76,14 +76,17 @@ $tabs = [
   <button onclick="this.parentElement.remove()" class="ml-auto text-red-400 hover:text-red-600 text-lg leading-none">×</button>
 </div>
 @endif
+@if($errors->any())
+<div role="alert" class="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</div>
+@endif
 
-<div class="settings-workspace settings-shell flex flex-col overflow-hidden md:flex-row" data-theme="{{ request('theme') === 'light' ? 'light' : 'dark' }}">
+<div class="settings-workspace settings-shell flex flex-col overflow-hidden md:flex-row" data-settings-current="{{ $activeTab }}" data-theme="{{ request('theme') === 'light' ? 'light' : 'dark' }}">
 
   {{-- Sidebar tabs --}}
   <div data-navigation-sidebar="settings" class="settings-sidebar shrink-0 border-b border-gray-200 bg-gray-50 md:w-[220px] md:border-b-0 md:border-r overflow-y-auto">
     <div class="md:hidden flex gap-2 overflow-x-auto pb-2 snap-x -mx-1 px-1">
       @foreach($tabs as $key => $tab)
-      <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}" data-settings-tab="{{ $key }}"
+      <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}" data-settings-tab="{{ $key }}" @if($activeTab === $key) aria-current="page" @endif
          class="snap-start flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition
                 {{ $activeTab === $key ? 'bg-brand-600 text-white shadow-lg shadow-brand-200' : 'bg-white text-gray-600 border border-gray-200 hover:border-brand-300 hover:text-brand-600' }}">
         <i class="{{ $tab['fa'] }}"></i> {{ $tab['label'] }}
@@ -98,7 +101,7 @@ $tabs = [
           <p class="px-2 text-xs font-medium text-gray-400">{{ $tab['group'] }}</p>
           @php $lastGroup = $tab['group']; @endphp
         @endif
-        <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}" data-settings-tab="{{ $key }}"
+        <a href="{{ route('admin.settings', array_merge(['tab' => $key], $settingsQuery)) }}" data-settings-tab="{{ $key }}" @if($activeTab === $key) aria-current="page" @endif
            class="settings-nav-item {{ $activeTab === $key ? 'is-active' : '' }} flex h-7 items-center gap-2 rounded-md px-2 text-[14px] transition font-medium">
           <span class="w-4 text-center text-gray-400">
             <i class="{{ $tab['fa'] }} text-xs"></i>
@@ -114,7 +117,7 @@ $tabs = [
   </div>
 
   {{-- Main panel --}}
-  <div class="settings-content relative flex-1 min-w-0">
+  <div class="settings-content relative flex-1 min-w-0" aria-busy="false">
     <div class="min-h-full overflow-hidden">
 
       <div class="absolute right-1 top-1 z-10">
@@ -125,7 +128,7 @@ $tabs = [
         @endif
       </div>
 
-      @php $managedPanel = $activeTab === 'categories' || !array_key_exists($activeTab, $schema); @endphp
+      @php $managedPanel = $activeTab === 'categories' || ($activeTab === 'payment-gateways' && !$gatewayRecord) || !array_key_exists($activeTab, $schema); @endphp
       @if($managedPanel)
       <div id="settingsForm">
       @else
@@ -387,49 +390,71 @@ $tabs = [
 
           {{-- PAYMENT --}}
           @elseif($activeTab === 'payment')
-          @php $mode = $settings['razorpay_mode'] ?? 'live'; @endphp
-          <div class="flex items-center gap-3 p-4 rounded-2xl border-2 {{ $mode === 'live' ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50' }}">
-            <span class="text-2xl">{{ $mode === 'live' ? '🟢' : '🟡' }}</span>
-            <div>
-              <div class="font-black text-gray-900">Mode: <span class="{{ $mode === 'live' ? 'text-green-600' : 'text-yellow-600' }}">{{ strtoupper($mode) }}</span></div>
-              <div class="text-xs text-gray-500">Set to <strong>test</strong> while testing, <strong>live</strong> for production.</div>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div><x-settings-field field="razorpay_mode"    :meta="$schema['payment']['razorpay_mode']"    :value="$settings['razorpay_mode'] ?? 'live'"/></div>
+          <p class="text-sm text-gray-600">Course pricing preferences apply throughout Skillspot. Manage checkout credentials and availability under <a class="font-semibold text-brand-700 underline" href="{{ route('admin.settings', array_merge(['tab' => 'payment-gateways'], $settingsQuery)) }}" data-settings-tab="payment-gateways">Gateways</a>.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div><x-settings-field field="currency"         :meta="$schema['payment']['currency']"         :value="$settings['currency'] ?? 'INR'"/></div>
             <div><x-settings-field field="currency_symbol"  :meta="$schema['payment']['currency_symbol']"  :value="$settings['currency_symbol'] ?? '₹'"/></div>
           </div>
-          <div class="bg-green-50 border border-green-200 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-4"><span class="text-lg">🟢</span><span class="font-bold text-green-800 text-sm">Live Keys (Production)</span></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><x-settings-field field="razorpay_key_id"         :meta="$schema['payment']['razorpay_key_id']"         :value="$settings['razorpay_key_id'] ?? ''"/></div>
-              <div><x-settings-field field="razorpay_key_secret"     :meta="$schema['payment']['razorpay_key_secret']"     :value="$settings['razorpay_key_secret'] ?? ''"/></div>
-              <div class="md:col-span-2"><x-settings-field field="razorpay_webhook_secret" :meta="$schema['payment']['razorpay_webhook_secret']" :value="$settings['razorpay_webhook_secret'] ?? ''"/></div>
-            </div>
-          </div>
-          <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-5">
-            <div class="flex items-center gap-2 mb-4"><span class="text-lg">🟡</span><span class="font-bold text-yellow-800 text-sm">Test Keys (Development)</span></div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><x-settings-field field="razorpay_test_key_id"     :meta="$schema['payment']['razorpay_test_key_id']"     :value="$settings['razorpay_test_key_id'] ?? ''"/></div>
-              <div><x-settings-field field="razorpay_test_key_secret" :meta="$schema['payment']['razorpay_test_key_secret']" :value="$settings['razorpay_test_key_secret'] ?? ''"/></div>
-            </div>
-          </div>
-          <div class="bg-brand-50 border border-brand-200 rounded-2xl p-4">
-            <div class="flex items-start gap-3">
-              <span class="text-2xl flex-shrink-0">🔗</span>
-              <div class="flex-1 min-w-0">
-                <div class="font-bold text-brand-800 text-sm mb-1">Webhook URL</div>
-                <div class="text-xs text-gray-500 mb-2">Add in Razorpay Dashboard → Settings → Webhooks. Events: <strong>payment.captured, payment.failed, refund.created</strong></div>
-                <div class="flex items-center gap-2">
-                  <code id="webhookUrl" class="flex-1 text-xs bg-white border border-brand-200 rounded-xl px-3 py-2 font-mono text-brand-700 break-all">{{ rtrim(config('app.url'),'/') }}/webhook/razorpay</code>
-                  <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('webhookUrl').innerText).then(()=>{this.textContent='✅';setTimeout(()=>this.textContent='📋',2000)})"
-                          class="flex-shrink-0 px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold transition">📋</button>
-                </div>
-              </div>
-            </div>
-          </div>
           <div><x-settings-field field="enable_free_courses" :meta="$schema['payment']['enable_free_courses']" :value="$settings['enable_free_courses'] ?? '1'"/></div>
+          <div class="max-w-xs"><x-settings-field field="razorpay_mode" :meta="$schema['payment']['razorpay_mode']" :value="$settings['razorpay_mode'] ?? 'live'"/></div>
+          <div><x-settings-field field="razorpay_enabled" :meta="$schema['payment']['razorpay_enabled']" :value="$settings['razorpay_enabled'] ?? '1'"/></div>
+          <p class="text-xs text-gray-500">The gateway form edits the API key for the selected mode. Configure the Razorpay webhook at <code>{{ rtrim(config('app.url'),'/') }}/webhook/razorpay</code>.</p>
+
+          @elseif($activeTab === 'payment-gateways')
+          @php $gatewayIssue = app(\App\Services\PaymentService::class)->checkoutUnavailableReason(); @endphp
+          @if(!$gatewayRecord)
+          <section class="space-y-5 pr-7" aria-labelledby="gatewayListTitle">
+            <div class="flex items-center justify-between gap-3">
+              <h2 id="gatewayListTitle" class="text-lg font-semibold text-gray-900">Payment Gateways</h2>
+              @if(!$gatewayExists)<a href="{{ route('admin.settings', array_merge(['tab' => 'payment-gateways', 'gateway' => 'new'], $settingsQuery)) }}" data-settings-tab="payment-gateways" data-settings-gateway="new" class="inline-flex items-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add Razorpay</a>@endif
+            </div>
+            @if($gatewayExists)
+              <label class="relative block max-w-xs"><span class="sr-only">Search payment gateways</span><i class="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400" aria-hidden="true"></i><input id="gatewaySearch" type="search" placeholder="Search" class="w-full rounded-md border border-gray-200 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"></label>
+              <div class="border-b border-gray-200 pb-2 text-xs font-medium text-gray-500">Gateway</div>
+              @if($gatewayExists)<div data-gateway-row data-gateway-name="razorpay" class="flex items-center gap-2 border-b border-gray-100 py-3">
+                <a href="{{ route('admin.settings', array_merge(['tab' => 'payment-gateways', 'gateway' => 'razorpay'], $settingsQuery)) }}" data-settings-tab="payment-gateways" data-settings-gateway="razorpay" class="min-w-0 flex-1 rounded-md px-2 py-1 text-left hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500">
+                  <span class="block text-sm font-medium text-gray-900">Razorpay</span><span class="block text-xs text-gray-500">Razorpay Settings · {{ $gatewayIssue ? 'Checkout unavailable' : 'Ready for paid courses' }}</span>
+                </a>
+                <details class="relative"><summary aria-label="Actions for Razorpay" class="cursor-pointer list-none rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></summary>
+                  <form method="POST" action="{{ route('admin.settings.gateways.delete', $settingsQuery) }}" class="absolute right-0 z-10 w-56 rounded-md border border-gray-200 bg-white p-2 shadow-lg" onsubmit="return confirm('Delete Razorpay? It will stop being offered at checkout. Saved credentials will remain.')">
+                    @csrf @method('DELETE') @if($embedded)<input type="hidden" name="embed" value="1">@endif
+                    <button class="w-full rounded px-2 py-1 text-left text-sm text-red-700 hover:bg-red-50">Delete</button>
+                  </form>
+                </details>
+              </div>@endif
+              <p id="gatewayNoResults" class="hidden py-12 text-center text-sm text-gray-500">No payment gateways match your search.</p>
+            @else
+              <div class="py-16 text-center"><i class="fa-solid fa-dollar-sign mb-3 text-2xl text-gray-400" aria-hidden="true"></i><h3 class="text-base font-medium text-gray-900">No Payment Gateway</h3><p class="mt-1 text-sm text-gray-500">Add Razorpay to accept paid course purchases.</p></div>
+            @endif
+            @if($legacyGatewayCount)<p class="text-xs text-amber-700">{{ $legacyGatewayCount }} stored gateway record(s) are inactive and preserved for administrator review.</p>@endif
+          </section>
+          @else
+          @php
+            $gatewayMode = ($settings['razorpay_mode'] ?? 'live') === 'test' ? 'test' : 'live';
+            $apiKeyField = $gatewayMode === 'test' ? 'razorpay_test_key_id' : 'razorpay_key_id';
+            $apiSecretField = $gatewayMode === 'test' ? 'razorpay_test_key_secret' : 'razorpay_key_secret';
+          @endphp
+          <input type="hidden" name="gateway_record" value="{{ $gatewayRecord }}">
+          <section class="pr-7" aria-labelledby="gatewayFormTitle" data-gateway-form="{{ $gatewayRecord }}" data-has-secret="{{ filled($settings[$apiSecretField] ?? null) ? '1' : '0' }}" data-validation-errors="{{ $errors->any() ? '1' : '0' }}">
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex min-w-0 items-center gap-2"><a href="{{ route('admin.settings', array_merge(['tab' => 'payment-gateways'], $settingsQuery)) }}" data-settings-tab="payment-gateways" aria-label="Back to payment gateways" class="rounded p-1 text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><i class="fa-solid fa-chevron-left text-xs" aria-hidden="true"></i></a><h2 id="gatewayFormTitle" class="text-base font-semibold text-gray-900">Razorpay</h2></div>
+              <button id="gatewaySave" type="submit" disabled class="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400">Save</button>
+            </div>
+            @if($gatewayRecord === 'new')
+            <input type="hidden" id="gatewayProvider" name="provider" value="razorpay">
+            @else
+            <input type="hidden" name="provider" value="{{ $gatewayRecord }}">
+            @if($gatewayRecord === 'razorpay' && $gatewayIssue)<p class="mt-5 text-xs text-amber-700" role="status">{{ $gatewayIssue }}</p>@endif
+            @endif
+            <div id="gatewayFields" class="mt-5 grid grid-cols-1 gap-x-4 gap-y-5 border-t border-gray-200 pt-4 sm:grid-cols-2 hidden">
+              <label class="block text-sm text-gray-700">API Key <span class="text-red-500">*</span><input id="gatewayApiKey" name="api_key" value="{{ old('api_key', $settings[$apiKeyField] ?? '') }}" maxlength="255" autocomplete="off" placeholder="API Key" class="mt-1 block w-full rounded-md border-0 bg-gray-100 px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-brand-500"></label>
+              <div class="hidden sm:block"></div>
+              <div class="text-sm text-gray-700 sm:col-span-2"><label for="gatewayApiSecret">API Secret <span class="text-red-500">*</span></label><div class="relative mt-1"><input id="gatewayApiSecret" name="api_secret" type="password" value="" maxlength="255" autocomplete="new-password" class="block w-full rounded-md border-0 bg-gray-100 px-3 py-2 pr-10 text-sm text-gray-800 focus:ring-2 focus:ring-brand-500" placeholder="{{ filled($settings[$apiSecretField] ?? null) ? 'Saved · leave blank to keep current' : '' }}"><button type="button" data-reveal="gatewayApiSecret" aria-label="Show API Secret" class="absolute inset-y-0 right-2 px-2 text-gray-500 hover:text-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><i class="fa-solid fa-eye" aria-hidden="true"></i></button></div></div>
+              <div class="text-sm text-gray-700 sm:col-span-2"><label for="gatewayWebhookSecret">Webhook Secret</label><div class="relative mt-1"><input id="gatewayWebhookSecret" name="webhook_secret" type="password" value="" maxlength="255" autocomplete="new-password" class="block w-full rounded-md border-0 bg-gray-100 px-3 py-2 pr-10 text-sm text-gray-800 focus:ring-2 focus:ring-brand-500" placeholder="{{ filled($settings['razorpay_webhook_secret'] ?? null) ? 'Saved · leave blank to keep current' : '' }}"><button type="button" data-reveal="gatewayWebhookSecret" aria-label="Show Webhook Secret" class="absolute inset-y-0 right-2 px-2 text-gray-500 hover:text-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"><i class="fa-solid fa-eye" aria-hidden="true"></i></button></div><span class="mt-1 block text-xs text-gray-500">The signing secret from the Razorpay dashboard webhook settings. Required to accept refund webhooks.</span></div>
+              <label class="block text-sm text-gray-700">Redirect To<input name="redirect_to" value="{{ old('redirect_to', $settings['razorpay_redirect_to'] ?? '') }}" maxlength="2048" autocomplete="off" placeholder="Redirect To" class="mt-1 block w-full rounded-md border-0 bg-gray-100 px-3 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-brand-500"><span class="mt-1 block text-xs text-gray-500">Use a path on this site, such as /dashboard.</span></label>
+            </div>
+          </section>
+          @endif
 
           {{-- LICENSE --}}
           @elseif($activeTab === 'license')
@@ -709,7 +734,7 @@ $tabs = [
         </div>
 
         {{-- Save bar --}}
-        @unless($managedPanel)
+        @unless($managedPanel || $activeTab === 'payment-gateways')
         <div class="settings-save-bar px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p class="text-xs text-gray-400">
             💡 Changes take effect <strong>immediately</strong> — no restart needed.
@@ -718,7 +743,7 @@ $tabs = [
           <button type="submit"
                   class="flex-shrink-0 flex items-center gap-2 bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 active:scale-[0.98] text-white font-black px-7 py-3 rounded-xl transition shadow-lg shadow-brand-200 text-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-            Save {{ $tabs[$activeTab]['label'] }}
+            {{ $activeTab === 'payment-gateways' ? 'Save' : 'Save '.$tabs[$activeTab]['label'] }}
           </button>
         </div>
         @endunless
@@ -736,6 +761,7 @@ $tabs = [
   })();
 </script>
 
+<div id="settingsExtras">
 @if($activeTab === 'categories')
 <dialog id="newCategoryDialog" class="w-full max-w-md rounded-2xl bg-white p-0 text-gray-900 shadow-2xl backdrop:bg-black/50">
   <form method="POST" action="{{ route('admin.settings.categories.store') }}" class="p-6">
@@ -755,6 +781,7 @@ $tabs = [
   </form>
 </dialog>
 @endif
+</div>
 
 @push('scripts')
 <script>
@@ -768,12 +795,59 @@ function openCategoryEditor(id, name) {
   dialog.showModal();
 }
 
+window.__skillspotInitSettingsPanel = () => {
 document.getElementById('categorySearch')?.addEventListener('input', (event) => {
   const query = event.target.value.trim().toLowerCase();
   document.querySelectorAll('[data-category-row]').forEach((row) => {
     row.classList.toggle('hidden', !row.dataset.categoryName.includes(query));
   });
 });
+document.getElementById('gatewaySearch')?.addEventListener('input', (event) => {
+  const query = event.target.value.trim().toLowerCase();
+  let matches = 0;
+  document.querySelectorAll('[data-gateway-row]').forEach((row) => {
+    const visible = row.dataset.gatewayName.includes(query);
+    row.classList.toggle('hidden', !visible);
+    if (visible) matches++;
+  });
+  document.getElementById('gatewayNoResults')?.classList.toggle('hidden', matches > 0);
+});
+(() => {
+  document.querySelector('.settings-sidebar .settings-nav-item.is-active')?.scrollIntoView({block: 'center'});
+  const gatewayForm = document.querySelector('[data-gateway-form]');
+  if (!gatewayForm) return;
+  const provider = document.getElementById('gatewayProvider');
+  const fields = document.getElementById('gatewayFields');
+  const key = document.getElementById('gatewayApiKey');
+  const secret = document.getElementById('gatewayApiSecret');
+  const save = document.getElementById('gatewaySave');
+  const controls = [...gatewayForm.querySelectorAll('input:not([type="hidden"]), select')];
+  const initial = controls.map(control => control.type === 'checkbox' ? control.checked : control.value);
+  const refresh = () => {
+    const selected = provider?.value || gatewayForm.dataset.gatewayForm;
+    const razorpay = selected === 'razorpay';
+    fields.classList.toggle('hidden', !razorpay);
+    fields.querySelectorAll('input').forEach(input => { input.disabled = !razorpay; });
+    key.required = razorpay;
+    secret.required = razorpay && gatewayForm.dataset.hasSecret !== '1';
+    const changed = gatewayForm.dataset.validationErrors === '1' || controls.some((control, index) => (control.type === 'checkbox' ? control.checked : control.value) !== initial[index]);
+    const valid = [...fields.querySelectorAll('[required]')].every(input => input.value.trim());
+    save.disabled = !selected || !changed || !valid;
+  };
+  gatewayForm.closest('form').addEventListener('input', refresh);
+  gatewayForm.closest('form').addEventListener('change', refresh);
+  gatewayForm.closest('form').addEventListener('submit', () => { save.disabled = true; save.textContent = 'Saving…'; });
+  gatewayForm.querySelectorAll('[data-reveal]').forEach(button => button.addEventListener('click', () => {
+    const input = document.getElementById(button.dataset.reveal);
+    const shown = input.type === 'password';
+    input.type = shown ? 'text' : 'password';
+    button.setAttribute('aria-label', `${shown ? 'Hide' : 'Show'} ${input.id === 'gatewayApiSecret' ? 'API Secret' : 'Webhook Secret'}`);
+    button.querySelector('i').className = shown ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+  }));
+  refresh();
+})();
+};
+window.__skillspotInitSettingsPanel();
 
 async function settingToggle(key, btn) {
   btn.disabled = true;
@@ -784,7 +858,7 @@ async function settingToggle(key, btn) {
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': _csrfToken, 'Accept': 'application/json' }
     });
-    if (res.ok) { btn.textContent = orig; } else { alert('Toggle failed — please try again.'); btn.textContent = orig; }
+    if (res.ok) { btn.textContent = orig; window.__skillspotInvalidateSettingsCache?.(); } else { alert('Toggle failed — please try again.'); btn.textContent = orig; }
   } catch(e) { alert('Network error.'); btn.textContent = orig; }
   btn.disabled = false;
 }

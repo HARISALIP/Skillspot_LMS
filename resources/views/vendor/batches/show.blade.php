@@ -1,9 +1,9 @@
 @extends('layouts.vendor')
-@section('title','{{ $course->title }} — Batch')
-@section('header','{{ $course->title }}')
+@section('title', $course->title . ' — Batch')
+@section('header', $course->title)
 @section('content')
 <div class="space-y-6">
-  {{-- View-only notice --}}
+  @unless($canManage)
   <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 mb-2">
     <span class="text-xl flex-shrink-0">👁️</span>
     <div>
@@ -11,11 +11,7 @@
       <div class="text-xs text-amber-700 mt-0.5">All batch management (students, attendance, certificates) is handled by admin.</div>
     </div>
   </div>
-
-
-
-  @if(session('success'))<div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
-  @if(session('error'))<div class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>@endif
+  @endunless
 
   {{-- Batch info strip --}}
   <div class="bg-gradient-to-r from-brand-600 to-accent-600 rounded-2xl p-5 text-white flex flex-wrap items-center justify-between gap-3">
@@ -52,16 +48,18 @@
           <div class="flex items-center gap-2">
             @if(in_array($e->user_id, $certs))
               <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">🎓 Certified</span>
-            @else
+            @elseif($canManage)
               <form method="POST" action="{{ route('vendor.batches.certificate', [$course, $e]) }}" onsubmit="return confirm('Issue certificate to {{ $e->user->name }}?')">
                 @csrf
                 <button class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg font-semibold transition">Issue Cert</button>
               </form>
             @endif
-            <form method="POST" action="{{ route('vendor.courses.revoke-access', [$course, $e->user]) }}" onsubmit="return confirm('Remove student?')">
+            @if($canManage)
+            <form method="POST" action="{{ route('vendor.batches.revoke', [$course, $e->user]) }}" onsubmit="return confirm('Remove student?')">
               @csrf @method('DELETE')
               <button class="text-xs text-gray-400 hover:text-red-600 transition">✕</button>
             </form>
+            @endif
           </div>
         </div>
         @empty
@@ -104,7 +102,7 @@
               </div>
             </td>
             <td class="px-4 py-3 text-right">
-              <a href="{{ route('vendor.batches.attendance', [$course, $lesson]) }}" class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-medium">View Attendance</a>
+              <a href="{{ route('vendor.batches.attendance', [$course, $lesson]) }}" class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-medium">{{ $canManage ? 'Manage Attendance' : 'View Attendance' }}</a>
             </td>
           </tr>
           @empty

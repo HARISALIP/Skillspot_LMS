@@ -3,7 +3,7 @@
 @section('title', 'Explore Courses — Skillspot.in')
 
 @section('content')
-<main class="pt-28 pb-16">
+<div class="pt-28 pb-16">
   <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="mb-8">
       <p class="text-sm font-bold tracking-widest text-brand-600 uppercase">Skillspot Marketplace</p>
@@ -44,5 +44,5 @@
     <div class="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-600">No live courses match those filters yet.</div>
     @endif
   </section>
-</main>
+</div>
 @endsection

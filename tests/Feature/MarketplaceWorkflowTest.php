@@ -54,7 +54,7 @@ class MarketplaceWorkflowTest extends TestCase
         $this->assertDatabaseHas('earning_ledger_entries', ['marketplace_sale_id' => $sale->id, 'entry_type' => 'refund_reversal']);
     }
 
-    public function test_admin_approval_adds_teacher_role_without_removing_student_role(): void
+    public function test_admin_approval_keeps_one_learner_account_with_creator_capability(): void
     {
         Role::findOrCreate('admin', 'web');
         Role::findOrCreate('student', 'web');
@@ -68,18 +68,90 @@ class MarketplaceWorkflowTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame('approved', $profile->fresh()->status);
-        $this->assertTrue($applicant->fresh()->hasRole('teacher'));
+        $this->assertFalse($applicant->fresh()->hasRole('teacher'));
         $this->assertTrue($applicant->fresh()->hasRole('student'));
+        $this->actingAs($applicant)->get(route('studio.dashboard'))->assertOk();
+        $this->actingAs($applicant)->get(route('admin.dashboard'))->assertForbidden();
+    }
+
+    public function test_admin_review_cannot_publish_an_unsubmitted_creator_draft(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $creator = User::factory()->create();
+        $course = Course::create(['title' => 'Unsubmitted draft', 'primary_instructor_id' => $creator->id]);
+
+        $this->actingAs($admin)->patch(route('admin.marketplace.reviews.update', $course), ['status' => 'live'])
+            ->assertUnprocessable();
+        $this->assertSame('draft', $course->fresh()->marketplace_status);
+    }
+
+    public function test_admin_can_publish_a_submitted_organization_course_before_payout_verification(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $owner = User::factory()->create();
+        $creator = User::factory()->create();
+        $vendor = Vendor::create(['user_id' => $owner->id, 'brand_name' => 'Pending Payout College']);
+        $course = Course::create([
+            'title' => 'Submitted Organization Course',
+            'vendor_id' => $vendor->id,
+            'primary_instructor_id' => $creator->id,
+            'marketplace_status' => 'submitted',
+        ]);
+
+        $this->actingAs($admin)->patch(route('admin.marketplace.reviews.update', $course), [
+            'status' => 'live',
+            'feedback' => 'Content review passed.',
+        ])->assertRedirect();
+
+        $this->assertNull($vendor->fresh()->marketplace_verified_at);
+        $this->assertDatabaseHas('courses', [
+            'id' => $course->id,
+            'marketplace_status' => 'live',
+            'marketplace_visible' => true,
+            'is_published' => true,
+            'visibility' => 'public',
+        ]);
+    }
+
+    public function test_organization_payout_requires_verified_bank_details(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $owner = User::factory()->create();
+        $buyer = User::factory()->create();
+        $vendor = Vendor::create(['user_id' => $owner->id, 'brand_name' => 'Payout College']);
+        $course = Course::create(['title' => 'Paid course', 'vendor_id' => $vendor->id]);
+        $order = PaymentOrder::create(['user_id' => $buyer->id, 'course_id' => $course->id,
+            'razorpay_order_id' => 'order_org_payout', 'amount' => 100, 'status' => 'paid']);
+        $sale = MarketplaceService::recordPaidSale($order);
+        $sale->update(['status' => 'available']);
+
+        $this->actingAs($admin)->post(route('admin.marketplace.payouts.create'), ['sale_ids' => [$sale->id]])
+            ->assertUnprocessable();
+        $this->assertDatabaseCount('payout_batches', 0);
+
+        $vendor->update(['status' => 'active', 'payout_account_name' => 'Payout College',
+            'payout_account_number' => '12345678', 'payout_ifsc' => 'TEST0001', 'marketplace_verified_at' => now()]);
+        $this->actingAs($admin)->post(route('admin.marketplace.payouts.create'), ['sale_ids' => [$sale->id]])
+            ->assertRedirect();
+        $this->assertDatabaseCount('payout_batches', 1);
     }
 
     public function test_public_marketplace_exposes_only_live_courses(): void
     {
-        Course::create(['title' => 'Visible Marketplace Course', 'category' => 'Business', 'marketplace_status' => 'live', 'marketplace_visible' => true]);
+        Course::create(['title' => 'Visible Marketplace Course', 'category' => 'Business', 'marketplace_status' => 'live', 'marketplace_visible' => true, 'is_published' => true, 'visibility' => 'public']);
+        Course::create(['title' => 'Unpublished Approved Course', 'category' => 'Business', 'marketplace_status' => 'live', 'marketplace_visible' => false, 'is_published' => false, 'visibility' => 'draft']);
         Course::create(['title' => 'Private Draft Course', 'category' => 'Business', 'marketplace_status' => 'draft', 'marketplace_visible' => false]);
 
         $this->get(route('marketplace.browse'))
             ->assertOk()
             ->assertSee('Visible Marketplace Course')
+            ->assertDontSee('Unpublished Approved Course')
             ->assertDontSee('Private Draft Course');
     }
 

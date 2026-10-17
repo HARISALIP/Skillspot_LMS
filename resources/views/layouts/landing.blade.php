@@ -26,6 +26,7 @@
   @stack('styles')
 </head>
 <body class="font-sans bg-slate-50 text-slate-800 antialiased">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
 
 <!-- ── NAVBAR ──────────────────────────────────────────────────────────── -->
 <nav id="navbar" class="fixed top-0 w-full z-50 glass transition-all duration-300">
@@ -43,9 +44,9 @@
 
       <!-- Desktop links -->
       <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
-        <a href="#courses"      class="hover:text-brand-600 transition">Courses</a>
-        <a href="#how-it-works" class="hover:text-brand-600 transition">How it Works</a>
-        <a href="#about"        class="hover:text-brand-600 transition">Why Skillspot.in</a>
+        <a href="/#courses"      class="hover:text-brand-600 transition">Courses</a>
+        <a href="/#how-it-works" class="hover:text-brand-600 transition">How it Works</a>
+        <a href="/#about"        class="hover:text-brand-600 transition">Why Skillspot.in</a>
       </div>
 
       <!-- Desktop CTA -->
@@ -67,9 +68,9 @@
   <!-- Mobile menu -->
   <div id="mobile-menu" class="md:hidden bg-white/98 border-t border-slate-200/80 shadow-xl">
     <div class="px-4 py-4 flex flex-col gap-1 text-sm font-medium">
-      <a href="#courses"      class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">📚 Courses</a>
-      <a href="#how-it-works" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">🚀 How it Works</a>
-      <a href="#about"        class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">🏆 Why Skillspot.in</a>
+      <a href="/#courses"      class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">📚 Courses</a>
+      <a href="/#how-it-works" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">🚀 How it Works</a>
+      <a href="/#about"        class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">🏆 Why Skillspot.in</a>
       <div class="border-t border-slate-100 mt-2 pt-3 flex flex-col gap-2">
         <a href="/login"    class="text-center text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-semibold transition hover:bg-slate-50">Login</a>
         <a href="/register" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">Get Started Free →</a>
@@ -78,7 +79,7 @@
   </div>
 </nav>
 
-@yield('content')
+<main id="main-content" tabindex="-1">@yield('content')</main>
 
 <!-- ── FOOTER ──────────────────────────────────────────────────────────── -->
 <footer class="bg-white border-t border-slate-200 text-slate-600 py-14">
@@ -97,10 +98,7 @@
       <div>
         <h4 class="text-slate-900 font-bold mb-4 text-sm">Courses</h4>
         <ul class="space-y-2.5 text-sm">
-          <li><a href="#courses" class="hover:text-brand-600 transition">Web Development</a></li>
-          <li><a href="#courses" class="hover:text-brand-600 transition">Cybersecurity</a></li>
-          <li><a href="#courses" class="hover:text-brand-600 transition">Python & AI</a></li>
-          <li><a href="#courses" class="hover:text-brand-600 transition">Mobile Development</a></li>
+          <li><a href="{{ route('marketplace.browse') }}" class="hover:text-brand-600 transition">Browse the course catalog</a></li>
         </ul>
       </div>
       <div>
@@ -108,8 +106,7 @@
         <ul class="space-y-2.5 text-sm">
           <li><a href="/register" class="hover:text-brand-600 transition">Register Free</a></li>
           <li><a href="/login"    class="hover:text-brand-600 transition">Student Login</a></li>
-          <li><a href="#how-it-works" class="hover:text-brand-600 transition">How it Works</a></li>
-          <li><a href="/login" class="hover:text-brand-600 transition">Certificate Verify</a></li>
+          <li><a href="/#how-it-works" class="hover:text-brand-600 transition">How it Works</a></li>
         </ul>
       </div>
       <div>

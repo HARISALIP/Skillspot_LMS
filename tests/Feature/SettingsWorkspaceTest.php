@@ -8,6 +8,7 @@ use App\Models\CourseCategory;
 use App\Models\Course;
 use App\Models\Section;
 use App\Services\CourseService;
+use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Models\Role;
@@ -16,6 +17,21 @@ use Tests\TestCase;
 class SettingsWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_saving_razorpay_credentials_does_not_enable_checkout(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment-gateways'), [
+            'gateway_record' => 'new', 'provider' => 'razorpay',
+            'api_key' => 'rzp_test_example', 'api_secret' => 'test-secret',
+        ])->assertRedirect();
+
+        $this->assertNotNull(app(PaymentService::class)->checkoutUnavailableReason());
+        $this->assertDatabaseMissing('settings', ['key' => 'razorpay_enabled', 'value' => '1']);
+    }
 
     public function test_admin_sees_grouped_settings_workspace(): void
     {
@@ -65,6 +81,9 @@ class SettingsWorkspaceTest extends TestCase
             ->assertDontSeeText('Configure your learning platform')
             ->assertDontSee('Main navigation')
             ->assertSee('data-settings-tab="signup"', false)
+            ->assertSee('data-settings-current="general"', false)
+            ->assertSee('id="settingsExtras"', false)
+            ->assertSee('aria-current="page"', false)
             ->assertDontSee('skillspot:navigate-settings', false)
             ->assertSee('data-theme="dark"', false);
 
@@ -143,6 +162,83 @@ class SettingsWorkspaceTest extends TestCase
 
         $this->assertDatabaseHas('settings', ['key' => 'system_timezone', 'value' => 'UTC']);
         $this->assertDatabaseHas('settings', ['key' => 'text_direction', 'value' => 'ltr']);
+    }
+
+    public function test_raven_is_removed_and_gateways_manage_razorpay_without_exposing_secrets(): void
+    {
+        Role::findOrCreate('super-admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('super-admin');
+        Setting::set('razorpay_key_secret', 'private-live-secret', 'payment-gateways');
+
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'raven', 'embed' => 1]))
+            ->assertRedirect(route('admin.settings', ['tab' => 'general', 'embed' => 1]));
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'payment-gateways', 'embed' => 1]))
+            ->assertOk()->assertSeeText('No Payment Gateway')->assertSeeText('Add Razorpay')
+            ->assertDontSeeText('Raven');
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'payment-gateways', 'gateway' => 'new', 'embed' => 1]))
+            ->assertOk()->assertSeeText('Razorpay')
+            ->assertSee('name="provider" value="razorpay"', false)->assertSee('id="gatewaySave" type="submit" disabled', false)
+            ->assertSee('id="gatewayFields" class="mt-5 grid', false)->assertDontSee('private-live-secret')
+            ->assertDontSeeText('Raven');
+
+        $gatewayForm = $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'payment-gateways', 'gateway' => 'new']));
+        foreach (['Braintree', 'GoCardless', 'Mpesa', 'Paymob', 'PayPal', 'Paytm', 'Stripe'] as $provider) {
+            $gatewayForm->assertDontSeeText($provider);
+        }
+        $gatewayForm->assertSeeText('Razorpay');
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment-gateways'), [
+            'provider' => 'stripe', 'api_key' => 'key', 'api_secret' => 'secret',
+        ])->assertSessionHasErrors('provider');
+        $this->assertDatabaseMissing('settings', ['key' => 'razorpay_gateway_added', 'value' => '1']);
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment'), [
+            'razorpay_mode' => 'test', 'razorpay_enabled' => '1',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'payment']));
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment-gateways'), [
+            'gateway_record' => 'new', 'provider' => 'razorpay',
+            'api_key' => 'rzp_test_example', 'api_secret' => 'test-secret',
+            'webhook_secret' => 'webhook-secret', 'redirect_to' => '/dashboard',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'payment-gateways']));
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_mode', 'value' => 'test']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_enabled', 'value' => '1']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_test_key_id', 'value' => 'rzp_test_example']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_redirect_to', 'value' => '/dashboard']);
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'payment-gateways']))
+            ->assertOk()->assertSeeText('Razorpay Settings')->assertDontSeeText('No Payment Gateway');
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'payment-gateways', 'gateway' => 'razorpay']))
+            ->assertOk()->assertSeeText('API Key')->assertSeeText('Redirect To')->assertDontSee('private-live-secret')
+            ->assertDontSee('test-secret');
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment-gateways'), [
+            'gateway_record' => 'razorpay', 'provider' => 'razorpay',
+            'api_key' => 'rzp_test_example', 'redirect_to' => '//outside.example',
+        ])->assertSessionHasErrors('redirect_to');
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_redirect_to', 'value' => '/dashboard']);
+
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment'), [
+            'razorpay_mode' => 'live', 'razorpay_enabled' => '1',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'payment']));
+        $this->actingAs($admin)->post(route('admin.settings.save', 'payment-gateways'), [
+            'gateway_record' => 'razorpay', 'provider' => 'razorpay',
+            'api_key' => 'rzp_live_example',
+        ])->assertRedirect(route('admin.settings', ['tab' => 'payment-gateways', 'gateway' => 'razorpay']));
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_test_key_id', 'value' => 'rzp_test_example']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_test_key_secret', 'value' => 'test-secret']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_key_id', 'value' => 'rzp_live_example']);
+
+        $this->actingAs($admin)->delete(route('admin.settings.gateways.delete'))
+            ->assertRedirect(route('admin.settings', ['tab' => 'payment-gateways']));
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_gateway_added', 'value' => '0']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_enabled', 'value' => '0']);
+        $this->assertDatabaseHas('settings', ['key' => 'razorpay_test_key_secret', 'value' => 'test-secret']);
+        $this->actingAs($admin)->get(route('admin.settings', ['tab' => 'payment-gateways']))
+            ->assertOk()->assertSeeText('No Payment Gateway');
+        Setting::set('razorpay_enabled', '1', 'payment', 'boolean', 'Accept paid course purchases');
+        Setting::set('razorpay_webhook_secret', 'webhook-secret', 'payment-gateways', 'password', 'Webhook Secret');
+        $this->assertNotNull(app(PaymentService::class)->checkoutUnavailableReason());
     }
 
     public function test_frappe_style_signup_and_progress_preferences_are_saved(): void

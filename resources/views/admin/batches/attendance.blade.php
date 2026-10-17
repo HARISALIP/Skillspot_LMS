@@ -1,6 +1,6 @@
 @extends('layouts.admin')
-@section('title','Attendance — {{ $lesson->title }}')
-@section('header','Mark Attendance')
+@section('title', 'Attendance — ' . $lesson->title)
+@section('page-title','Mark Attendance')
 @section('admin-content')
 <div class="space-y-6">
 
@@ -20,7 +20,7 @@
       <div class="divide-y divide-gray-50">
         @forelse($enrolled as $e)
         @php $status = $existing[$e->user_id] ?? 'present'; @endphp
-        <div class="px-5 py-4 flex items-center justify-between">
+        <div class="px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-accent-500 flex items-center justify-center text-white text-xs font-black">
               {{ strtoupper(substr($e->user->name,0,1)) }}
@@ -30,13 +30,13 @@
               <div class="text-xs text-gray-400">{{ $e->user->email }}</div>
             </div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="grid w-full grid-cols-3 gap-2 sm:w-auto">
             @foreach(['present'=>['bg-green-100 text-green-700 border-green-300','✅ Present'],
                       'late'   =>['bg-yellow-100 text-yellow-700 border-yellow-300','⏰ Late'],
                       'absent' =>['bg-red-100 text-red-600 border-red-300','❌ Absent']] as $val=>[$cls,$lbl])
             <label class="cursor-pointer">
-              <input type="radio" name="attendance[{{ $e->user_id }}]" value="{{ $val }}" {{ $status===$val?'checked':'' }} class="sr-only peer">
-              <span class="peer-checked:ring-2 peer-checked:ring-offset-1 peer-checked:ring-brand-500 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-semibold {{ $cls }} transition">{{ $lbl }}</span>
+              <input type="radio" name="attendance[{{ $e->user_id }}]" value="{{ $val }}" aria-label="{{ ucfirst($val) }} for {{ $e->user->name }}" {{ $status===$val?'checked':'' }} class="sr-only peer">
+              <span class="peer-checked:ring-2 peer-checked:ring-offset-1 peer-checked:ring-brand-500 inline-flex w-full items-center justify-center gap-1 px-2 py-1.5 rounded-lg border text-xs font-semibold {{ $cls }} transition">{{ $lbl }}</span>
             </label>
             @endforeach
           </div>
@@ -46,12 +46,12 @@
         @endforelse
       </div>
       @if($enrolled->count() > 0)
-      <div class="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-        <div class="flex gap-2">
+      <div class="px-5 py-4 border-t border-gray-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="grid grid-cols-2 gap-2">
           <button type="button" onclick="markAll('present')" class="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg font-semibold transition">✅ All Present</button>
           <button type="button" onclick="markAll('absent')" class="text-xs bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-lg font-semibold transition">❌ All Absent</button>
         </div>
-        <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-xl text-sm font-semibold transition">Save Attendance</button>
+        <button type="submit" class="min-h-11 bg-brand-600 hover:bg-brand-700 text-white px-6 py-2 rounded-xl text-sm font-semibold transition">Save Attendance</button>
       </div>
       @endif
     </form>

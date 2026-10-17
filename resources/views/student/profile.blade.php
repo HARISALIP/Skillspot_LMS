@@ -6,16 +6,15 @@
 @section('student-content')
 
 <nav aria-label="Your learning" class="mb-5 flex flex-wrap gap-2">
-  <a href="{{ route('student.saved') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Saved courses</a>
   <a href="{{ route('student.certs') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Certificates</a>
   <a href="{{ route('student.progress') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Learning progress</a>
-  <a href="{{ route('student.settings') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Settings</a>
+  <a href="{{ route('studio.dashboard') }}" class="inline-flex min-h-11 items-center rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 hover:border-brand-300">Creator Studio</a>
 </nav>
 
 @if(session('success'))
 <div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
   ✅ {{ session('success') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
+  <button type="button" aria-label="Dismiss message" onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
 </div>
 @endif
 
@@ -65,14 +64,14 @@
       <form method="POST" action="{{ route('student.profile.update') }}" class="p-6 space-y-4">
         @csrf @method('PUT')
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name</label>
-          <input type="text" name="name" value="{{ old('name',$user->name) }}" required
+          <label for="profile-name" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name</label>
+          <input id="profile-name" type="text" name="name" value="{{ old('name',$user->name) }}" required
                  class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           @error('name')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
         </div>
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Phone Number</label>
-          <input type="tel" name="phone" value="{{ old('phone',$user->phone) }}" placeholder="+91 9876543210"
+          <label for="profile-phone" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Phone Number</label>
+          <input id="profile-phone" type="tel" name="phone" value="{{ old('phone',$user->phone) }}" placeholder="+91 9876543210"
                  class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           @error('phone')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
         </div>
@@ -93,13 +92,14 @@
       </div>
       <form method="POST" action="{{ route('student.profile.password') }}" class="p-6 space-y-4" id="pwdForm">
         @csrf @method('PUT')
-        @foreach([['current_password','Current Password','cpwd'],['password','New Password','npwd'],['password_confirmation','Confirm New Password','cpwd2']] as [$n,$l,$id])
+        <input type="email" name="username" value="{{ auth()->user()->email }}" autocomplete="username" class="sr-only" tabindex="-1" aria-hidden="true">
+        @foreach([['current_password','Current Password','cpwd','current-password'],['password','New Password','npwd','new-password'],['password_confirmation','Confirm New Password','cpwd2','new-password']] as [$n,$l,$id,$autocomplete])
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{{ $l }}</label>
+          <label for="{{ $id }}" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{{ $l }}</label>
           <div class="relative">
-            <input type="password" name="{{ $n }}" id="{{ $id }}" required="{{ $n!=='password_confirmation'?'required':'' }}"
+            <input type="password" name="{{ $n }}" id="{{ $id }}" autocomplete="{{ $autocomplete }}" required
                    class="w-full pl-4 pr-11 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
-            <button type="button" onclick="const i=document.getElementById('{{ $id }}');i.type=i.type==='text'?'password':'text';this.textContent=i.type==='password'?'👁':'🙈'"
+            <button type="button" aria-label="Show {{ strtolower($l) }}" onclick="const i=document.getElementById('{{ $id }}');i.type=i.type==='text'?'password':'text';this.textContent=i.type==='password'?'👁':'🙈';this.setAttribute('aria-label',(i.type==='password'?'Show ':'Hide ')+'{{ strtolower($l) }}')"
                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">👁</button>
           </div>
           @error($n)<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror

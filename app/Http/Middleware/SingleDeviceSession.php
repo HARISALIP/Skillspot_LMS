@@ -10,7 +10,7 @@ class SingleDeviceSession
 {
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && Auth::user()->hasRole('student')) {
+        if (config('session.driver') === 'database' && Auth::check() && Auth::user()->hasRole('student')) {
             $sessionId = $request->session()->getId();
 
             // Check if this session still exists in DB

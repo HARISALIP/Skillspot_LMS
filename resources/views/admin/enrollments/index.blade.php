@@ -6,9 +6,9 @@
 @section('admin-content')
 
 @if(session('success'))
-<div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
+<div role="status" class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
   ✅ {{ session('success') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
+  <button type="button" aria-label="Dismiss message" onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
 </div>
 @endif
 
@@ -44,10 +44,12 @@
         class="flex flex-wrap gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50/50">
     <div class="relative flex-1 min-w-[180px]">
       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-      <input type="text" name="search" value="{{ request('search') }}" placeholder="Search student or course…"
+      <label for="enrollment-search" class="sr-only">Search student or course</label>
+      <input id="enrollment-search" type="search" name="search" value="{{ request('search') }}" placeholder="Search student or course…"
              class="w-full pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
     </div>
-    <select name="course_id" onchange="this.form.submit()"
+    <label for="enrollment-course" class="sr-only">Course</label>
+    <select id="enrollment-course" name="course_id" onchange="this.form.submit()"
             class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
       <option value="">All Courses</option>
       @foreach($courses as $course)
@@ -56,13 +58,15 @@
       </option>
       @endforeach
     </select>
-    <select name="access_type" onchange="this.form.submit()"
+    <label for="enrollment-access" class="sr-only">Access type</label>
+    <select id="enrollment-access" name="access_type" onchange="this.form.submit()"
             class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
       <option value="">All Access</option>
       <option value="lifetime" {{ request('access_type')==='lifetime'?'selected':'' }}>♾️ Lifetime</option>
       <option value="limited"  {{ request('access_type')==='limited' ?'selected':'' }}>📅 Limited</option>
     </select>
-    <select name="expiry" onchange="this.form.submit()"
+    <label for="enrollment-expiry" class="sr-only">Expiry</label>
+    <select id="enrollment-expiry" name="expiry" onchange="this.form.submit()"
             class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer">
       <option value="">All Expiry</option>
       <option value="expiring" {{ request('expiry')==='expiring'?'selected':'' }}>⚠️ Expiring (7d)</option>
@@ -103,6 +107,7 @@
               <div class="min-w-0">
                 <div class="font-semibold text-gray-900 text-xs truncate">{{ $en->user->name ?? '—' }}</div>
                 <div class="text-gray-400 text-xs truncate">{{ $en->user->email ?? '' }}</div>
+                <div class="mt-1 max-w-[180px] truncate text-xs font-semibold text-brand-700 md:hidden">{{ $en->course->title ?? 'Course unavailable' }}</div>
               </div>
             </div>
           </td>
@@ -149,7 +154,7 @@
           <td class="px-5 py-3.5">
             <div class="flex items-center gap-1.5">
               <a href="{{ route('admin.enrollments.edit', $en->id) }}"
-                 class="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition" title="Edit">✏️</a>
+                 aria-label="Edit {{ $en->user->name ?? 'learner' }} enrollment for {{ $en->course->title ?? 'course' }}" class="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition" title="Edit">✏️</a>
               @if($en->access_type === 'limited')
               <button onclick="openExtend({{ $en->id }},'{{ addslashes($en->user->name??'') }}')"
                       class="p-1.5 rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-600 transition" title="Extend">⏰</button>
@@ -157,7 +162,7 @@
               <form method="POST" action="{{ route('admin.enrollments.destroy',$en->id) }}"
                     onsubmit="return confirm('Remove access for {{ addslashes($en->user->name??'') }}?')">
                 @csrf @method('DELETE')
-                <button class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition" title="Revoke">🚫</button>
+                <button aria-label="Revoke {{ $en->user->name ?? 'learner' }} access to {{ $en->course->title ?? 'course' }}" class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition" title="Revoke">🚫</button>
               </form>
             </div>
           </td>
@@ -188,7 +193,7 @@
     <form method="POST" id="extendForm" class="space-y-4">
       @csrf @method('PATCH')
       <div>
-        <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Extend by (days)</label>
+        <label for="extendDays" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Extend by (days)</label>
         <div class="grid grid-cols-4 gap-2 mb-2">
           @foreach([30,60,90,180] as $d)
           <button type="button" onclick="document.getElementById('extendDays').value={{ $d }}"
