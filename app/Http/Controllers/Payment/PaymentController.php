@@ -48,6 +48,9 @@ class PaymentController extends Controller
             return $this->enrollFree($user, $course);
         }
 
+        if (Setting::get('razorpay_enabled', '0') !== '1') {
+            return response()->json(['error' => 'Paid checkout is temporarily disabled.'], 503);
+        }
         $amount = (int) (($course->sale_price ?? $course->price) * 100); // paise
 
         try {

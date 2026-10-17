@@ -89,6 +89,9 @@ class CourseController extends Controller
     // ── Create Razorpay order for course ──────────────────────────────
     public function createOrder(Request $request, Course $course)
     {
+        if (Setting::get('razorpay_enabled', '0') !== '1') {
+            return response()->json(['error' => 'Paid checkout is temporarily disabled.'], 503);
+        }
         $user = Auth::user();
         abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for purchase.');
 
