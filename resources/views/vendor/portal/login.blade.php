@@ -37,7 +37,7 @@
   </div>
 
   {{-- Right login form --}}
-  <div class="flex-1 flex items-center justify-center p-6">
+  <main class="flex-1 flex items-center justify-center p-6">
     <div class="w-full max-w-md">
 
       {{-- Mobile logo --}}
@@ -57,8 +57,16 @@
         <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm mb-5">{{ session('success') }}</div>
       @endif
 
+      @if(session('info'))
+        <div role="status" class="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl px-4 py-3 text-sm mb-5">{{ session('info') }}</div>
+      @endif
+
+      @if(session('error'))
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">{{ session('error') }}</div>
+      @endif
+
       @if($errors->any())
-        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">
+        <div role="alert" class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">
           {{ $errors->first() }}
         </div>
       @endif
@@ -66,18 +74,18 @@
       <form method="POST" action="{{ route('vendor.portal.login.submit', $vendor->slug) }}" class="space-y-4">
         @csrf
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Email or Phone</label>
-          <input type="text" name="login" value="{{ old('login') }}" required autofocus
+          <label for="portal-login" class="block text-sm font-semibold text-gray-700 mb-1.5">Email or Phone</label>
+          <input id="portal-login" type="text" name="login" value="{{ old('login') }}" autocomplete="username" required autofocus
                  placeholder="your@email.com or phone number"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
 
         <div>
           <div class="flex items-center justify-between mb-1.5">
-            <label class="text-sm font-semibold text-gray-700">Password</label>
+            <label for="portal-password" class="text-sm font-semibold text-gray-700">Password</label>
             <span class="text-xs text-gray-400">Contact admin to reset</span>
           </div>
-          <input type="password" name="password" required
+          <input id="portal-password" type="password" name="password" autocomplete="current-password" required
                  placeholder="••••••••"
                  class="input-focus w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white transition">
         </div>
@@ -104,7 +112,7 @@
       </div>
 
     </div>
-  </div>
+  </main>
 
 @stack('scripts')
 </body>

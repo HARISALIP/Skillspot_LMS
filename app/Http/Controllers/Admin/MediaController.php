@@ -15,15 +15,13 @@ class MediaController extends Controller
     {
         abort_unless((int) data_get($upload->used_in, 'course_id') === $course->id, 404);
         $user = $request->user();
-        $canManage = $user->hasRole(['admin', 'super-admin'])
-            || $course->primary_instructor_id === $user->id
-            || $course->teachers()->where('users.id', $user->id)->exists();
+        $canManage = $course->canManageContent($user);
         $isEnrolled = Enrollment::where('course_id', $course->id)
             ->where('user_id', $user->id)
             ->where('status', 'active')
             ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
             ->exists();
-        abort_unless($canManage || $isEnrolled, 403);
+        abort_unless($canManage || ($isEnrolled && !in_array($course->marketplace_status, ['suspended', 'archived', 'rejected'], true)), 403);
         abort_unless(Storage::disk($upload->disk)->exists($upload->path), 404);
 
         return Storage::disk($upload->disk)->response($upload->path, $upload->original_name, [], 'inline');
@@ -87,9 +85,7 @@ class MediaController extends Controller
         $course = $request->filled('course_id') ? Course::findOrFail($request->integer('course_id')) : null;
         if ($course) {
             $user = $request->user();
-            abort_unless($user->hasRole(['admin', 'super-admin'])
-                || $course->primary_instructor_id === $user->id
-                || $course->teachers()->where('users.id', $user->id)->exists(), 403);
+            abort_unless($course->canManageContent($user), 403);
         }
 
         try {

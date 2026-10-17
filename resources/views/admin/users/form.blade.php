@@ -1,7 +1,7 @@
 @extends(request()->boolean('embed') ? 'layouts.admin-embed' : 'layouts.admin')
 @section('title', isset($user) && $user->exists ? 'Edit User — Skillspot.in Admin' : 'Add New User — Skillspot.in Admin')
 @section('page-title', isset($user) && $user->exists ? 'Edit User' : 'Add New User')
-@section('page-sub',   isset($user) && $user->exists ? 'Update user details, role and password' : 'Create a new student or admin account')
+@section('page-sub',   isset($user) && $user->exists ? 'Update user details, role and password' : 'Invite a new student or admin to set their own password')
 
 @section('admin-content')
 
@@ -23,14 +23,21 @@
         </div>
         <div>
           <h3 class="font-black text-gray-900">{{ $isEdit ? $user->name : 'New User Account' }}</h3>
-          <p class="text-xs text-gray-400">{{ $isEdit ? $user->email : 'Fill in all details to create the account' }}</p>
+          <p class="text-xs text-gray-400">{{ $isEdit ? $user->email : 'Enter their details and send a set-password link' }}</p>
         </div>
       </div>
 
       {{-- Errors --}}
       @if($errors->any())
-      <div class="mx-6 mt-5 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
+      <div role="alert" class="mx-6 mt-5 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
         @foreach($errors->all() as $e)<div class="flex items-center gap-1.5">• {{ $e }}</div>@endforeach
+      </div>
+      @endif
+
+      @if(!$isEdit && !$inviteMailReady)
+      <div role="alert" class="mx-6 mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        User invitations are unavailable until email delivery is verified.
+        <a class="font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500" href="{{ route('admin.settings', ['tab' => 'mail']) }}">Open Settings → Email Accounts</a> and send a test email first.
       </div>
       @endif
 
@@ -42,10 +49,10 @@
 
         {{-- Name --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name <span class="text-red-400">*</span></label>
+          <label for="user-name" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Full Name <span class="text-red-400">*</span></label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">👤</span>
-            <input type="text" name="name"
+            <input id="user-name" type="text" name="name" autocomplete="name"
                    value="{{ old('name', $isEdit ? $user->name : '') }}"
                    required placeholder="Full name"
                    class="w-full pl-10 pr-4 py-3 rounded-xl border {{ $errors->has('name') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -55,10 +62,10 @@
 
         {{-- Email --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Email Address <span class="text-red-400">*</span></label>
+          <label for="user-email" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Email Address <span class="text-red-400">*</span></label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">📧</span>
-            <input type="email" name="email"
+            <input id="user-email" type="email" name="email" autocomplete="email"
                    value="{{ old('email', $isEdit ? $user->email : '') }}"
                    required placeholder="user@example.com"
                    class="w-full pl-10 pr-4 py-3 rounded-xl border {{ $errors->has('email') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -68,10 +75,10 @@
 
         {{-- Phone --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Phone Number</label>
+          <label for="user-phone" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Phone Number</label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">📱</span>
-            <input type="tel" name="phone"
+            <input id="user-phone" type="tel" name="phone" autocomplete="tel"
                    value="{{ old('phone', $isEdit ? $user->phone : '') }}"
                    placeholder="+91 9876543210"
                    class="w-full pl-10 pr-4 py-3 rounded-xl border {{ $errors->has('phone') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
@@ -81,10 +88,10 @@
 
         {{-- Country --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Country</label>
+          <label for="user-country" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Country</label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🌍</span>
-            <select name="country"
+            <select id="user-country" name="country" autocomplete="country"
                     class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition appearance-none cursor-pointer">
               @foreach($countries as $code => $cname)
               <option value="{{ $code }}" {{ old('country', $isEdit ? $user->country : 'IN') === $code ? 'selected' : '' }}>
@@ -98,15 +105,17 @@
 
         {{-- Role --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Role <span class="text-red-400">*</span></label>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div id="user-role-label" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Role <span class="text-red-400">*</span></div>
+          <div role="radiogroup" aria-labelledby="user-role-label" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             @php
               $roleOptions = [
                 'student'     => ['icon'=>'🎓','label'=>'Student',    'desc'=>'Can browse & enroll in courses',    'color'=>'border-blue-300 bg-blue-50 text-blue-700'],
                 'teacher'     => ['icon'=>'👩‍🏫','label'=>'Teacher',    'desc'=>'Schedule classes, manage vendor content', 'color'=>'border-indigo-300 bg-indigo-50 text-indigo-700'],
                 'admin'       => ['icon'=>'🛡️','label'=>'Admin',      'desc'=>'Manage courses, users & content',   'color'=>'border-orange-300 bg-orange-50 text-orange-700'],
-                'super-admin' => ['icon'=>'👑','label'=>'Super Admin', 'desc'=>'Full platform access & settings',  'color'=>'border-red-300 bg-red-50 text-red-700'],
               ];
+              if(auth()->user()->hasRole('super-admin')) {
+                $roleOptions['super-admin'] = ['icon'=>'👑','label'=>'Super Admin', 'desc'=>'Full platform access & settings', 'color'=>'border-red-300 bg-red-50 text-red-700'];
+              }
               // Merge custom roles
               foreach(\Spatie\Permission\Models\Role::whereNotIn('name',['student','admin','super-admin'])->get() as $cr) {
                 $roleOptions[$cr->name] = ['icon'=>'🎭','label'=>ucfirst(str_replace('-',' ',$cr->name)),'desc'=>'Custom role','color'=>'border-purple-300 bg-purple-50 text-purple-700'];
@@ -130,41 +139,25 @@
           @error('role')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
         </div>
 
-        {{-- Password --}}
+        @if($isEdit)
+        {{-- Password for existing users only --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
-            Password {{ $isEdit ? '' : '<span class="text-red-400">*</span>' }}
-            @if($isEdit)<span class="text-gray-400 font-normal normal-case ml-1">(leave blank to keep current)</span>@endif
+          <label for="pwdInput" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">
+            Password <span class="text-gray-400 font-normal normal-case ml-1">(leave blank to keep current)</span>
           </label>
           <div class="relative">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔑</span>
-            <input type="password" name="password" id="pwdInput"
-                   {{ $isEdit ? '' : 'required' }}
-                   placeholder="{{ $isEdit ? 'Leave blank to keep current' : 'Minimum 8 characters' }}"
+            <input type="password" name="password" id="pwdInput" autocomplete="new-password"
+                   placeholder="Leave blank to keep current"
                    class="w-full pl-10 pr-12 py-3 rounded-xl border {{ $errors->has('password') ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50 focus:bg-white' }} text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
-            <button type="button"
-                    onclick="const i=document.getElementById('pwdInput');i.type=i.type==='text'?'password':'text';this.textContent=i.type==='password'?'👁':'🙈'"
+            <button type="button" aria-label="Show password"
+                    onclick="const i=document.getElementById('pwdInput');i.type=i.type==='text'?'password':'text';this.textContent=i.type==='password'?'👁':'🙈';this.setAttribute('aria-label',i.type==='password'?'Show password':'Hide password')"
                     class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition focus:outline-none">👁</button>
           </div>
-          @if(!$isEdit)
-          <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div id="pwdBar" class="h-full rounded-full transition-all duration-300 w-0"></div>
-          </div>
-          <div id="pwdStrength" class="text-xs text-gray-400 mt-1 h-4"></div>
-          @endif
           @error('password')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
         </div>
-
-        {{-- Send welcome email toggle --}}
-        @if(!$isEdit)
-        <label class="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl cursor-pointer hover:bg-blue-100 transition">
-          <input type="checkbox" name="send_welcome" value="1" checked
-                 class="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
-          <div>
-            <div class="text-sm font-semibold text-blue-800">📧 Send welcome email</div>
-            <div class="text-xs text-blue-600">Email login credentials to the new user</div>
-          </div>
-        </label>
+        @else
+        <p class="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">The new user will receive a one-time link to set their own password. The link expires after 60 minutes.</p>
         @endif
 
         {{-- Actions --}}
@@ -180,10 +173,10 @@
               Cancel
             </a>
             @endif
-            <button type="submit" id="submitBtn"
-                    class="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 active:scale-[0.98] text-white font-black px-7 py-2.5 rounded-xl transition shadow-lg shadow-brand-200 text-sm">
+            <button type="submit" id="submitBtn" @if(!$isEdit && !$inviteMailReady) disabled aria-disabled="true" @endif
+                    class="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none text-white font-black px-7 py-2.5 rounded-xl transition shadow-lg shadow-brand-200 text-sm">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-              <span id="submitText">{{ $isEdit ? 'Update User' : 'Create User' }}</span>
+              <span id="submitText">{{ $isEdit ? 'Update User' : 'Create User & Send Invite' }}</span>
             </button>
           </div>
         </div>
@@ -236,8 +229,8 @@
         <li>• Changing role takes effect immediately</li>
         <li>• Email change will require re-verification</li>
         @else
-        <li>• Password must be at least 8 characters</li>
-        <li>• User will receive a welcome email if enabled</li>
+        <li>• The user sets their own password using the 60-minute invitation link</li>
+        <li>• Verify email delivery in Settings before inviting users</li>
         <li>• Student role is recommended for learners</li>
         <li>• Custom roles can be created in the Roles section</li>
         @endif
@@ -456,30 +449,6 @@
 
 @push('scripts')
 <script>
-  // Password strength
-  const pwdInput = document.getElementById('pwdInput');
-  if (pwdInput) {
-    pwdInput.addEventListener('input', function() {
-      const bar = document.getElementById('pwdBar');
-      const txt = document.getElementById('pwdStrength');
-      if (!bar) return;
-      let s = 0, v = this.value;
-      if (v.length >= 8)          s++;
-      if (/[A-Z]/.test(v))        s++;
-      if (/[0-9]/.test(v))        s++;
-      if (/[^A-Za-z0-9]/.test(v)) s++;
-      const m = {
-        0:['w-0','',''],
-        1:['w-1/4','bg-red-400','Weak 😟'],
-        2:['w-2/4','bg-yellow-400','Fair 😐'],
-        3:['w-3/4','bg-blue-400','Good 👍'],
-        4:['w-full','bg-green-500','Strong 💪']
-      };
-      bar.className = 'h-full rounded-full transition-all duration-300 ' + m[s][0] + ' ' + m[s][1];
-      txt.textContent = m[s][2];
-    });
-  }
-
   // Submit spinner
   document.querySelector('form')?.addEventListener('submit', function() {
     const btn  = document.getElementById('submitBtn');

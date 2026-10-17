@@ -7,6 +7,7 @@ use App\Models\Section;
 use App\Models\Lesson;
 use App\Models\Enrollment;
 use App\Models\BatchAttendance;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -73,6 +74,7 @@ class LiveController extends Controller
         ]);
 
         $section  = Section::findOrFail($request->section_id);
+        abort_unless($section->course_id === (int) $request->course_id, 422, 'Choose a chapter from the selected course.');
         $maxOrder = $section->lessons()->max('order') + 1;
 
         Lesson::create([
@@ -89,6 +91,7 @@ class LiveController extends Controller
             'is_preview'        => $request->boolean('is_preview'),
             'order'             => $maxOrder,
         ]);
+        CourseService::refreshEnrollmentProgress($section->course);
 
         return redirect()->route('admin.live')
             ->with('success', "Live class \"{$request->title}\" scheduled ✅");
@@ -100,7 +103,9 @@ class LiveController extends Controller
             return back()->with('error','Not a live lesson.');
         }
         $title = $lesson->title;
+        $course = $lesson->section->course;
         $lesson->delete();
+        CourseService::refreshEnrollmentProgress($course);
         return back()->with('success', "Session \"{$title}\" cancelled.");
     }
 
@@ -134,8 +139,12 @@ class LiveController extends Controller
     {
         abort_if($lesson->type !== 'live', 404);
 
-        foreach ($request->input('attendance', []) as $userId => $status) {
-            if (!in_array($status, ['present','absent','late'])) continue;
+        $data = $request->validate(['attendance' => 'sometimes|array', 'attendance.*' => 'in:present,absent,late']);
+        $attendance = $data['attendance'] ?? [];
+        $enrolledUserIds = $lesson->section->course->enrollments()->pluck('user_id');
+        abort_if(collect(array_keys($attendance))->map(fn ($id) => (int) $id)->diff($enrolledUserIds)->isNotEmpty(), 422,
+            'Attendance can only be saved for enrolled learners.');
+        foreach ($attendance as $userId => $status) {
             BatchAttendance::updateOrCreate(
                 ['lesson_id' => $lesson->id, 'user_id' => $userId],
                 [

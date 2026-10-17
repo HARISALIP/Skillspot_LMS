@@ -1,9 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -59,37 +56,6 @@ return new class extends Migration
             app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
         } catch (\Throwable $e) {}
 
-        // 4. Create or Update Super Admin User inside Migration
-        $email = env('SUPER_ADMIN_EMAIL', 'skillspot.in@gmail.com');
-        $password = env('SUPER_ADMIN_PASSWORD') ?: ('SkillSpot' . '#2026@' . 'Secure');
-
-        try {
-            $superAdmin = User::updateOrCreate(
-                ['email' => $email],
-                [
-                    'name'              => 'Skillspot Super Admin',
-                    'password'          => Hash::make($password),
-                    'portal_access'     => 'both',
-                    'email_verified_at' => now(),
-                    'phone_verified_at' => now(),
-                ]
-            );
-            $superAdmin->syncRoles(['super-admin', 'admin']);
-        } catch (\Throwable $e) {
-            // Fallback raw DB query to guarantee user creation even if Eloquent or roles fail
-            if (!DB::table('users')->where('email', $email)->exists()) {
-                DB::table('users')->insert([
-                    'email'             => $email,
-                    'name'              => 'Skillspot Super Admin',
-                    'password'          => Hash::make($password),
-                    'portal_access'     => 'both',
-                    'email_verified_at' => now(),
-                    'phone_verified_at' => now(),
-                    'created_at'        => now(),
-                    'updated_at'        => now(),
-                ]);
-            }
-        }
     }
 
     /**

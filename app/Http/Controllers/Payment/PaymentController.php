@@ -8,6 +8,7 @@ use App\Models\WebhookLog;
 use App\Models\Enrollment;
 use App\Models\Course;
 use App\Services\MarketplaceService;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,8 @@ use Razorpay\Api\Api;
 
 class PaymentController extends Controller
 {
+    public function __construct(private PaymentService $payments) {}
+
     private function razorpay(): Api
     {
         $mode   = Setting::get('razorpay_mode', 'live');
@@ -33,61 +36,14 @@ class PaymentController extends Controller
     public function createOrder(Request $request)
     {
         $request->validate(['course_id' => 'required|exists:courses,id']);
-
         $course = Course::findOrFail($request->course_id);
-        $user   = Auth::user();
         abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for purchase.');
-
-        // Already enrolled?
-        if (Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->exists()) {
-            return response()->json(['error' => 'Already enrolled in this course.'], 422);
-        }
-
-        // Free course — skip payment
-        if ($course->is_free || $course->price == 0) {
-            return $this->enrollFree($user, $course);
-        }
-
-        $amount = (int) (($course->sale_price ?? $course->price) * 100); // paise
-
+        if ($course->is_free || $course->price == 0) return $this->enrollFree($request->user(), $course);
         try {
-            $api   = $this->razorpay();
-            $order = $api->order->create([
-                'amount'          => $amount,
-                'currency'        => Setting::get('currency', 'INR'),
-                'receipt'         => 'rcpt_' . $user->id . '_' . $course->id . '_' . time(),
-                'payment_capture' => 1,
-                'notes'           => [
-                    'user_id'    => $user->id,
-                    'course_id'  => $course->id,
-                    'user_email' => $user->email,
-                    'course'     => $course->title,
-                ],
-            ]);
-
-            // Save order record
-            PaymentOrder::create([
-                'user_id'           => $user->id,
-                'course_id'         => $course->id,
-                'razorpay_order_id' => $order->id,
-                'amount'            => $course->sale_price ?? $course->price,
-                'currency'          => Setting::get('currency', 'INR'),
-                'mode'              => Setting::get('razorpay_mode', 'live'),
-                'status'            => 'created',
-            ]);
-
-            return response()->json([
-                'order_id'       => $order->id,
-                'amount'         => $amount,
-                'currency'       => Setting::get('currency', 'INR'),
-                'key_id'         => Setting::get(
-                    Setting::get('razorpay_mode') === 'test' ? 'razorpay_test_key_id' : 'razorpay_key_id'
-                ),
-                'course_name'    => $course->title,
-                'user_name'      => $user->name,
-                'user_email'     => $user->email,
-            ]);
-        } catch (\Exception $e) {
+            return response()->json($this->payments->createOrder($request->user(), $course));
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
             Log::error('Razorpay order creation failed', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'Payment initiation failed. Please try again.'], 500);
         }
@@ -102,57 +58,24 @@ class PaymentController extends Controller
             'razorpay_signature'  => 'required|string',
         ]);
 
-        $mode   = Setting::get('razorpay_mode', 'live');
-        $secret = $mode === 'test'
-            ? Setting::get('razorpay_test_key_secret')
-            : Setting::get('razorpay_key_secret');
-
-        $generated = hash_hmac(
-            'sha256',
-            $request->razorpay_order_id . '|' . $request->razorpay_payment_id,
-            $secret
-        );
-
         $order = PaymentOrder::where('razorpay_order_id', $request->razorpay_order_id)->first();
-
-        if (!$order) {
-            return response()->json(['error' => 'Order not found.'], 404);
+        abort_unless($order && $order->user_id === $request->user()->id && (!$request->filled('course_id') || $order->course_id === (int) $request->course_id), 404);
+        try {
+            $this->payments->verifyCheckout($order, $request->razorpay_payment_id, $request->razorpay_signature);
+        } catch (\DomainException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            Log::error('Razorpay payment verification failed', ['order_id' => $order->id, 'error' => $e->getMessage()]);
+            return response()->json(['error' => 'Could not confirm the captured payment. Please try again.'], 503);
         }
-        if ($order->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Order not found.'], 404);
-        }
-
-        if (!hash_equals($generated, $request->razorpay_signature)) {
-            $order->update(['status' => 'failed']);
-            return response()->json(['error' => 'Payment verification failed. Invalid signature.'], 422);
-        }
-
-        DB::transaction(function () use ($order, $request) {
-            $order->update([
-                'razorpay_payment_id' => $request->razorpay_payment_id,
-                'razorpay_signature'  => $request->razorpay_signature,
-                'status'              => 'paid',
-                'paid_at'             => now(),
-            ]);
-
-            Enrollment::firstOrCreate(
-                ['user_id' => $order->user_id, 'course_id' => $order->course_id],
-                [
-                    'vendor_id'      => $order->course->vendor_id,
-                    'amount_paid'    => $order->amount,
-                    'payment_method' => 'razorpay',
-                    'transaction_id' => $request->razorpay_payment_id,
-                    'status'         => 'active',
-                    'progress'       => 0,
-                ]
-            );
-            MarketplaceService::recordPaidSale($order->fresh(['course']));
-        });
 
         return response()->json([
             'success'   => true,
             'message'   => 'Payment successful! You are now enrolled.',
             'course_id' => $order->course_id,
+            'redirect' => filled(Setting::get('razorpay_redirect_to'))
+                ? url(Setting::get('razorpay_redirect_to'))
+                : route('student.learn', $order->course_id),
         ]);
     }
 
@@ -163,7 +86,10 @@ class PaymentController extends Controller
         $signature = $request->header('X-Razorpay-Signature', '');
         $secret    = Setting::get('razorpay_webhook_secret', '');
 
-        // Log everything first
+        if (!filled($secret)) return response()->json(['error' => 'Webhook is not configured'], 503);
+        $generated = hash_hmac('sha256', $payload, $secret);
+        if (!hash_equals($generated, $signature)) return response()->json(['error' => 'Invalid signature'], 400);
+
         $log = WebhookLog::create([
             'event'               => $request->input('event', 'unknown'),
             'razorpay_payment_id' => $request->input('payload.payment.entity.id'),
@@ -172,15 +98,6 @@ class PaymentController extends Controller
             'payload' => json_decode($payload, true) ?? [],
         ]);
 
-        // Verify signature if webhook secret is configured
-        if (!empty($secret)) {
-            $generated = hash_hmac('sha256', $payload, $secret);
-            if (!hash_equals($generated, $signature)) {
-                $log->update(['status' => 'failed', 'error' => 'Invalid signature']);
-                return response()->json(['error' => 'Invalid signature'], 400);
-            }
-        }
-
         try {
             $data  = json_decode($payload, true);
             $event = $data['event'] ?? '';
@@ -188,7 +105,7 @@ class PaymentController extends Controller
             match ($event) {
                 'payment.captured' => $this->handlePaymentCaptured($data),
                 'payment.failed'   => $this->handlePaymentFailed($data),
-                'refund.created'   => $this->handleRefund($data),
+                'refund.processed' => $this->handleRefund($data),
                 default            => null,
             };
 
@@ -211,29 +128,7 @@ class PaymentController extends Controller
         $order = PaymentOrder::where('razorpay_order_id', $orderId)->first();
         if (!$order) return;
 
-        DB::transaction(function () use ($order, $payment) {
-            if ($order->status !== 'paid') {
-                $order->update([
-                    'razorpay_payment_id' => $payment['id'],
-                    'status'              => 'paid',
-                    'paid_at'             => now(),
-                    'webhook_payload'     => $payment,
-                ]);
-            }
-
-            Enrollment::firstOrCreate(
-                ['user_id' => $order->user_id, 'course_id' => $order->course_id],
-                [
-                    'vendor_id'      => $order->course->vendor_id,
-                    'amount_paid'    => $order->amount,
-                    'payment_method' => 'razorpay',
-                    'transaction_id' => $payment['id'],
-                    'status'         => 'active',
-                    'progress'       => 0,
-                ]
-            );
-            MarketplaceService::recordPaidSale($order->fresh(['course']));
-        });
+        $this->payments->confirmCaptured($order, $payment);
     }
 
     // ── Handle payment.failed event ────────────────────────────────────
@@ -258,12 +153,9 @@ class PaymentController extends Controller
         $order = PaymentOrder::where('razorpay_payment_id', $paymentId)->first();
         if (!$order) return;
 
-        $order->update(['status' => 'refunded']);
-        MarketplaceService::reverseSale($order);
-
-        Enrollment::where('user_id', $order->user_id)
-            ->where('course_id', $order->course_id)
-            ->update(['status' => 'refunded']);
+        abort_unless(($refund['status'] ?? null) === 'processed'
+            && (int) ($refund['amount'] ?? -1) === (int) round((float) $order->amount * 100), 422);
+        $this->payments->confirmRefund($order, $refund['id']);
     }
 
     // ── Enroll free course directly ────────────────────────────────────

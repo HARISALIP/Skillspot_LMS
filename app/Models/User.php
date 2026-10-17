@@ -13,7 +13,7 @@ class User extends Authenticatable
         hasRole as traitHasRole;
     }
 
-    protected $fillable = ['name', 'email', 'phone', 'country', 'country_name', 'registered_via', 'registered_vendor_id', 'portal_access', 'password', 'email_verified_at', 'phone_verified_at'];
+    protected $fillable = ['name', 'email', 'phone', 'country', 'country_name', 'registered_via', 'portal_access', 'password', 'email_verified_at', 'phone_verified_at'];
     protected $hidden   = ['password', 'remember_token'];
 
     /** Safe HasRole wrapper */

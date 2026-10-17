@@ -2,6 +2,7 @@
 @section('title','Course Settings — Vendor Panel')
 @section('header','Course Settings')
 @section('content')
+<div class="mb-4 flex justify-end"><a href="{{ route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']) }}" class="inline-flex min-h-11 items-center rounded-lg border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">Preview as learner</a></div>
 <div class="max-w-2xl">
   <div class="mb-4">
     <h2 class="text-lg font-bold text-gray-900">{{ $course->title }}</h2>

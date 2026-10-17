@@ -1,6 +1,6 @@
 @extends('layouts.admin')
-@section('title','Progress Report — {{ $course->title }}')
-@section('header','Progress Report')
+@section('title', 'Progress Report — ' . $course->title)
+@section('page-title','Progress Report')
 @section('admin-content')
 <div class="space-y-6">
 

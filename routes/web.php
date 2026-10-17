@@ -21,6 +21,7 @@ use App\Http\Controllers\Student\CourseController as StudentCourse;
 use App\Http\Controllers\Payment\PaymentController;
 use App\Http\Controllers\SecureVideoController;
 use App\Http\Controllers\MarketplaceController;
+use App\Http\Controllers\CourseTeachingController;
 
 // ── Landing ────────────────────────────────────────────────────────────────
 Route::get('/', [LandingController::class, 'index'])->name('home');
@@ -47,6 +48,21 @@ Route::middleware(['auth','portal.access'])->group(function () {
     Route::get('/learn/{course}/scorm/{section}/{path}',     [StudentCourse::class,'scormAsset'])->where('path', '.*')->name('student.scorm.asset');
     Route::post('/learn/{course}/lesson/{lesson}/progress', [StudentCourse::class,'saveProgress'])->name('student.save-progress');
     Route::post('/learn/{course}/lesson/{lesson}/quiz', [StudentCourse::class,'submitQuiz'])->name('student.submit-quiz');
+    Route::post('/learn/{course}/assignment/{assignment}', [CourseTeachingController::class, 'submitAssignment'])->name('student.assignment.submit');
+});
+
+Route::middleware('auth')->prefix('courses/{course}/teaching')->name('courses.teaching.')->group(function () {
+    Route::get('/', [CourseTeachingController::class, 'show'])->name('show');
+    Route::post('/sections/{section}/assignments', [CourseTeachingController::class, 'storeAssignment'])->name('assignments.store');
+    Route::post('/sections/{section}/quizzes', [CourseTeachingController::class, 'storeQuiz'])->name('quizzes.store');
+    Route::post('/quizzes/{quiz}/questions', [CourseTeachingController::class, 'addQuizQuestion'])->name('quizzes.questions.store');
+    Route::patch('/quiz-attempts/{attempt}/grade', [CourseTeachingController::class, 'gradeQuiz'])->name('quizzes.attempts.grade');
+    Route::put('/assignments/{assignment}', [CourseTeachingController::class, 'updateAssignment'])->name('assignments.update');
+    Route::patch('/submissions/{submission}/grade', [CourseTeachingController::class, 'grade'])->name('submissions.grade');
+    Route::get('/submissions/{submission}/file', [CourseTeachingController::class, 'download'])->name('submissions.file');
+    Route::post('/announcements', [CourseTeachingController::class, 'announce'])->name('announcements.store');
+    Route::get('/media', [CourseTeachingController::class, 'media'])->name('media.index');
+    Route::post('/media', [CourseTeachingController::class, 'uploadMedia'])->name('media.store');
 });
 
 // ── Marketplace instructor onboarding ────────────────────────────────────
@@ -54,9 +70,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/teach', [MarketplaceController::class, 'applyForm'])->name('marketplace.apply');
     Route::post('/teach', [MarketplaceController::class, 'apply'])->name('marketplace.apply.store');
     Route::get('/instructor', [MarketplaceController::class, 'dashboard'])->name('marketplace.dashboard');
+    Route::get('/studio', [MarketplaceController::class, 'dashboard'])->name('studio.dashboard');
+    Route::put('/studio/payout', [MarketplaceController::class, 'updatePayout'])->name('studio.payout.update');
+    Route::post('/studio/courses/{course}/submit-review', [MarketplaceController::class, 'submitCourse'])->name('studio.courses.submit-review');
 });
 
-Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'teacher.only'])->group(function () {
+Route::prefix('instructor')->name('instructor.')->middleware('auth')->group(function () {
+    Route::get('/courses/{course}/preview', [StudentCourse::class, 'preview'])->name('courses.preview');
+    Route::get('/courses/{course}/preview/lesson/{lesson}', [StudentCourse::class, 'previewLesson'])->name('courses.preview.lesson');
+});
+
+Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'creator.access'])->group(function () {
     Route::get('/courses', [CourseWorkspaceController::class, 'index'])->name('courses.index');
     Route::get('/courses/{course}', [CourseWorkspaceController::class, 'show'])->name('courses.show');
     Route::prefix('/workspace/courses')->name('api.courses.')->group(function () {
@@ -104,7 +128,7 @@ Route::middleware('auth')->prefix('payment')->name('payment.')->group(function (
 });
 
 // ── Admin area ─────────────────────────────────────────────────────────────
-Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth','admin.only'])->group(function () {
     Route::get('/',                      [AdminDash::class,       'index'])->name('dashboard');
     Route::get('/settings',              [SettingsController::class, 'index'])->name('settings');
     Route::post('/settings/mail/test',   [SettingsController::class, 'testMail'])->name('settings.mail.test');
@@ -113,6 +137,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     Route::post('/settings/categories', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
     Route::put('/settings/categories/{category}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
     Route::delete('/settings/categories/{category}', [SettingsController::class, 'destroyCategory'])->name('settings.categories.destroy');
+    Route::delete('/settings/payment-gateways/razorpay', [SettingsController::class, 'deleteGateway'])->name('settings.gateways.delete');
     Route::post('/settings/{group}',     [SettingsController::class, 'save'])->name('settings.save');
     // Courses
     Route::get('/courses',                                            [CoursesController::class,'index'])->name('courses');
@@ -158,6 +183,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     // Payments
     Route::get('/payments',                    [PaymentsController::class,'index'])->name('payments');
     Route::patch('/payments/{payment}/refund', [PaymentsController::class,'refund'])->name('payments.refund');
+    Route::post('/payments/{payment}/reconcile-refund', [PaymentsController::class,'reconcileRefund'])->name('payments.refund.reconcile');
     // Certificates
     Route::get('/certificates',                [CertificatesController::class,'index'])->name('certs');
     Route::get('/certificates/{certificate}/verify',[CertificatesController::class,'verify'])->name('certs.verify');
@@ -231,6 +257,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','teacher.only'])->gro
     Route::patch('/marketplace/instructors/{profile}', [MarketplaceController::class, 'reviewApplication'])->name('marketplace.instructors.review');
     Route::get('/marketplace/reviews', [MarketplaceController::class, 'reviewQueue'])->name('marketplace.reviews');
     Route::patch('/marketplace/reviews/{course}', [MarketplaceController::class, 'reviewCourse'])->name('marketplace.reviews.update');
+    Route::post('/marketplace/reviews/{course}/override', [MarketplaceController::class, 'publishAdminCourse'])->name('marketplace.reviews.override');
     Route::get('/marketplace/commissions', [MarketplaceController::class, 'commissions'])->name('marketplace.commissions');
     Route::post('/marketplace/commissions', [MarketplaceController::class, 'saveCommission'])->name('marketplace.commissions.save');
     Route::get('/marketplace/payouts', [MarketplaceController::class, 'payouts'])->name('marketplace.payouts');
@@ -255,9 +282,9 @@ Route::prefix('dashboard')->name('student.')->middleware(['auth','portal.access'
     Route::put('/profile',          [StudentDash::class,'updateProfile'])->name('profile.update');
     Route::put('/profile/password', [StudentDash::class,'updatePassword'])->name('profile.password');
     Route::get('/settings',         [StudentDash::class,'settings'])->name('settings');
-    Route::get('/progress',         fn() => view('student.progress'))->name('progress');
+    Route::get('/progress',         [StudentDash::class,'progress'])->name('progress');
     Route::get('/live',             fn() => view('student.live'))->name('live');
-    Route::get('/saved',            fn() => view('student.saved'))->name('saved');
+    Route::redirect('/saved', '/dashboard/browse')->name('saved');
 });
 // ── Public pages ───────────────────────────────────────────────────────────
 Route::get('/about',    fn() => view('landing.about'))->name('about');
@@ -318,6 +345,7 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
     // Courses (view — all roles)
     Route::get('/courses',                                   [VendorCourses::class,'index'])->name('courses');
     Route::get('/courses/{course}/students',                 [VendorCourses::class,'students'])->name('courses.students');
+    Route::get('/live-classes',                                [VendorLiveClass::class,'index'])->name('live_classes.index');
     Route::post('/courses/{course}/submit-review',           [MarketplaceController::class,'submitCourse'])->name('courses.submit-review');
     // Live
     Route::get('/live', fn() => redirect()->route('vendor.live_classes.index'))->name('live');
@@ -360,7 +388,6 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
         Route::get('/live/{lesson}/attendance',                                           [VendorLive::class,'attendance'])->name('live.attendance');
         Route::post('/live/{lesson}/attendance',                                          [VendorLive::class,'saveAttendance'])->name('live.attendance.save');
         // Live Classes (hours-based & date-based)
-        Route::get('/live-classes',                                [VendorLiveClass::class,'index'])->name('live_classes.index');
         Route::get('/live-classes/create',                         [VendorLiveClass::class,'create'])->name('live_classes.create');
         Route::post('/live-classes',                               [VendorLiveClass::class,'store'])->name('live_classes.store');
         Route::get('/live-classes/{liveClass}',                    [VendorLiveClass::class,'show'])->name('live_classes.show');
@@ -419,20 +446,4 @@ Route::prefix('v/{slug}')->name('vendor.portal.')->group(function () {
         Route::get('/live-class/{liveClassSlug}/file/{file}', [VendorPortal::class,'viewSessionFile'])->name('live_class.file.view');
         Route::post('/batch/{course}/login',                 [VendorPortal::class,'batchLogin'])->name('batch.login');
     });
-});
-
-// ── System Accounts Seeder Helper Route ────────────────────────────────────
-Route::get('/seed-system-accounts', function () {
-    try {
-        // Run Database Seeder
-        (new \Database\Seeders\DatabaseSeeder())->run();
-
-        // Clear Spatie Permission & Laravel Cache
-        try { app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions(); } catch (\Throwable $t) {}
-        try { \Illuminate\Support\Facades\Artisan::call('cache:clear'); } catch (\Throwable $t) {}
-
-        return response('<!DOCTYPE html><html><head><title>System Accounts Seeded — Skillspot.in</title></head><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:40px;line-height:1.6;"><div style="max-width:600px;margin:0 auto;background:#1e293b;padding:30px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.3);"><h2 style="color:#22c55e;margin-top:0;">✅ System Accounts & Permissions Seeded!</h2><p>All roles, permissions, and default accounts have been synchronized and passwords converted to valid Bcrypt hashes.</p><div style="background:#0f172a;padding:20px;border-radius:12px;margin:20px 0;"><h3 style="color:#38bdf8;margin-top:0;">Available Credentials:</h3><ul style="margin:0;padding-left:20px;color:#cbd5e1;"><li><strong>Super Admin:</strong> skillspot.in@gmail.com &nbsp;|&nbsp; <code>SkillSpot#2026@Secure</code></li><li><strong>Teacher:</strong> teacher@skillspot.in &nbsp;|&nbsp; <code>Teacher#2026@Skillspot</code></li><li><strong>Student:</strong> student@skillspot.in &nbsp;|&nbsp; <code>Student#2026@Skillspot</code></li></ul></div><p><a href="/login" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Go to Login Page →</a></p></div></body></html>');
-    } catch (\Throwable $e) {
-        return response('<!DOCTYPE html><html><body style="font-family:sans-serif;background:#0f172a;color:#f8fafc;padding:30px;"><h2 style="color:#ef4444;">Seeder Exception Diagnostic Info</h2><p><strong>Error:</strong> '.e($e->getMessage()).'</p><p><strong>File:</strong> '.e($e->getFile()).' (Line '.e($e->getLine()).')</p><pre style="background:#1e293b;padding:15px;border-radius:8px;overflow-x:auto;">'.e($e->getTraceAsString()).'</pre></body></html>');
-    }
 });

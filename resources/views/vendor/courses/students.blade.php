@@ -3,8 +3,9 @@
 @section('header','Course Students')
 @section('content')
 <div class="space-y-6">
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between">
-    <div>
+  <a href="{{ route('vendor.courses') }}" class="inline-flex min-h-11 items-center text-sm font-semibold text-brand-700">← Back to courses</a>
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
       <h2 class="font-bold text-gray-900 text-lg">{{ $course->title }}</h2>
       <div class="text-sm text-gray-500 mt-0.5 flex items-center gap-3">
         <span>{{ $course->enrollments_count }} / {{ $course->max_students ?: '∞' }} seats</span>
@@ -12,9 +13,9 @@
         <span class="{{ $course->registration_open ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }} px-2 py-0.5 rounded-full text-xs font-medium">{{ $course->registration_open ? 'Registration Open' : 'Closed' }}</span>
       </div>
     </div>
-    <div class="text-right text-sm text-gray-500">
+    <div class="min-w-0 text-left text-sm text-gray-500 sm:text-right">
       Portal Reg. Link:<br>
-      <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" target="_blank" class="text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}/register/{{ $course->id }}</a>
+      <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" target="_blank" rel="noopener" class="break-all text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}/register/{{ $course->id }}</a>
     </div>
   </div>
 
@@ -37,7 +38,28 @@
   <!-- Enrolled Students -->
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100"><h3 class="font-semibold text-gray-900">Enrolled Students ({{ $enrolled->count() }})</h3></div>
-    <table class="w-full text-sm">
+    <div class="divide-y divide-gray-100 md:hidden">
+      @forelse($enrolled as $enrollment)
+      <article class="p-4 space-y-2 text-sm">
+        <div class="font-semibold text-gray-900 break-words">{{ $enrollment->user->name ?? 'Unknown student' }}</div>
+        <div class="text-xs text-gray-500 break-all">{{ $enrollment->user->email ?? '' }}</div>
+        <div class="flex flex-wrap gap-2 text-xs text-gray-600">
+          <span>{{ $enrollment->progress }}% complete</span>
+          <span>{{ ucfirst($enrollment->status) }}</span>
+          <span>Enrolled {{ $enrollment->created_at->format('d M Y') }}</span>
+        </div>
+        @if(!isset($isVendorOnly) || !$isVendorOnly)
+        <form method="POST" action="{{ route('vendor.courses.revoke-access', [$course, $enrollment->user_id]) }}">
+          @csrf @method('DELETE')
+          <button class="min-h-11 text-xs font-semibold text-red-700" onclick="return confirm('Revoke access?')">Revoke access</button>
+        </form>
+        @endif
+      </article>
+      @empty
+      <div class="p-5 text-sm text-gray-600">No students enrolled yet.</div>
+      @endforelse
+    </div>
+    <table class="hidden w-full text-sm md:table">
       <thead class="bg-gray-50 border-b border-gray-100">
         <tr>
           <th class="text-left px-5 py-3 font-semibold text-gray-600">Student</th>

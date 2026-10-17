@@ -2,6 +2,7 @@
 @section('title', ($isEdit ? 'Edit' : 'Add').' Lesson — Skillspot.in Admin')
 @section('page-title', $isEdit ? 'Edit Lesson' : 'Add Lesson')
 @section('page-sub', $course->title.' → '.$section->title)
+@section('page-actions')<a href="{{ route('instructor.courses.preview', $course) }}" class="inline-flex min-h-10 items-center rounded-lg border border-gray-300 px-3 text-xs font-semibold hover:bg-gray-100">Preview as learner</a>@endsection
 
 @section('admin-content')
 
@@ -443,7 +444,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Duration (minutes)</label>
-            <input type="number" name="duration" value="{{ old('duration',$lesson->duration) }}" min="0"
+            <input type="number" name="duration" value="{{ old('duration', $lesson->duration ? (int) ceil($lesson->duration / 60) : null) }}" min="0" max="1440"
                    placeholder="e.g. 15"
                    class="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           </div>

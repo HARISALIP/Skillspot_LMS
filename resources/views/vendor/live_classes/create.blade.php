@@ -8,7 +8,7 @@
   </div>
 
   @if($errors->any())
-    <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 text-sm text-red-700">
+    <div role="alert" class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5 text-sm text-red-700">
       <ul class="list-disc list-inside space-y-0.5">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
     </div>
   @endif
@@ -21,8 +21,8 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <h2 class="font-bold text-gray-800">🏪 Assign to Vendor</h2>
       <div class="mt-3">
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Vendor *</label>
-        <select name="vendor_id" required
+        <label for="vendor_id" class="block text-sm font-semibold text-gray-700 mb-1.5">Vendor *</label>
+        <select id="vendor_id" name="vendor_id" required
                 class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           @foreach($myVendors as $v)
             <option value="{{ $v->id }}" {{ old('vendor_id', $vendor->id) == $v->id ? 'selected' : '' }}>
@@ -64,27 +64,27 @@
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
       <h2 class="font-bold text-gray-800">Class Details</h2>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Class Title *</label>
-        <input type="text" name="title" value="{{ old('title') }}" required
+        <label for="title" class="block text-sm font-semibold text-gray-700 mb-1.5">Class Title *</label>
+        <input id="title" type="text" name="title" value="{{ old('title') }}" required
                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                placeholder="e.g. Python Bootcamp, CCNA Batch 3">
       </div>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
-        <textarea name="description" rows="2"
+        <label for="description" class="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
+        <textarea id="description" name="description" rows="2"
                   class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Brief description...">{{ old('description') }}</textarea>
       </div>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Scheduled Date & Time <span class="text-gray-400">(optional)</span></label>
-        <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}"
+        <label for="scheduled_at" class="block text-sm font-semibold text-gray-700 mb-1.5">Scheduled Date & Time <span class="text-gray-400">(optional)</span></label>
+        <input id="scheduled_at" type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at') }}"
                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         <p class="text-xs text-gray-400 mt-1">Set a scheduled start time for this live class. Leave blank for no fixed schedule.</p>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Platform *</label>
-          <select name="platform" required class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label for="platform" class="block text-sm font-semibold text-gray-700 mb-1.5">Platform *</label>
+          <select id="platform" name="platform" required class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="zoom" {{ old('platform','zoom') === 'zoom' ? 'selected' : '' }}>Zoom</option>
             <option value="google_meet" {{ old('platform') === 'google_meet' ? 'selected' : '' }}>Google Meet</option>
             <option value="teams" {{ old('platform') === 'teams' ? 'selected' : '' }}>MS Teams</option>
@@ -92,26 +92,26 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Max Students <span class="text-gray-400">(0 = unlimited)</span></label>
-          <input type="number" name="max_students" value="{{ old('max_students',0) }}" min="0"
+          <label for="max_students" class="block text-sm font-semibold text-gray-700 mb-1.5">Max Students <span class="text-gray-400">(0 = unlimited)</span></label>
+          <input id="max_students" type="number" name="max_students" value="{{ old('max_students',0) }}" min="0"
                  class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Meeting URL</label>
-        <input type="url" name="meeting_url" value="{{ old('meeting_url') }}"
+        <label for="meeting_url" class="block text-sm font-semibold text-gray-700 mb-1.5">Meeting URL</label>
+        <input id="meeting_url" type="url" name="meeting_url" value="{{ old('meeting_url') }}"
                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                placeholder="https://zoom.us/j/...">
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Meeting ID</label>
-          <input type="text" name="meeting_id" value="{{ old('meeting_id') }}"
+          <label for="meeting_id" class="block text-sm font-semibold text-gray-700 mb-1.5">Meeting ID</label>
+          <input id="meeting_id" type="text" name="meeting_id" value="{{ old('meeting_id') }}"
                  class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
-          <input type="text" name="meeting_password" value="{{ old('meeting_password') }}"
+          <label for="meeting_password" class="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
+          <input id="meeting_password" type="text" name="meeting_password" value="{{ old('meeting_password') }}"
                  class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
       </div>
@@ -121,8 +121,8 @@
     <div x-show="type === 'hours_based'" class="bg-purple-50 rounded-2xl border border-purple-200 p-5 space-y-4">
       <h2 class="font-bold text-purple-800">⏱ Hours Based Settings</h2>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Total Hours *</label>
-        <input type="number" name="total_hours" value="{{ old('total_hours') }}" step="0.5" min="0.5"
+        <label for="total_hours" class="block text-sm font-semibold text-gray-700 mb-1.5">Total Hours *</label>
+        <input id="total_hours" type="number" name="total_hours" value="{{ old('total_hours') }}" step="0.5" min="0.5"
                class="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                placeholder="e.g. 20">
         <p class="text-xs text-purple-600 mt-1">Teacher starts & stops each session. Hours are auto-calculated. Class auto-completes when target is reached.</p>
@@ -133,20 +133,20 @@
     <div x-show="type === 'date_based'" class="bg-amber-50 rounded-2xl border border-amber-200 p-5 space-y-4">
       <h2 class="font-bold text-amber-800">📅 Batch Settings</h2>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Batch Name *</label>
-        <input type="text" name="batch_name" value="{{ old('batch_name') }}"
+        <label for="batch_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Batch Name *</label>
+        <input id="batch_name" type="text" name="batch_name" value="{{ old('batch_name') }}"
                class="w-full border border-amber-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                placeholder="e.g. Batch 1 — June 2026">
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Start Date *</label>
-          <input type="date" name="batch_start_date" value="{{ old('batch_start_date') }}"
+          <label for="batch_start_date" class="block text-sm font-semibold text-gray-700 mb-1.5">Start Date *</label>
+          <input id="batch_start_date" type="date" name="batch_start_date" value="{{ old('batch_start_date') }}"
                  class="w-full border border-amber-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">End Date *</label>
-          <input type="date" name="batch_end_date" value="{{ old('batch_end_date') }}"
+          <label for="batch_end_date" class="block text-sm font-semibold text-gray-700 mb-1.5">End Date *</label>
+          <input id="batch_end_date" type="date" name="batch_end_date" value="{{ old('batch_end_date') }}"
                  class="w-full border border-amber-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
         </div>
       </div>

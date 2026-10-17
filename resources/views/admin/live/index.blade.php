@@ -6,13 +6,19 @@
 @section('admin-content')
 
 @if(session('success'))
-<div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
-  ✅ {{ session('success') }} <button onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
+<div role="status" class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
+  ✅ {{ session('success') }} <button type="button" aria-label="Dismiss success message" onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
 </div>
 @endif
 @if(session('error'))
-<div class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
-  ❌ {{ session('error') }} <button onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
+<div role="alert" class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold">
+  ❌ {{ session('error') }} <button type="button" aria-label="Dismiss error message" onclick="this.parentElement.remove()" class="ml-auto text-xl">×</button>
+</div>
+@endif
+@if($errors->any())
+<div role="alert" class="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm">
+  <div class="font-bold">Please fix the highlighted details.</div>
+  <ul class="mt-1 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
 </div>
 @endif
 
@@ -30,7 +36,7 @@
 
         {{-- Course --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Course <span class="text-red-400">*</span></label>
+          <label for="courseSelect" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Course <span class="text-red-400">*</span></label>
           <select name="course_id" id="courseSelect" required onchange="loadSections(this.value)"
                   class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
             <option value="">Select course…</option>
@@ -42,7 +48,7 @@
 
         {{-- Section --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Section <span class="text-red-400">*</span></label>
+          <label id="live-section-label" for="sectionSelect" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Section <span class="text-red-400">*</span></label>
           <select name="section_id" id="sectionSelect" required
                   class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
             <option value="">Select course first…</option>
@@ -51,19 +57,19 @@
 
         {{-- Title --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Session Title <span class="text-red-400">*</span></label>
-          <input type="text" name="title" required placeholder="e.g. Live Q&A — Week 3"
+          <label for="live-title" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Session Title <span class="text-red-400">*</span></label>
+          <input id="live-title" type="text" name="title" value="{{ old('title') }}" required placeholder="e.g. Live Q&A — Week 3"
                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
         </div>
 
         {{-- Platform --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Platform <span class="text-red-400">*</span></label>
+          <div class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Platform <span class="text-red-400">*</span></div>
           <div class="grid grid-cols-2 gap-2">
             @foreach(['google_meet'=>['🟢','Google Meet'],'zoom'=>['🔵','Zoom'],'teams'=>['🟣','Teams'],'other'=>['⚪','Other']] as $val=>[$dot,$lbl])
             <label class="cursor-pointer">
               <input type="radio" name="live_platform" value="{{ $val }}" class="sr-only peer"
-                     {{ $val==='google_meet'?'checked':'' }}>
+                     {{ old('live_platform', 'google_meet') === $val ? 'checked' : '' }}>
               <div class="border-2 border-gray-200 rounded-xl p-2.5 text-center peer-checked:border-brand-500 peer-checked:bg-brand-50 transition flex items-center gap-2">
                 <span>{{ $dot }}</span>
                 <span class="text-xs font-bold text-gray-700">{{ $lbl }}</span>
@@ -75,25 +81,25 @@
 
         {{-- Meeting link --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Meeting Link <span class="text-red-400">*</span></label>
-          <input type="text" name="live_url" required placeholder="https://meet.google.com/xxx-xxxx-xxx"
+          <label for="live-url" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Meeting Link <span class="text-red-400">*</span></label>
+          <input id="live-url" type="text" name="live_url" value="{{ old('live_url') }}" required placeholder="https://meet.google.com/xxx-xxxx-xxx"
                  class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition font-mono">
         </div>
 
         {{-- Date & Time --}}
         <div class="grid grid-cols-1 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Date & Time <span class="text-red-400">*</span></label>
-            <input type="datetime-local" name="live_scheduled_at" required
+            <label for="live-scheduled-at" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Date & Time <span class="text-red-400">*</span></label>
+            <input id="live-scheduled-at" type="datetime-local" name="live_scheduled_at" value="{{ old('live_scheduled_at') }}" required
                    min="{{ now()->format('Y-m-d\TH:i') }}"
                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Duration (minutes)</label>
-            <select name="live_duration_min"
+            <label for="live-duration" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Duration (minutes)</label>
+            <select id="live-duration" name="live_duration_min"
                     class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
               @foreach([30,45,60,90,120,180] as $d)
-              <option value="{{ $d }}" {{ $d===60?'selected':'' }}>{{ $d }} minutes</option>
+              <option value="{{ $d }}" {{ (int) old('live_duration_min', 60) === $d ? 'selected' : '' }}>{{ $d }} minutes</option>
               @endforeach
             </select>
           </div>
@@ -102,27 +108,27 @@
         {{-- Meeting ID + Password (optional) --}}
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Meeting ID</label>
-            <input type="text" name="live_meeting_id" placeholder="Optional"
+            <label for="live-meeting-id" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Meeting ID</label>
+            <input id="live-meeting-id" type="text" name="live_meeting_id" value="{{ old('live_meeting_id') }}" placeholder="Optional"
                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Password</label>
-            <input type="text" name="live_password" placeholder="Optional"
+            <label for="live-password" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Password</label>
+            <input id="live-password" type="text" name="live_password" value="{{ old('live_password') }}" placeholder="Optional"
                    class="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 transition">
           </div>
         </div>
 
         {{-- Description --}}
         <div>
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
-          <textarea name="description" rows="2" placeholder="Brief description for students…"
-                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition resize-none"></textarea>
+          <label for="live-description" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Description</label>
+          <textarea id="live-description" name="description" rows="2" placeholder="Brief description for students…"
+                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition resize-none">{{ old('description') }}</textarea>
         </div>
 
         {{-- Free Preview --}}
         <label class="flex items-center gap-3 cursor-pointer p-3 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition">
-          <input type="checkbox" name="is_preview" value="1"
+          <input type="checkbox" name="is_preview" value="1" {{ old('is_preview') ? 'checked' : '' }}
                  class="w-4 h-4 rounded text-green-600 focus:ring-green-500">
           <div>
             <div class="text-xs font-bold text-green-800">Free Preview</div>
@@ -211,7 +217,7 @@
             <form method="POST" action="{{ route('admin.live.destroy', $lesson->id) }}"
                   onsubmit="return confirm('Cancel this session?')">
               @csrf @method('DELETE')
-              <button class="w-full text-xs bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 rounded-lg transition">
+              <button aria-label="Cancel {{ $lesson->title }}" class="w-full text-xs bg-red-50 hover:bg-red-100 text-red-600 font-bold px-3 py-1.5 rounded-lg transition">
                 🗑 Cancel
               </button>
             </form>
@@ -278,6 +284,13 @@ function loadSections(courseId) {
     opt.textContent = s.title;
     sel.appendChild(opt);
   });
+}
+
+const previousCourse = @json((string) old('course_id'));
+if (previousCourse) {
+  document.getElementById('courseSelect').value = previousCourse;
+  loadSections(previousCourse);
+  document.getElementById('sectionSelect').value = @json((string) old('section_id'));
 }
 </script>
 @endpush

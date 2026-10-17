@@ -6,15 +6,15 @@
 @section('admin-content')
 
 @if(session('success'))
-<div class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm">
+<div role="status" class="mb-5 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm">
   <span class="text-xl flex-shrink-0">✅</span> {{ session('success') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-green-400 hover:text-green-600 text-xl">×</button>
+  <button type="button" aria-label="Dismiss success message" onclick="this.parentElement.remove()" class="ml-auto text-green-400 hover:text-green-600 text-xl">×</button>
 </div>
 @endif
 @if(session('error'))
-<div class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm">
+<div role="alert" class="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm">
   <span class="text-xl flex-shrink-0">❌</span> {{ session('error') }}
-  <button onclick="this.parentElement.remove()" class="ml-auto text-red-400 hover:text-red-600 text-xl">×</button>
+  <button type="button" aria-label="Dismiss error message" onclick="this.parentElement.remove()" class="ml-auto text-red-400 hover:text-red-600 text-xl">×</button>
 </div>
 @endif
 
@@ -50,12 +50,14 @@
   <!-- Search & filter -->
   <form method="GET" action="{{ route('admin.users') }}" class="flex flex-col sm:flex-row gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50/50">
     <div class="relative flex-1">
+      <label for="users-search" class="sr-only">Search users</label>
       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
-      <input type="text" name="search" value="{{ request('search') }}"
+      <input id="users-search" type="search" name="search" value="{{ request('search') }}"
              placeholder="Search name, email or phone…"
              class="w-full pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
     </div>
-    <select name="role" onchange="this.form.submit()"
+    <label for="users-role" class="sr-only">Filter by role</label>
+    <select id="users-role" name="role" onchange="this.form.submit()"
             class="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white cursor-pointer">
       <option value="">All Roles</option>
       <option value="student"    {{ request('role') === 'student'     ? 'selected' : '' }}>Students</option>
@@ -64,7 +66,8 @@
       <option value="vendor"      {{ request('role') === 'vendor'       ? 'selected' : '' }}>Vendors</option>
       <option value="teacher"     {{ request('role') === 'teacher'      ? 'selected' : '' }}>Teachers</option>
     </select>
-    <select name="country" onchange="this.form.submit()"
+    <label for="users-country" class="sr-only">Filter by country</label>
+    <select id="users-country" name="country" onchange="this.form.submit()"
             class="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white cursor-pointer">
       <option value="">All Countries</option>
       @foreach($countries as $code => $cname)
@@ -154,21 +157,23 @@
           <!-- Actions -->
           <td class="px-5 py-3.5">
             <div class="flex items-center gap-1.5">
+              @if(!$user->hasRole('super-admin') || auth()->user()->hasRole('super-admin'))
               <a href="{{ route('admin.users.edit', $user->id) }}"
-                 class="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition" title="Edit">
+                 class="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition" title="Edit" aria-label="Edit {{ $user->name }}">
                 ✏️
               </a>
+              @endif
               @if(auth()->user()->hasRole('super-admin') && !$user->hasRole('super-admin') && $user->id !== auth()->id())
               <form method="POST" action="{{ route('admin.users.impersonate', $user->id) }}" class="inline">
                 @csrf
                 <button type="submit" class="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition" title="Login as this user">👤</button>
               </form>
               @endif
-              @if($user->id !== auth()->id())
+              @if($user->id !== auth()->id() && !$user->hasRole('super-admin'))
               <form method="POST" action="{{ route('admin.users.destroy', $user->id) }}"
                     onsubmit="return confirm('Delete {{ addslashes($user->name) }}? This cannot be undone.')">
                 @csrf @method('DELETE')
-                <button type="submit" class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition" title="Delete">🗑️</button>
+                <button type="submit" aria-label="Delete {{ $user->name }}" class="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition" title="Delete">🗑️</button>
               </form>
               @endif
             </div>

@@ -3,6 +3,8 @@
 @section('content')
 <div class="max-w-4xl mx-auto py-8 px-4 space-y-6">
 
+  <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900">← Back to dashboard</a>
+
   {{-- Batch header --}}
   <div class="rounded-2xl overflow-hidden shadow-sm" style="background: linear-gradient(135deg, {{ $vendor->primary_color ?? '#2563eb' }}, {{ $vendor->accent_color ?? '#7c3aed' }});">
     <div class="p-6 text-white">
@@ -20,16 +22,16 @@
   </div>
 
   {{-- Tabs --}}
-  <div x-data="{tab:'live'}" class="space-y-4">
-    <div class="flex gap-2 border-b border-gray-200 overflow-x-auto">
-      <button @click="tab='live'" :class="tab==='live'?'border-b-2 border-brand-600 text-brand-600 font-semibold':'text-gray-500 hover:text-gray-700'" class="px-4 py-2.5 text-sm whitespace-nowrap transition">📡 Live Classes</button>
-      <button @click="tab='recordings'" :class="tab==='recordings'?'border-b-2 border-brand-600 text-brand-600 font-semibold':'text-gray-500 hover:text-gray-700'" class="px-4 py-2.5 text-sm whitespace-nowrap transition">🎬 Recordings</button>
-      <button @click="tab='docs'" :class="tab==='docs'?'border-b-2 border-brand-600 text-brand-600 font-semibold':'text-gray-500 hover:text-gray-700'" class="px-4 py-2.5 text-sm whitespace-nowrap transition">📄 Documents</button>
-      <button @click="tab='attendance'" :class="tab==='attendance'?'border-b-2 border-brand-600 text-brand-600 font-semibold':'text-gray-500 hover:text-gray-700'" class="px-4 py-2.5 text-sm whitespace-nowrap transition">📋 My Attendance</button>
+  <div data-portal-tabs class="space-y-4">
+    <div role="tablist" aria-label="Batch content" class="flex gap-2 border-b border-gray-200 overflow-x-auto">
+      <button type="button" role="tab" aria-selected="true" aria-controls="batch-live" data-tab="live" class="border-b-2 border-brand-600 px-4 py-2.5 text-sm font-semibold text-brand-600 whitespace-nowrap transition">📡 Live Classes</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="batch-recordings" data-tab="recordings" class="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap transition">🎬 Recordings</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="batch-docs" data-tab="docs" class="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap transition">📄 Documents</button>
+      <button type="button" role="tab" aria-selected="false" aria-controls="batch-attendance" data-tab="attendance" class="px-4 py-2.5 text-sm text-gray-500 hover:text-gray-700 whitespace-nowrap transition">📋 My Attendance</button>
     </div>
 
     {{-- Live Classes --}}
-    <div x-show="tab==='live'" class="space-y-3">
+    <div id="batch-live" role="tabpanel" data-tab-panel="live" class="space-y-3">
       @forelse($liveLessons as $lesson)
       @php
         $isPast = $lesson->live_scheduled_at && $lesson->live_scheduled_at->isPast();
@@ -73,7 +75,7 @@
     </div>
 
     {{-- Recordings --}}
-    <div x-show="tab==='recordings'" class="space-y-3">
+    <div id="batch-recordings" role="tabpanel" data-tab-panel="recordings" class="space-y-3" hidden>
       @forelse($recordings as $lesson)
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center justify-between gap-4">
         <div class="flex-1">
@@ -92,8 +94,8 @@
     </div>
 
     {{-- Documents --}}
-    <div x-show="tab==='docs'" class="space-y-3">
-      @forelse($docsLessons as $lesson)
+    <div id="batch-docs" role="tabpanel" data-tab-panel="docs" class="space-y-3" hidden>
+      @forelse($documents as $lesson)
       @php $resources = is_array($lesson->resources) ? $lesson->resources : json_decode($lesson->resources ?? '[]', true); @endphp
       @if(!empty($resources))
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -117,7 +119,7 @@
     </div>
 
     {{-- My Attendance --}}
-    <div x-show="tab==='attendance'">
+    <div id="batch-attendance" role="tabpanel" data-tab-panel="attendance" hidden>
       <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <h3 class="font-semibold text-gray-900">My Attendance</h3>
@@ -152,3 +154,22 @@
 
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelector('[data-portal-tabs]')?.addEventListener('click', event => {
+  const tab = event.target.closest('[data-tab]');
+  if (!tab) return;
+  document.querySelectorAll('[data-tab]').forEach(button => {
+    const active = button === tab;
+    button.setAttribute('aria-selected', String(active));
+    button.classList.toggle('border-b-2', active);
+    button.classList.toggle('border-brand-600', active);
+    button.classList.toggle('font-semibold', active);
+    button.classList.toggle('text-brand-600', active);
+    button.classList.toggle('text-gray-500', !active);
+  });
+  document.querySelectorAll('[data-tab-panel]').forEach(panel => { panel.hidden = panel.dataset.tabPanel !== tab.dataset.tab; });
+});
+</script>
+@endpush

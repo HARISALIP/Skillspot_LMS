@@ -4,10 +4,6 @@
 @section('content')
 <div class="max-w-2xl space-y-6">
 
-  @if(session('success'))
-    <div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>
-  @endif
-
   {{-- Personal info card --}}
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100">

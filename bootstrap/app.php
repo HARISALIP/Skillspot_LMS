@@ -3,7 +3,9 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Http\Middleware\TrustProxies;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -26,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'vendor.only'        => \App\Http\Middleware\EnsureVendor::class,
             'vendor.portal.auth' => \App\Http\Middleware\VendorPortalAuth::class,
             'teacher.only'  => \App\Http\Middleware\TeacherOnly::class,
+            'creator.access' => \App\Http\Middleware\CreatorAccess::class,
             'admin.only'    => \App\Http\Middleware\AdminOnly::class,
             'single.device'   => \App\Http\Middleware\SingleDeviceSession::class,
             'portal.access'   => \App\Http\Middleware\PortalAccessCheck::class,
@@ -37,5 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
+            if ($exception->getStatusCode() === 403 && ! $request->expectsJson()) {
+                return response()->view('errors.403', status: 403);
+            }
+        });
     })->create();

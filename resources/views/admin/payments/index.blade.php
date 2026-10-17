@@ -122,11 +122,16 @@
             {{ $p->paid_at?->format('d M Y H:i') ?? $p->created_at?->format('d M Y') }}
           </td>
           <td class="px-5 py-3.5">
-            @if($p->status === 'paid')
+            @if($p->status === 'paid' && !$p->refund_requested_at)
             <form method="POST" action="{{ route('admin.payments.refund', $p->id) }}"
-                  onsubmit="return confirm('Mark as refunded?')">
+                  onsubmit="return confirm('Request a full refund from Razorpay? This cannot be undone.')">
               @csrf @method('PATCH')
               <button class="text-xs text-yellow-700 hover:text-yellow-900 font-semibold hover:underline transition">↩ Refund</button>
+            </form>
+            @elseif($p->refund_requested_at && $p->status === 'paid')
+            <form method="POST" action="{{ route('admin.payments.refund.reconcile', $p) }}">
+              @csrf
+              <button class="text-xs font-semibold text-amber-700 hover:underline">Check refund with Razorpay</button>
             </form>
             @else
             <span class="text-xs text-gray-300">—</span>

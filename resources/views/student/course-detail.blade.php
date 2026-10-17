@@ -39,7 +39,7 @@
           <span class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-lg">📹 {{ $totalLessons }} lessons</span>
           @endif
           @if($totalDuration > 0)
-          <span class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-lg">⏱ {{ round($totalDuration/60,1) }}h</span>
+          <span class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-lg">⏱ {{ $totalDuration < 3600 ? (int) ceil($totalDuration / 60).' min' : round($totalDuration / 3600, 1).'h' }}</span>
           @endif
           <span class="text-xs bg-gray-100 text-gray-600 font-medium px-2.5 py-1 rounded-lg">👥 {{ $course->enrollments_count }} enrolled</span>
         </div>
@@ -110,7 +110,7 @@
               <span class="text-gray-300 flex-shrink-0">🔒</span>
               @endif
               @if($lesson->duration)
-              <span class="text-xs text-gray-400 flex-shrink-0">{{ $lesson->duration }}m</span>
+              <span class="text-xs text-gray-400 flex-shrink-0">{{ (int) ceil($lesson->duration / 60) }}m</span>
               @endif
             </div>
             @endforeach
@@ -190,6 +190,9 @@
               🆓 Enroll Free Now
             </button>
           </form>
+          @elseif($checkoutIssue)
+          <button type="button" disabled aria-disabled="true" class="w-full rounded-2xl bg-gray-200 px-4 py-4 text-sm font-bold text-gray-600 cursor-not-allowed">Paid enrollment unavailable</button>
+          <p class="mt-2 text-center text-xs text-gray-600" role="status">{{ $checkoutIssue }}</p>
           @else
           <button id="payBtn" onclick="startPayment()"
                   class="w-full py-4 bg-gradient-to-r from-brand-600 to-accent-600 hover:from-brand-700 hover:to-accent-700 text-white font-black rounded-2xl transition shadow-lg text-sm flex items-center justify-center gap-2">
@@ -207,13 +210,13 @@
 
         {{-- Features --}}
         <div class="mt-5 space-y-2.5 text-xs text-gray-500">
-          @foreach([
-            ['🔒','Secure payment via Razorpay'],
+          @foreach(array_filter([
+            $course->is_free ? ['✓','No payment required'] : ['🔒','Secure payment via Razorpay'],
             ['♾️','Lifetime access'],
             ['📜','Certificate on completion'],
             ['📱','Access on any device'],
-            ['🛡️','7-day money-back guarantee'],
-          ] as [$icon,$text])
+            $course->is_free ? null : ['🛡️','7-day money-back guarantee'],
+          ]) as [$icon,$text])
           <div class="flex items-center gap-2"><span>{{ $icon }}</span>{{ $text }}</div>
           @endforeach
         </div>
@@ -232,7 +235,7 @@
 @endsection
 
 @push('scripts')
-@if(!$course->is_free && !$hasAccess && auth()->check())
+@if(!$course->is_free && !$hasAccess && !$checkoutIssue && auth()->check())
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 async function startPayment() {

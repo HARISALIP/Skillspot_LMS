@@ -120,9 +120,9 @@ class ScormWorkflowTest extends TestCase
 
     private function teacherCourse(): array
     {
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $course = Course::create([
             'title' => 'SCORM Course', 'category' => 'Technology', 'level' => 'beginner',
             'language' => 'en', 'price' => 0, 'is_free' => true,

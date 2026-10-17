@@ -48,6 +48,13 @@ class Course extends Model
         static::updating(function ($c) {
             if ($c->isDirty('title') && empty($c->slug)) $c->slug = static::uniqueSlug($c->title);
         });
+        static::updated(function ($c) {
+            if ($c->marketplace_status === 'live' && $c->wasChanged()) {
+                CourseChangeAudit::create(['course_id' => $c->id, 'actor_id' => auth()->id(),
+                    'subject_type' => 'course', 'subject_id' => $c->id,
+                    'changed_fields' => array_keys($c->getChanges())]);
+            }
+        });
     }
 
     public static function uniqueSlug(string $title): string
@@ -62,6 +69,8 @@ class Course extends Model
     public function reviewer() { return $this->belongsTo(User::class, 'reviewed_by'); }
     public function marketplaceReviews() { return $this->hasMany(CourseReview::class); }
     public function marketplaceSales() { return $this->hasMany(MarketplaceSale::class); }
+    public function changeAudits() { return $this->hasMany(CourseChangeAudit::class); }
+    public function announcements() { return $this->hasMany(CourseAnnouncement::class)->latest(); }
     public function sections()     { return $this->hasMany(Section::class)->orderBy('order'); }
     public function enrollments()  { return $this->hasMany(Enrollment::class); }
     public function reviews()      { return $this->hasMany(Review::class); }
@@ -77,6 +86,18 @@ class Course extends Model
     {
         return $this->belongsToMany(User::class, 'course_teachers', 'course_id', 'user_id')
             ->withPivot('added_by','created_at');
+    }
+
+    public function canManageContent(User $user): bool
+    {
+        if ($user->hasRole(['admin', 'super-admin'])) return true;
+        if ($user->instructorProfile()->where('status', 'suspended')->exists()) return false;
+
+        return $this->primary_instructor_id === $user->id
+            || ($this->vendor_id && $this->teachers()->where('users.id', $user->id)->exists())
+            || ($this->vendor_id && ($this->vendor?->managers()->where('users.id', $user->id)->exists() ?? false))
+            || ($this->vendor_id && $user->hasRole('teacher')
+                && ($this->vendor?->teachers()->where('users.id', $user->id)->exists() ?? false));
     }
 
     /** Is course full? */
@@ -125,7 +146,8 @@ class Course extends Model
 
     public function scopeMarketplaceLive($query)
     {
-        return $query->where('marketplace_status', 'live')->where('marketplace_visible', true)->where('upcoming', false);
+        return $query->where('marketplace_status', 'live')->where('marketplace_visible', true)
+            ->where('is_published', true)->where('visibility', 'public')->where('upcoming', false);
     }
 
     public function isMarketplaceLive(): bool

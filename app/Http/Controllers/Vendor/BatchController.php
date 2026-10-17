@@ -9,6 +9,8 @@ use App\Models\Lesson;
 use App\Models\User;
 use App\Models\BatchAttendance;
 use App\Models\Certificate;
+use App\Models\VendorPreallowedContact;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -56,9 +58,10 @@ class BatchController extends Controller
 
         $certs = Certificate::where('course_id', $course->id)->pluck('user_id')->toArray();
         $allowedUsers = $course->allowedUsers()->get();
+        $canManage = !$this->isVendorOnly();
 
         return view('vendor.batches.show', compact(
-            'vendor','course','allowedUsers','enrolled','lessons','attendanceSummary','certs'
+            'vendor','course','allowedUsers','enrolled','lessons','attendanceSummary','certs','canManage'
         ));
     }
 
@@ -66,26 +69,74 @@ class BatchController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_if($lesson->section?->course_id !== $course->id, 403);
 
         $enrolled = $course->enrollments()->with('user')->get();
         $existing = BatchAttendance::where('lesson_id', $lesson->id)->pluck('status','user_id')->toArray();
+        $canManage = !$this->isVendorOnly();
 
-        return view('vendor.batches.attendance', compact('vendor','course','lesson','enrolled','existing'));
+        return view('vendor.batches.attendance', compact('vendor','course','lesson','enrolled','existing','canManage'));
     }
 
     public function saveAttendance(Request $request, Course $course, Lesson $lesson)
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_if($lesson->section?->course_id !== $course->id, 403);
 
-        foreach ($request->input('attendance', []) as $userId => $status) {
-            if (!in_array($status, ['present','absent','late'])) continue;
+        $data = $request->validate(['attendance' => 'sometimes|array', 'attendance.*' => 'in:present,absent,late']);
+        $attendance = $data['attendance'] ?? [];
+        $enrolledUserIds = $course->enrollments()->pluck('user_id');
+        abort_if(collect(array_keys($attendance))->map(fn ($id) => (int) $id)->diff($enrolledUserIds)->isNotEmpty(), 422,
+            'Attendance can only be saved for enrolled learners.');
+        foreach ($attendance as $userId => $status) {
             BatchAttendance::updateOrCreate(
                 ['lesson_id' => $lesson->id, 'user_id' => $userId],
                 ['course_id' => $course->id, 'vendor_id' => $vendor->id, 'status' => $status, 'marked_by' => auth()->id()]
             );
         }
         return back()->with('success', 'Attendance saved ✅');
+    }
+
+    public function revokeStudent(Course $course, User $user)
+    {
+        $vendor = $this->vendor();
+        abort_if($course->vendor_id !== $vendor->id, 403);
+        $course->allowedUsers()->detach($user->id);
+        Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->delete();
+
+        return back()->with('success', $user->name . ' removed.');
+    }
+
+    public function preAllow(Request $request, Course $course)
+    {
+        $vendor = $this->vendor();
+        abort_if($course->vendor_id !== $vendor->id, 403);
+        $request->validate(['contacts' => 'required|string', 'contact_type' => 'required|in:email,phone']);
+
+        $contacts = array_filter(array_map('trim', preg_split('/[\s,;\n]+/', $request->contacts)));
+        foreach ($contacts as $contact) {
+            VendorPreallowedContact::firstOrCreate(
+                ['vendor_id' => $vendor->id, 'contact' => $contact],
+                ['contact_type' => $request->contact_type, 'added_by' => auth()->id()]
+            );
+            $existing = $request->contact_type === 'email'
+                ? User::where('email', $contact)->first()
+                : User::where('phone', $contact)->first();
+            if ($existing) {
+                $course->allowedUsers()->syncWithoutDetaching([$existing->id => ['added_by' => auth()->id()]]);
+                Enrollment::firstOrCreate(
+                    ['user_id' => $existing->id, 'course_id' => $course->id],
+                    ['vendor_id' => $vendor->id, 'amount_paid' => 0, 'payment_method' => 'vendor_access']
+                );
+                DB::table('student_vendor_access')->updateOrInsert(
+                    ['user_id' => $existing->id, 'vendor_id' => $vendor->id],
+                    ['granted_by' => auth()->id(), 'updated_at' => now(), 'created_at' => now()]
+                );
+            }
+        }
+
+        return back()->with('success', count($contacts) . ' contact(s) pre-allowed ✅');
     }
 
     public function report(Course $course)

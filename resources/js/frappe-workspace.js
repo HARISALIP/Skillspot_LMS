@@ -1,5 +1,5 @@
 /*
- * Frappe Learning authoring workspace adapted for Laravel.
+ * Frappe-inspired Skillspot authoring workspace.
  * EditorJS document JSON is the persisted contract.
  */
 // The workspace uses runtime component templates, so it needs Vue's compiler build.
@@ -13,7 +13,7 @@ import SimpleImage from '@editorjs/simple-image';
 import Embed from '@editorjs/embed';
 import InlineCode from '@editorjs/inline-code';
 import DragDrop from 'editorjs-drag-drop';
-import { ArrowLeft, BookOpen, Check, ChevronRight, CircleHelp, NotebookPen, Plus, Users } from 'lucide-vue-next';
+import { ArrowLeft, BookOpen, Check, ChevronRight, CircleHelp, Eye, NotebookPen, Plus, Users } from 'lucide-vue-next';
 import './frappe-workspace.css';
 import './frappe-lesson-editor.css';
 
@@ -289,26 +289,26 @@ const App = {
   template: `
     <div class="frappe-workspace">
       <template v-if="!course">
-        <header class="workspace-top"><a href="/admin" class="brand"><BookOpen :size="20"/> Skillspot Learning</a><button class="primary" @click="createOpen = true"><Plus :size="16"/> New Course</button></header>
-        <main class="course-list"><div class="list-heading"><div><h1>Courses</h1><p>Create, import and manage your learning content.</p></div><input v-model="search" placeholder="Search courses"></div>
-          <div class="course-grid"><button class="new-course-card" @click="createOpen = true"><Plus :size="22"/><strong>Create a new course</strong><span>Start with Frappe's guided course form.</span></button>
+        <header class="workspace-top"><a href="/studio" class="brand"><BookOpen :size="20"/> Skillspot Studio</a><button class="primary" @click="createOpen = true"><Plus :size="16"/> New Course</button></header>
+        <main class="course-list"><div class="list-heading"><div><h1>Courses</h1><p>Create and manage your learning content.</p></div><input v-model="search" placeholder="Search courses"></div>
+          <div class="course-grid"><button class="new-course-card" @click="createOpen = true"><Plus :size="22"/><strong>Create a new course</strong><span>Start with Skillspot's guided course form.</span></button>
             <a v-for="item in filteredCourses" :key="item.id" :href="'/instructor/courses/'+item.id" class="course-card"><div class="course-image" :style="item.thumbnail ? {backgroundImage: 'url('+item.thumbnail+')'} : {}"><span v-if="!item.thumbnail">{{ item.category || 'Course' }}</span></div><div><small>{{ item.category || 'General' }}</small><h2>{{ item.title }}</h2><p>{{ item.short_introduction || 'No introduction yet.' }}</p><footer>{{ item.enrollments_count }} learners · {{ item.marketplace_status || 'Draft' }}</footer></div></a>
           </div></main><div v-if="createOpen" class="course-modal"><form @submit.prevent="createCourse"><header><h2>New Course</h2><button type="button" @click="createOpen=false">×</button></header><label>Course title<input v-model="createDraft.title" required autofocus></label><label>Category<input v-model="createDraft.category" placeholder="General"></label><label>Short introduction<textarea v-model="createDraft.short_introduction" placeholder="What will students learn?"></textarea></label><footer><button type="button" class="secondary" @click="createOpen=false">Cancel</button><button class="primary">Create Course</button></footer></form></div>
       </template>
       <template v-else>
-        <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><span class="saved" v-if="saved"><Check :size="15"/> Saved</span><button class="outline-mobile secondary" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/> Chapters</button><a :href="'/course/'+course.slug" target="_blank" class="secondary">Student View</a></div></header>
+        <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button" aria-label="Back to course list"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><span class="saved" v-if="saved"><Check :size="15"/> Saved</span><button class="outline-mobile secondary" aria-label="Show chapters" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/><span class="action-label">Chapters</span></button><a :href="'/instructor/courses/'+course.id+'/preview?from=instructor'" target="_blank" rel="noopener" class="secondary" aria-label="Preview as learner"><Eye :size="16"/><span class="action-label">Preview as learner</span></a></div></header>
         <nav class="course-tabs"><button v-for="item in ['Overview','Dashboard','Editor','Settings']" :class="{active: tab === item.toLowerCase()}" @click="tab = item.toLowerCase()">{{ item }}</button></nav>
-        <main v-if="tab === 'overview'" class="tab-panel overview"><section><label>Course title<input v-model="draft.title" @change="saveCourse"></label><label>Category<input v-model="draft.category" @change="saveCourse"></label><label>Short introduction<textarea v-model="draft.short_introduction" @change="saveCourse"></textarea></label><label>Description<textarea v-model="draft.description" @change="saveCourse"></textarea></label></section><aside><h2>Instructors</h2><p v-for="teacher in course.teachers" :key="teacher.id">{{ teacher.name }}<small>{{ teacher.email }}</small></p><h2>Course image</h2><p>Add thumbnails through the existing secure Media workspace. This editor retains its URL.</p></aside></main>
+        <main v-if="tab === 'overview'" class="tab-panel overview"><section><label>Course title<input v-model="draft.title" @change="saveCourse"></label><label>Category<input v-model="draft.category" @change="saveCourse"></label><label>Short introduction<textarea v-model="draft.short_introduction" @change="saveCourse"></textarea></label><label>Description<textarea v-model="draft.description" @change="saveCourse"></textarea></label></section><aside><h2>Instructors</h2><p v-for="teacher in course.teachers" :key="teacher.id">{{ teacher.name }}<small>{{ teacher.email }}</small></p><h2>Course image</h2><p>Set the course image URL in Settings.</p></aside></main>
         <main v-else-if="tab === 'dashboard'" class="tab-panel dashboard"><div><Users :size="21"/><strong>{{ course.enrollments_count }}</strong><span>Learners</span></div><div><BookOpen :size="21"/><strong>{{ lessonCount }}</strong><span>Lessons</span></div><div><Check :size="21"/><strong>{{ course.marketplace_status || 'Draft' }}</strong><span>Marketplace status</span></div></main>
-        <main v-else-if="tab === 'settings'" class="tab-panel settings"><h1>Course settings</h1><p>Pricing, approval, publication, certificates, SCORM and marketplace controls remain in the existing Skillspot settings during local UI work.</p><a class="primary" :href="'/admin/courses/'+course.id+'/edit#settings'">Open marketplace settings</a></main>
-        <main v-else class="editor-layout"><section class="lesson-pane"><template v-if="selectedLesson"><input class="lesson-name" v-model="selectedLesson.title" @change="saveLesson" placeholder="Lesson title"><label class="preview-toggle"><input type="checkbox" v-model="selectedLesson.is_preview" @change="saveLesson"> Preview lesson</label><BlockEditor :key="selectedLesson.id" :lesson="selectedLesson" @save="saveBlocks"/></template><div v-else class="empty-editor"><BookOpen :size="28"/><h2>Choose a lesson</h2><p>Add a chapter, then a lesson, to begin authoring.</p></div></section>
+        <main v-else-if="tab === 'settings'" class="tab-panel settings"><h1>Course settings</h1><p>Choose a price, then save. Only approved creators can submit a saved course for its first publication review.</p><label>Free course <input type="checkbox" v-model="draft.is_free" @change="saveCourse"></label><label v-if="!draft.is_free">Price in INR <input type="number" min="1" step="0.01" v-model.number="draft.price" @change="saveCourse"></label><label>Course image URL <input type="url" v-model="draft.thumbnail" @change="saveCourse"></label><p>Current status: {{ course.marketplace_status || 'Draft' }}. Return to Creator Studio to request review.</p><a class="primary" :href="'/courses/'+course.id+'/teaching'">Assignments and announcements</a></main>
+        <main v-else class="editor-layout"><section class="lesson-pane"><template v-if="selectedLesson"><input class="lesson-name" v-model="selectedLesson.title" @change="saveLesson" placeholder="Lesson title"><label class="preview-toggle"><input type="checkbox" v-model="selectedLesson.is_preview" @change="saveLesson"> Preview lesson</label><div class="grid gap-2 p-3"><label>Lesson type <select v-model="selectedLesson.type" @change="saveLessonMeta"><option value="text">Reading</option><option value="video">Video</option><option value="pdf">Document</option></select></label><label v-if="selectedLesson.type === 'video'">Video URL <input v-model="selectedLesson.video_url" @change="saveLessonMeta" placeholder="https://… or upload a video below"></label><label>Duration in minutes <input type="number" min="0" max="1440" v-model.number="selectedLesson.duration" @change="saveLessonMeta"></label><label>Upload a private course file <input type="file" @change="uploadLessonFile"></label><p role="status" v-if="uploadState">{{ uploadState }}</p><ul v-if="selectedLesson.resources?.length"><li v-for="file in selectedLesson.resources" :key="file.upload_id">{{ file.title }}</li></ul></div><BlockEditor :key="selectedLesson.id" :lesson="selectedLesson" @save="saveBlocks"/></template><div v-else class="empty-editor"><BookOpen :size="28"/><h2>Choose a lesson</h2><p>Add a chapter, then a lesson, to begin authoring.</p></div></section>
           <aside class="outline" :class="{open: mobileOutline}"><div class="outline-head"><strong>Chapters</strong><button @click="newSectionOpen=true"><Plus :size="16"/> Add Chapter</button></div><form v-if="newSectionOpen" class="outline-create" @submit.prevent="addSection"><input v-model="newSectionTitle" placeholder="Chapter title" autofocus><button class="primary">Add</button></form><div v-for="section in course.sections" :key="section.id" class="chapter" @dragover.prevent @drop="dropLesson(section, section.lessons.length)"><div class="chapter-title"><input :value="section.title" @change="renameSection(section, $event.target.value)"><button @click="newLessonSection=section.id" title="Add lesson"><Plus :size="15"/></button></div><form v-if="newLessonSection===section.id" class="outline-create" @submit.prevent="addLesson(section)"><input v-model="newLessonTitle" placeholder="Lesson title" autofocus><button class="primary">Add</button></form><button v-for="(lesson, index) in section.lessons" :key="lesson.id" draggable="true" @dragstart="dragging = lesson" @dragover.prevent @drop.stop="dropLesson(section, index)" class="lesson-row" :class="{selected: selectedLesson?.id === lesson.id}" @click="selectLesson(lesson)"><span class="lesson-dot"></span>{{ lesson.title }}<small v-if="lesson.is_preview">Preview</small></button></div></aside>
         </main>
       </template>
     </div>`,
   setup() {
     const courses = ref([]); const course = ref(null); const draft = ref({}); const selectedLesson = ref(null);
-    const tab = ref('overview'); const saved = ref(false); const search = ref(''); const mobileOutline = ref(false); const dragging = ref(null); const createOpen = ref(false); const createDraft = ref({ title: '', category: '', short_introduction: '' }); const newSectionOpen = ref(false); const newSectionTitle = ref(''); const newLessonSection = ref(null); const newLessonTitle = ref(''); let saveNotice;
+    const tab = ref('overview'); const saved = ref(false); const uploadState = ref(''); const search = ref(''); const mobileOutline = ref(false); const dragging = ref(null); const createOpen = ref(false); const createDraft = ref({ title: '', category: '', short_introduction: '' }); const newSectionOpen = ref(false); const newSectionTitle = ref(''); const newLessonSection = ref(null); const newLessonTitle = ref(''); let saveNotice;
     const markSaved = () => { saved.value = true; clearTimeout(saveNotice); saveNotice = setTimeout(() => saved.value = false, 1800); };
     const load = async () => {
       if (courseId) { course.value = await request('/' + courseId); draft.value = { ...course.value }; selectedLesson.value = course.value.sections.flatMap(section => section.lessons)[0] || null; }
@@ -322,6 +322,26 @@ const App = {
     const selectLesson = lesson => { selectedLesson.value = lesson; mobileOutline.value = false; };
     const lessonPath = () => '/' + course.value.id + '/sections/' + sectionFor(selectedLesson.value).id + '/lessons/' + selectedLesson.value.id;
     const saveLesson = async () => { Object.assign(selectedLesson.value, await request(lessonPath(), { method: 'PATCH', body: JSON.stringify({ title: selectedLesson.value.title, is_preview: selectedLesson.value.is_preview }) })); markSaved(); };
+    const saveLessonMeta = async () => { Object.assign(selectedLesson.value, await request(lessonPath(), { method: 'PATCH', body: JSON.stringify({ type: selectedLesson.value.type, video_url: selectedLesson.value.video_url, duration: selectedLesson.value.duration || 0 }) })); markSaved(); };
+    const uploadLessonFile = event => {
+      const file = event.target.files?.[0]; if (!file || !selectedLesson.value) return;
+      const lesson = selectedLesson.value; const path = lessonPath(); const body = new FormData(); body.append('file', file);
+      const xhr = new XMLHttpRequest(); xhr.open('POST', `/courses/${course.value.id}/teaching/media`);
+      xhr.setRequestHeader('X-CSRF-TOKEN', csrf); xhr.setRequestHeader('Accept', 'application/json');
+      xhr.upload.onprogress = progress => { if (progress.lengthComputable) uploadState.value = `Uploading ${Math.round(progress.loaded / progress.total * 100)}%`; };
+      xhr.onload = async () => {
+        try {
+          const uploaded = JSON.parse(xhr.responseText);
+          if (xhr.status !== 201) throw new Error(uploaded.message || 'Upload failed.');
+          if (uploaded.type === 'video') { lesson.type = 'video'; lesson.video_url = uploaded.url; }
+          else lesson.resources = [...(lesson.resources || []), { title: uploaded.name, kind: 'study_material', upload_id: uploaded.id }];
+          Object.assign(lesson, await request(path, { method: 'PATCH', body: JSON.stringify({ type: lesson.type, video_url: lesson.video_url, resources: lesson.resources }) }));
+          uploadState.value = 'Uploaded and saved'; markSaved();
+        } catch (error) { uploadState.value = error.message; }
+      };
+      xhr.onerror = () => { uploadState.value = 'Upload failed. Check your connection and try again.'; };
+      uploadState.value = 'Uploading…'; xhr.send(body); event.target.value = '';
+    };
     const saveBlocks = async blocks => { selectedLesson.value.blocks = blocks; await request(lessonPath(), { method: 'PATCH', body: JSON.stringify({ block_document: blocks }) }); markSaved(); };
     const addSection = async () => { if (!newSectionTitle.value.trim()) return; course.value.sections.push(await request('/' + course.value.id + '/sections', { method: 'POST', body: JSON.stringify({ title: newSectionTitle.value }) })); newSectionTitle.value = ''; newSectionOpen.value = false; };
     const addLesson = async section => { if (!newLessonTitle.value.trim()) return; const lesson = await request('/' + course.value.id + '/sections/' + section.id + '/lessons', { method: 'POST', body: JSON.stringify({ title: newLessonTitle.value }) }); section.lessons.push(lesson); newLessonTitle.value = ''; newLessonSection.value = null; selectLesson(lesson); };
@@ -333,7 +353,7 @@ const App = {
       await request('/' + course.value.id + '/outline', { method: 'POST', body: JSON.stringify({ sections: course.value.sections.map(section => ({ id: section.id, lessons: section.lessons.map(lesson => lesson.id) })) }) }); markSaved();
     };
     load().catch(error => window.alert(error.message));
-    return { courses, course, draft, selectedLesson, tab, saved, search, mobileOutline, dragging, createOpen, createDraft, newSectionOpen, newSectionTitle, newLessonSection, newLessonTitle, filteredCourses, lessonCount, createCourse, saveCourse, selectLesson, saveLesson, saveBlocks, addSection, addLesson, renameSection, dropLesson };
+    return { courses, course, draft, selectedLesson, tab, saved, uploadState, search, mobileOutline, dragging, createOpen, createDraft, newSectionOpen, newSectionTitle, newLessonSection, newLessonTitle, filteredCourses, lessonCount, createCourse, saveCourse, selectLesson, saveLesson, saveLessonMeta, uploadLessonFile, saveBlocks, addSection, addLesson, renameSection, dropLesson };
   },
 };
 if (root) createApp(App).mount(root);

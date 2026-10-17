@@ -26,7 +26,7 @@
     <div class="flex items-start gap-3">
       <div class="w-9 h-9 bg-brand-100 rounded-xl flex items-center justify-center text-lg flex-shrink-0">🧮</div>
       <div class="flex-1 min-w-0">
-        <label class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+        <label for="hvAnswerInput" class="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
           Quick Check — Prove you're human
         </label>
         <div class="flex items-center gap-3 flex-wrap">

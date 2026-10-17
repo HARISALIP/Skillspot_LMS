@@ -151,7 +151,25 @@
       <a href="{{ route('vendor.live_classes.create') }}" class="text-xs bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-xl font-bold transition">➕ New Live Class</a>
     </div>
     @if($allCourses->count())
-    <div class="overflow-x-auto">
+    <div class="divide-y divide-gray-100 md:hidden">
+      @foreach($allCourses as $course)
+      @php $vc = $myVendors->firstWhere('id', $course->vendor_id); @endphp
+      <article class="p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <h3 class="font-semibold text-gray-900">{{ $course->title }}</h3>
+            <p class="mt-1 text-xs text-gray-500">{{ $vc->brand_name ?? '—' }} · {{ $course->enrollments_count }} students</p>
+          </div>
+          <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-bold {{ $course->is_published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">{{ $course->is_published ? 'Published' : 'Draft' }}</span>
+        </div>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <a href="{{ route('vendor.courses.edit', $course->id) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-3 text-sm font-semibold text-white">Edit course</a>
+          <a href="{{ route('vendor.batches.show', $course->id) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 px-3 text-sm font-semibold text-gray-700">View batch</a>
+        </div>
+      </article>
+      @endforeach
+    </div>
+    <div class="hidden overflow-x-auto md:block">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
           <tr>

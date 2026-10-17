@@ -84,7 +84,7 @@ class MarketplaceService
     {
         DB::transaction(function () use ($order) {
             $sale = MarketplaceSale::where('payment_order_id', $order->id)->lockForUpdate()->first();
-            if (!$sale || in_array($sale->status, ['reversed', 'paid'], true)) return;
+            if (!$sale || $sale->status === 'reversed') return;
             $sale->update(['status' => 'reversed', 'refunded_at' => now()]);
             EarningLedgerEntry::create([
                 'marketplace_sale_id' => $sale->id,

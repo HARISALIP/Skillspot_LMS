@@ -1,5 +1,5 @@
 @extends('layouts.vendor')
-@section('title','Progress Report — {{ $course->title }}')
+@section('title', 'Progress Report — ' . $course->title)
 @section('header','Progress Report')
 @section('content')
 <div class="space-y-6">

@@ -26,7 +26,7 @@
   <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">{{ $meta['label'] }}</label>
   <div class="relative">
     <input type="password" name="{{ $field }}" id="{{ $field }}"
-           value="{{ old($field, $value) }}"
+           value=""
            placeholder="••••••••  (leave blank to keep current)"
            class="w-full pl-4 pr-11 py-3 rounded-xl border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent bg-gray-50 focus:bg-white transition">
     <button type="button" onclick="(function(i,b){const t=i.type==='text';i.type=t?'password':'text';b.textContent=t?'👁':'🙈'})(document.getElementById('{{ $field }}'),this)"

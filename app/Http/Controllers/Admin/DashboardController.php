@@ -9,6 +9,7 @@ use App\Models\Certificate;
 use App\Models\License;
 use App\Models\CourseReview;
 use App\Models\PaymentOrder;
+use App\Models\Setting;
 
 class DashboardController extends Controller
 {
@@ -29,6 +30,8 @@ class DashboardController extends Controller
         $recentUsers   = User::with('roles')->latest()->take(8)->get();
         $recentCourses = Course::with('sections')->latest()->take(6)->get();
 
-        return view('admin.dashboard', compact('stats', 'recentUsers', 'recentCourses'));
+        $needsSetup = trim((string) Setting::get('site_email', '')) === '';
+
+        return view('admin.dashboard', compact('stats', 'recentUsers', 'recentCourses', 'needsSetup'));
     }
 }

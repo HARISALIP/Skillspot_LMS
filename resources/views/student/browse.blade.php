@@ -12,8 +12,9 @@
 
     {{-- Search --}}
     <div class="relative">
+      <label for="course-search" class="sr-only">Search courses</label>
       <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-      <input type="text" name="search" value="{{ request('search') }}"
+      <input id="course-search" type="text" name="search" value="{{ request('search') }}"
              placeholder="Search courses by title or keyword…"
              class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-gray-50 focus:bg-white transition">
     </div>
@@ -21,7 +22,8 @@
     {{-- Filters row --}}
     <div class="flex flex-wrap gap-2">
       {{-- Category --}}
-      <select name="category" onchange="this.form.submit()"
+      <label for="course-category" class="sr-only">Course category</label>
+      <select id="course-category" name="category" onchange="this.form.submit()"
               class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer flex-1 min-w-[140px]">
         <option value="">📚 All Categories</option>
         @foreach($categories as $cat)
@@ -32,7 +34,8 @@
       </select>
 
       {{-- Level --}}
-      <select name="level" onchange="this.form.submit()"
+      <label for="course-level" class="sr-only">Course level</label>
+      <select id="course-level" name="level" onchange="this.form.submit()"
               class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer flex-1 min-w-[120px]">
         <option value="">📊 All Levels</option>
         @foreach($levels as $lv)
@@ -43,7 +46,8 @@
       </select>
 
       {{-- Sort --}}
-      <select name="sort" onchange="this.form.submit()"
+      <label for="course-sort" class="sr-only">Sort courses</label>
+      <select id="course-sort" name="sort" onchange="this.form.submit()"
               class="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-gray-50 focus:ring-2 focus:ring-brand-500 focus:outline-none cursor-pointer flex-1 min-w-[130px]">
         <option value=""         {{ !request('sort')?'selected':'' }}>🕐 Newest</option>
         <option value="popular"  {{ request('sort')==='popular' ?'selected':'' }}>🔥 Most Popular</option>

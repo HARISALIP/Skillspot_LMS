@@ -17,12 +17,12 @@ class CourseManagementIndexTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_staff_can_use_the_course_workspace_and_students_cannot(): void
+    public function test_admin_can_use_the_course_workspace_and_students_cannot(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $student = User::factory()->create();
         $course = Course::create([
             'title' => 'Robotics Fundamentals',
@@ -80,9 +80,9 @@ class CourseManagementIndexTest extends TestCase
 
     public function test_course_filters_use_real_upcoming_and_certification_fields(): void
     {
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
 
         Course::create(['title' => 'Certified upcoming', 'slug' => 'certified-upcoming', 'category' => 'Technology', 'visibility' => 'public', 'is_published' => true, 'upcoming' => true, 'enable_certification' => true]);
         Course::create(['title' => 'Ordinary course', 'slug' => 'ordinary-course', 'category' => 'Technology', 'visibility' => 'public', 'is_published' => true, 'upcoming' => false, 'enable_certification' => false]);
@@ -95,9 +95,9 @@ class CourseManagementIndexTest extends TestCase
 
     public function test_created_filter_and_page_size_match_the_course_list_controls(): void
     {
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
         $mine = Course::create(['title' => 'My draft', 'category' => 'Technology', 'primary_instructor_id' => $teacher->id, 'is_published' => false]);
         Course::create(['title' => 'Someone else draft', 'category' => 'Technology', 'is_published' => false]);
 
@@ -110,9 +110,9 @@ class CourseManagementIndexTest extends TestCase
 
     public function test_course_modal_allows_no_category_like_frappe(): void
     {
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
 
         $this->actingAs($teacher)->post(route('admin.courses.store'), [
             'modal_create' => 1,
@@ -129,12 +129,12 @@ class CourseManagementIndexTest extends TestCase
         $this->assertDatabaseHas('courses', ['title' => 'Uncategorized course', 'category' => null]);
     }
 
-    public function test_teacher_can_import_a_frappe_course_zip_as_a_draft(): void
+    public function test_admin_can_import_a_frappe_course_zip_as_a_draft(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
 
         $path = tempnam(sys_get_temp_dir(), 'course-import-');
         $zip = new \ZipArchive();
@@ -159,12 +159,12 @@ class CourseManagementIndexTest extends TestCase
         ]);
     }
 
-    public function test_teacher_can_create_a_course_from_the_modal_fields(): void
+    public function test_admin_can_create_a_course_from_the_modal_fields(): void
     {
         config(['app.key' => str_repeat('a', 32)]);
-        Role::findOrCreate('teacher', 'web');
+        Role::findOrCreate('admin', 'web');
         $teacher = User::factory()->create();
-        $teacher->assignRole('teacher');
+        $teacher->assignRole('admin');
 
         $this->actingAs($teacher)->post(route('admin.courses.store'), [
             'modal_create' => 1,

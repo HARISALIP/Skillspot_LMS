@@ -5,6 +5,13 @@
 
 @section('admin-content')
 
+@if($needsSetup)
+<section class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-5" aria-label="Academy setup">
+  <div><h2 class="text-base font-semibold text-amber-950">Finish setting up your academy</h2><p class="mt-1 text-sm text-amber-900">Add the academy email in Settings so your platform is ready to communicate with learners.</p></div>
+  <a href="{{ route('admin.settings', ['tab' => 'communication']) }}" class="inline-flex min-h-11 items-center rounded-lg bg-amber-900 px-4 text-sm font-semibold text-white hover:bg-amber-800">Open settings</a>
+</section>
+@endif
+
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
   <div><h2 class="text-lg font-semibold text-gray-900">At a glance</h2><p class="text-sm text-gray-600">Courses, learners, and work needing attention.</p></div>
   <a href="{{ route('admin.courses') }}" class="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Manage courses</a>

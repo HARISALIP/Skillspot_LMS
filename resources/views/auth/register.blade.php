@@ -64,7 +64,7 @@
         Unlock Your Full Learning Potential
       </h2>
       <p class="text-blue-100 text-xs lg:text-sm leading-relaxed mb-6">
-        Join thousands of students and instructors on the premier LMS platform. Master new skills, earn certificates, and advance your career today.
+        Learn at your pace, track your progress, and apply to teach from the same account.
       </p>
 
       <!-- Feature List -->
@@ -74,7 +74,7 @@
             <i class="fa-solid fa-graduation-cap"></i>
           </div>
           <div>
-            <h4 class="font-bold text-xs text-white">500+ Premium Courses</h4>
+            <h4 class="font-bold text-xs text-white">Courses and lessons</h4>
             <p class="text-[11px] text-blue-100/80">Interactive video lessons & hands-on projects</p>
           </div>
         </div>
@@ -104,30 +104,14 @@
             <i class="fa-solid fa-users"></i>
           </div>
           <div>
-            <h4 class="font-bold text-xs text-white">Active Community</h4>
-            <p class="text-[11px] text-blue-100/80">Connect with peers & expert mentors</p>
+            <h4 class="font-bold text-xs text-white">Create courses</h4>
+            <p class="text-[11px] text-blue-100/80">Apply to teach and build private drafts</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Testimonial / Trust stats -->
-    <div class="relative z-10 pt-4 mt-6 border-t border-white/15 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="flex -space-x-2">
-          <div class="w-7 h-7 rounded-full bg-brand-400 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm">A</div>
-          <div class="w-7 h-7 rounded-full bg-purple-500 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm">R</div>
-          <div class="w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-sm">S</div>
-        </div>
-        <div class="text-xs">
-          <div class="flex text-amber-300 text-[10px] gap-0.5">
-            <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
-          </div>
-          <span class="text-white font-semibold text-[11px]">10,000+ Students</span>
-        </div>
-      </div>
-      <span class="text-[11px] text-blue-100 font-semibold px-2 py-0.5 rounded-full bg-white/15 border border-white/20 backdrop-blur-sm">100% Free</span>
-    </div>
+    <p class="relative z-10 pt-4 mt-6 border-t border-white/15 text-xs text-blue-100">One account for learning and teaching. Free and paid courses may be available.</p>
   </div>
 
   <!-- RIGHT PANEL: Registration Form & OTP Form (Full width on mobile, 7 cols on desktop) -->

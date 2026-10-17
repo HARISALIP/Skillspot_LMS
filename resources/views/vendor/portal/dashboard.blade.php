@@ -16,17 +16,18 @@
   </style>
 </head>
 <body class="bg-gray-50 antialiased">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
 
 <nav class="bg-white border-b border-gray-100 sticky top-0 z-20">
   <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-3">
+    <a href="{{ route('vendor.portal.home', $vendor->slug) }}" class="flex items-center gap-3" aria-label="{{ $vendor->brand_name }} home">
       @if($vendor->logo)
         <img src="{{ Storage::disk('public')->url($vendor->logo) }}" class="w-9 h-9 rounded-xl object-cover">
       @else
         <div class="w-9 h-9 hero-bg rounded-xl flex items-center justify-center text-white font-black">{{ strtoupper(substr($vendor->brand_name,0,1)) }}</div>
       @endif
       <span class="font-bold text-gray-900">{{ $vendor->brand_name }}</span>
-    </div>
+    </a>
     <div class="flex items-center gap-3 text-sm">
       <span class="text-gray-600 hidden sm:block">{{ auth()->user()->name }}</span>
       <form method="POST" action="{{ route('vendor.portal.logout', $vendor->slug) }}">@csrf
@@ -36,10 +37,10 @@
   </div>
 </nav>
 
-<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+<main id="main-content" tabindex="-1" class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
   @if(session('success'))
-    <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>
+    <div role="status" class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>
   @endif
 
   <h1 class="text-2xl font-black text-gray-900">My Dashboard</h1>
@@ -131,7 +132,7 @@
             <div class="text-xs text-gray-400 mb-3">📅 {{ $course->batch_start_date->format('d M Y') }} → {{ $course->batch_end_date?->format('d M Y') ?? 'Ongoing' }}</div>
           @endif
           <div class="flex items-center gap-2 mb-4">
-            <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+            <div role="progressbar" aria-label="{{ $course->title }} progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ $enrollment->progress }}" class="flex-1 bg-gray-200 rounded-full h-1.5">
               <div class="h-1.5 rounded-full btn-primary" style="width:{{ $enrollment->progress }}%"></div>
             </div>
             <span class="text-xs font-semibold text-gray-500">{{ $enrollment->progress }}%</span>
@@ -176,6 +177,6 @@
   </div>
   @endif
 
-</div>
+</main>
 </body>
 </html>

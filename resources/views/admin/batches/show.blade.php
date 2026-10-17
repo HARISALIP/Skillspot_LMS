@@ -4,8 +4,8 @@
 @section('admin-content')
 <div class="space-y-6">
 
-  @if(session('success'))<div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
-  @if(session('error'))<div class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>@endif
+  @if(session('success'))<div role="status" class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>@endif
+  @if(session('error'))<div role="alert" class="bg-red-50 text-red-800 border border-red-200 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>@endif
 
   {{-- Header --}}
   <div class="bg-gradient-to-r from-brand-600 to-accent-600 rounded-2xl p-5 text-white flex flex-wrap items-center justify-between gap-3">
@@ -34,20 +34,21 @@
       <div class="p-5 space-y-4">
         <form method="POST" action="{{ route('admin.batches.bulk-allow', $course) }}">
           @csrf
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Bulk Add (emails, comma/newline separated)</label>
-          <textarea name="emails" rows="3" placeholder="student1@email.com&#10;student2@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+          <label for="batch-emails" class="block text-xs font-semibold text-gray-500 mb-1.5">Bulk Add (emails, comma/newline separated)</label>
+          <textarea id="batch-emails" name="emails" rows="3" placeholder="student1@email.com&#10;student2@email.com" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
           <button type="submit" class="mt-2 w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Add Students</button>
         </form>
         <form method="POST" action="{{ route('admin.batches.preallow', $course) }}" class="border-t border-gray-100 pt-4">
           @csrf
-          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Pre-allow (auto-grant when they register)</label>
+          <label for="batch-contacts" class="block text-xs font-semibold text-gray-500 mb-1.5">Pre-allow (auto-grant when they register)</label>
           <div class="flex gap-2 mb-2">
-            <select name="contact_type" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
+            <label for="batch-contact-type" class="sr-only">Contact type</label>
+            <select id="batch-contact-type" name="contact_type" class="border border-gray-200 rounded-xl px-3 py-2 text-sm">
               <option value="email">Email</option>
               <option value="phone">Phone</option>
             </select>
           </div>
-          <textarea name="contacts" rows="2" placeholder="email or phone…" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+          <textarea id="batch-contacts" name="contacts" rows="2" placeholder="email or phone…" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
           <button type="submit" class="mt-2 w-full bg-purple-600 hover:bg-purple-700 text-white py-2.5 rounded-xl text-sm font-semibold transition">Pre-allow</button>
         </form>
       </div>
@@ -76,7 +77,7 @@
             @endif
             <form method="POST" action="{{ route('admin.batches.revoke', [$course, $e->user]) }}" onsubmit="return confirm('Remove student?')">
               @csrf @method('DELETE')
-              <button class="text-xs text-red-500 hover:text-red-700 transition">✕</button>
+              <button aria-label="Remove {{ $e->user->name }} from this course" class="text-xs text-red-500 hover:text-red-700 transition">✕</button>
             </form>
           </div>
         </div>

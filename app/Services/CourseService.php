@@ -95,7 +95,13 @@ class CourseService
         $allLessonIds = $course->sections->flatMap->lessons->pluck('id');
         $total        = $allLessonIds->count();
 
-        if ($total === 0) return ['progress'=>0,'completed'=>false,'certificate'=>null];
+        $enrollment = Enrollment::where('user_id',$user->id)
+            ->where('course_id',$course->id)->first();
+
+        if ($total === 0) {
+            $enrollment?->update(['progress' => 0, 'status' => 'active', 'completed_at' => null]);
+            return ['progress'=>0,'completed'=>false,'certificate'=>null];
+        }
 
         $completedCount = DB::table('lesson_progress')
             ->where('user_id', $user->id)
@@ -105,9 +111,6 @@ class CourseService
 
         $progress = (int) round(($completedCount / $total) * 100);
         $courseCompleted = $completedCount >= $total;
-
-        $enrollment = Enrollment::where('user_id',$user->id)
-            ->where('course_id',$course->id)->first();
 
         if (!$enrollment) return ['progress'=>$progress,'completed'=>$courseCompleted,'certificate'=>null];
 
@@ -128,6 +131,17 @@ class CourseService
             'completed'   => $courseCompleted,
             'certificate' => $certificate,
         ];
+    }
+
+    public static function refreshEnrollmentProgress(Course $course): void
+    {
+        $course->unsetRelation('sections')->load('sections.lessons');
+        $course->enrollments()->whereIn('status', ['active', 'completed'])->with('user')
+            ->chunkById(100, function ($enrollments) use ($course) {
+                foreach ($enrollments as $enrollment) {
+                    if ($enrollment->user) self::recalculateCourseProgress($enrollment->user, $course);
+                }
+            });
     }
 
     // ── Auto-issue certificate ─────────────────────────────────────────
@@ -159,6 +173,7 @@ class CourseService
     // ── Check if student has valid access ─────────────────────────────
     public static function hasAccess(User $user, Course $course): bool
     {
+        if (in_array($course->marketplace_status, ['suspended', 'archived', 'rejected'], true)) return false;
         $enrollment = Enrollment::where('user_id',$user->id)
             ->where('course_id',$course->id)
             ->whereIn('status',['active','completed'])

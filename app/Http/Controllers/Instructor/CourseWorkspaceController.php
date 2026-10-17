@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Section;
+use App\Models\Upload;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -49,6 +51,8 @@ class CourseWorkspaceController extends Controller
             'category' => 'nullable|string|max:100',
             'short_introduction' => 'nullable|string|max:1000',
             'description' => 'nullable|string|max:100000',
+            'price' => 'nullable|numeric|min:0|max:9999999',
+            'is_free' => 'nullable|boolean',
         ]);
 
         $course = DB::transaction(function () use ($data, $request) {
@@ -57,8 +61,8 @@ class CourseWorkspaceController extends Controller
                 'category' => $data['category'] ?? 'General',
                 'level' => 'beginner',
                 'language' => 'en',
-                'price' => 0,
-                'is_free' => true,
+                'price' => $data['price'] ?? 0,
+                'is_free' => $data['is_free'] ?? true,
                 'visibility' => 'draft',
                 'is_published' => false,
                 'primary_instructor_id' => $request->user()->id,
@@ -79,6 +83,8 @@ class CourseWorkspaceController extends Controller
             'short_introduction' => 'sometimes|nullable|string|max:1000',
             'description' => 'sometimes|nullable|string|max:100000',
             'thumbnail' => 'sometimes|nullable|string|max:500',
+            'price' => 'sometimes|required|numeric|min:0|max:9999999',
+            'is_free' => 'sometimes|required|boolean',
             'is_preview' => 'prohibited',
         ]);
         $course->update($data);
@@ -90,7 +96,7 @@ class CourseWorkspaceController extends Controller
         $this->authorizeCourse($course);
         $data = $request->validate(['title' => 'required|string|max:255']);
         $section = $course->sections()->create($data + ['order' => ((int) $course->sections()->max('order')) + 1]);
-        return response()->json($this->sectionData($section), 201);
+        return response()->json($this->sectionData($section, true), 201);
     }
 
     public function updateSection(Request $request, Course $course, Section $section)
@@ -116,6 +122,7 @@ class CourseWorkspaceController extends Controller
             'order' => ((int) $section->lessons()->max('order')) + 1,
             'block_document' => ['time' => now()->valueOf(), 'blocks' => [], 'version' => '2.29.0'],
         ]);
+        CourseService::refreshEnrollmentProgress($course);
         return response()->json($this->lessonData($lesson), 201);
     }
 
@@ -123,8 +130,19 @@ class CourseWorkspaceController extends Controller
     {
         $this->belongsToCourse($course, $section, $lesson);
         $this->authorizeCourse($course);
+        abort_if(!in_array($lesson->type, ['text', 'video', 'pdf'], true), 422, 'Edit graded and live lessons in Teaching tools or the existing course editor.');
         $data = $request->validate([
             'title' => 'sometimes|required|string|max:255',
+            'type' => 'sometimes|in:text,video,pdf',
+            'video_url' => ['sometimes', 'nullable', 'string', 'max:500', function ($attribute, $value, $fail) use ($course) {
+                if ($value && !str_starts_with($value, url('/course-media/'.$course->id.'/'))
+                    && (!filter_var($value, FILTER_VALIDATE_URL) || !in_array(parse_url($value, PHP_URL_SCHEME), ['http', 'https'], true))) $fail('Enter an HTTP or HTTPS video URL.');
+            }],
+            'duration' => 'sometimes|integer|min:0|max:1440',
+            'resources' => 'sometimes|array|max:30',
+            'resources.*.title' => 'required|string|max:255',
+            'resources.*.kind' => 'required|in:study_material,image,slides,question_paper',
+            'resources.*.upload_id' => 'required|integer|exists:uploads,id',
             'is_preview' => 'sometimes|boolean',
             'block_document' => 'sometimes|array',
             'block_document.blocks' => 'required_with:block_document|array|max:500',
@@ -135,6 +153,10 @@ class CourseWorkspaceController extends Controller
             'instructor_notes_document.time' => 'nullable|integer',
             'instructor_notes_document.version' => 'nullable|string|max:40',
         ]);
+        foreach ($data['resources'] ?? [] as $resource) {
+            abort_unless((int) data_get(Upload::find($resource['upload_id'])?->used_in, 'course_id') === $course->id, 422, 'Files must belong to this course.');
+        }
+        if (isset($data['duration'])) $data['duration'] *= 60;
         $lesson->update($data);
         return $this->lessonData($lesson->fresh());
     }
@@ -173,7 +195,8 @@ class CourseWorkspaceController extends Controller
     {
         if ($user->hasRole(['admin', 'super-admin'])) return;
         $query->where(fn ($q) => $q->where('primary_instructor_id', $user->id)
-            ->orWhereHas('teachers', fn ($teachers) => $teachers->whereKey($user->id)));
+            ->orWhere(fn ($vendorCourses) => $vendorCourses->whereNotNull('vendor_id')
+                ->whereHas('teachers', fn ($teachers) => $teachers->whereKey($user->id))));
     }
 
     private function authorizeCourse(Course $course): void
@@ -194,6 +217,7 @@ class CourseWorkspaceController extends Controller
             'id' => $course->id, 'title' => $course->title, 'slug' => $course->slug,
             'category' => $course->category, 'thumbnail' => $course->thumbnail,
             'short_introduction' => $course->short_introduction, 'description' => $course->description,
+            'price' => $course->price, 'is_free' => (bool) $course->is_free,
             'marketplace_status' => $course->marketplace_status, 'enrollments_count' => $course->enrollments_count ?? 0,
             'updated_at' => optional($course->updated_at)->toIso8601String(),
         ];
@@ -217,6 +241,8 @@ class CourseWorkspaceController extends Controller
             'id' => $lesson->id, 'title' => $lesson->title, 'type' => $lesson->type,
             'is_preview' => (bool) $lesson->is_preview, 'order' => $lesson->order,
             'blocks' => $lesson->block_document,
+            'video_url' => $lesson->video_url, 'duration' => $lesson->duration ? (int) ceil($lesson->duration / 60) : 0,
+            'resources' => $lesson->resources ?? [],
             'instructor_notes' => $lesson->instructor_notes_document,
             'legacy_content' => $lesson->block_document ? null : $lesson->content,
         ];

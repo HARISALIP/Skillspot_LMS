@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Vendor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\BatchAttendance;
 use App\Models\Enrollment;
 use App\Models\Lesson;
 use App\Models\LiveClass;
@@ -36,7 +37,11 @@ class PortalController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return view('vendor.portal.home', compact('vendor', 'courses'));
+        $user = Auth::user();
+        $canOpenDashboard = $user && ($user->hasRole(['super-admin', 'admin', 'teacher', 'vendor'])
+            || DB::table('student_vendor_access')->where('user_id', $user->id)->where('vendor_id', $vendor->id)->exists());
+
+        return view('vendor.portal.home', compact('vendor', 'courses', 'canOpenDashboard'));
     }
 
     // ── Login ──────────────────────────────────────────────────────────
@@ -132,6 +137,8 @@ class PortalController extends Controller
         $vendor  = $this->resolveVendor($slug);
         $courses = Course::where('vendor_id', $vendor->id)
             ->where('is_published', 1)
+            ->where('registration_open', 1)
+            ->where(fn($query) => $query->where('is_free', 1)->orWhere('price', '<=', 0))
             ->orderBy('title')
             ->get();
 
@@ -154,6 +161,20 @@ class PortalController extends Controller
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
+        $course = null;
+        if ($request->filled('course_id')) {
+            $course = Course::whereKey($request->integer('course_id'))
+                ->where('vendor_id', $vendor->id)
+                ->where('is_published', 1)
+                ->where('registration_open', 1)
+                ->where(fn($query) => $query->where('is_free', 1)->orWhere('price', '<=', 0))
+                ->first();
+
+            if (!$course || $course->isFull()) {
+                return back()->withErrors(['course_id' => 'This course is no longer available for registration.'])->withInput();
+            }
+        }
+
         $user = User::create([
             'name'           => $request->name,
             'email'          => $request->email,
@@ -163,7 +184,6 @@ class PortalController extends Controller
             'password'       => Hash::make($request->password),
             'registered_via'     => 'vendor_portal',
             'portal_access'      => 'vendor_only',
-            'registered_vendor_id' => $vendor->id,
         ]);
 
         $user->assignRole('student');
@@ -178,6 +198,19 @@ class PortalController extends Controller
             'updated_at' => now(),
         ]);
 
+        if ($course) {
+            Enrollment::firstOrCreate(
+                ['user_id' => $user->id, 'course_id' => $course->id],
+                [
+                    'vendor_id' => $vendor->id,
+                    'amount_paid' => 0,
+                    'payment_method' => 'portal_registration',
+                    'status' => 'active',
+                    'access_type' => 'lifetime',
+                ]
+            );
+        }
+
         Auth::login($user, true);
         $request->session()->regenerate();
 
@@ -191,6 +224,10 @@ class PortalController extends Controller
         $vendor = $this->resolveVendor($slug);
         $course = Course::where('id', $courseId)->where('vendor_id', $vendor->id)
             ->where('is_published', 1)->firstOrFail();
+        if (!$course->is_free && (float) $course->price > 0) {
+            abort_unless($course->isMarketplaceLive(), 404);
+            return redirect()->route('student.course-detail', $course->slug);
+        }
 
         $enrolledCount = Enrollment::where('course_id', $course->id)->count();
         $course->enrolled_count = $enrolledCount;
@@ -203,6 +240,7 @@ class PortalController extends Controller
         $vendor = $this->resolveVendor($slug);
         $course = Course::where('id', $courseId)->where('vendor_id', $vendor->id)
             ->where('is_published', 1)->firstOrFail();
+        abort_if(!$course->is_free && (float) $course->price > 0, 403, 'Paid courses require checkout.');
 
         $hv = HumanVerifier::verify($request, 'portal_register_course_' . $courseId);
         if (!$hv['pass']) {
@@ -233,7 +271,6 @@ class PortalController extends Controller
             'password'       => Hash::make($request->password),
             'registered_via'     => 'vendor_portal',
             'portal_access'      => 'vendor_only',
-            'registered_vendor_id' => $vendor->id,
         ]);
 
         $user->assignRole('student');
@@ -383,18 +420,18 @@ class PortalController extends Controller
             ->sortBy('order')
             ->values();
 
-        // Attendance percentage
-        $attended = DB::table('lesson_progress')
+        $myAttendance = BatchAttendance::where('course_id', $course->id)
             ->where('user_id', $user->id)
-            ->whereIn('lesson_id', $liveLessons->pluck('id'))
-            ->count();
+            ->pluck('status', 'lesson_id')
+            ->all();
+        $attended = collect($myAttendance)->filter(fn($status) => in_array($status, ['present', 'late'], true))->count();
 
         $total     = $liveLessons->count();
         $attendPct = $total > 0 ? round(($attended / $total) * 100) : 0;
 
         return view('vendor.portal.batch', compact(
             'vendor', 'course', 'enrollment',
-            'liveLessons', 'recordings', 'documents', 'attendPct'
+            'liveLessons', 'recordings', 'documents', 'myAttendance', 'attendPct'
         ));
     }
 

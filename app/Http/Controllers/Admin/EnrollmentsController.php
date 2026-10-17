@@ -22,12 +22,10 @@ class EnrollmentsController extends Controller
         $hasExpiresAt = Schema::hasTable('enrollments') && Schema::hasColumn('enrollments', 'expires_at');
 
         if ($s = $request->search) {
-            $query->whereHas('user', fn($q) =>
-                $q->where('name','like',"%{$s}%")
-                  ->orWhere('email','like',"%{$s}%")
-            )->orWhereHas('course', fn($q) =>
-                $q->where('title','like',"%{$s}%")
-            );
+            $query->where(fn ($search) => $search
+                ->whereHas('user', fn($q) => $q->where('name','like',"%{$s}%")
+                    ->orWhere('email','like',"%{$s}%"))
+                ->orWhereHas('course', fn($q) => $q->where('title','like',"%{$s}%")));
         }
         if ($request->course_id)    $query->where('course_id',   $request->course_id);
         if ($request->status)       $query->where('status',      $request->status);
@@ -80,7 +78,7 @@ class EnrollmentsController extends Controller
             Enrollment::create([
                 'user_id'     => $userId,
                 'course_id'   => $request->course_id,
-                'vendor_id'   => null,
+                'vendor_id'   => $course->vendor_id,
                 'amount_paid' => 0,
                 'payment_method'=> 'manual',
                 'status'      => 'active',

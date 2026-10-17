@@ -84,6 +84,7 @@
         $icon      = $platformIcons[$lesson->live_platform ?? 'other'] ?? '📹';
         $platName  = $platformNames[$lesson->live_platform ?? 'other'] ?? 'Live Session';
         $course    = $lesson->section->course;
+        $calendarDetails = $lesson->live_url ? 'Join: '.$lesson->live_url : 'Live class: '.$course->title;
       @endphp
       <div class="bg-white rounded-2xl border-2 {{ $isLive ? 'border-red-300' : 'border-gray-100' }} shadow-sm overflow-hidden">
         {{-- Header band --}}
@@ -113,7 +114,11 @@
                   <div class="text-xs text-brand-600 font-semibold mt-0.5">{{ $course->title }}</div>
                 </div>
                 {{-- Join button --}}
-                @if($isLive)
+                @if(!$lesson->live_url)
+                <span aria-disabled="true" class="flex-shrink-0 inline-flex items-center gap-1 bg-amber-50 text-amber-700 font-semibold px-4 py-2 rounded-xl text-xs">
+                  Meeting link not added yet
+                </span>
+                @elseif($isLive)
                 <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
                    class="flex-shrink-0 inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-5 py-2.5 rounded-xl text-sm transition shadow-lg shadow-red-200 animate-pulse">
                   🔴 Join Now
@@ -185,12 +190,16 @@
 
           {{-- Add to calendar --}}
           <div class="mt-4 pt-4 border-t border-gray-100 flex flex-wrap gap-2">
-            <a href="{{ $lesson->live_url }}" target="_blank"
+            @if($lesson->live_url)
+            <button type="button" data-copy-link="{{ $lesson->live_url }}" onclick="copyLiveLink(this)"
                class="text-xs text-brand-600 hover:text-brand-700 font-semibold hover:underline">
               🔗 Copy join link
-            </a>
+            </button>
+            @else
+            <span aria-disabled="true" class="text-xs text-gray-400 font-semibold">🔗 Link not added yet</span>
+            @endif
             <span class="text-gray-300">|</span>
-            <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text={{ urlencode($lesson->title) }}&dates={{ $sched->format('Ymd\THis') }}%2F{{ $endTime->format('Ymd\THis') }}&details={{ urlencode('Join: '.$lesson->live_url) }}"
+            <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text={{ urlencode($lesson->title) }}&dates={{ $sched->format('Ymd\THis') }}%2F{{ $endTime->format('Ymd\THis') }}&details={{ urlencode($calendarDetails) }}"
                target="_blank"
                class="text-xs text-gray-500 hover:text-gray-700 font-semibold hover:underline">
               📅 Add to Google Calendar
@@ -232,6 +241,14 @@
 
 @push('scripts')
 <script>
+function copyLiveLink(button) {
+  navigator.clipboard.writeText(button.dataset.copyLink).then(() => {
+    const label = button.textContent;
+    button.textContent = 'Copied ✓';
+    setTimeout(() => button.textContent = label, 2000);
+  });
+}
+
 function updateCountdowns() {
   document.querySelectorAll('[id^=countdown-]').forEach(el => {
     const target = parseInt(el.dataset.time) * 1000;

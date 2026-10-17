@@ -9,20 +9,14 @@
       <h1 class="text-2xl font-black text-gray-900">📡 Live Classes</h1>
       <p class="text-sm text-gray-500 mt-0.5">Hours-based & batch-date sessions</p>
     </div>
-    @if(auth()->user()->hasRole(['teacher','admin','super-admin','vendor']))
+    @if(!$isVendorOnly)
+    <a href="{{ route('vendor.live_classes.my_courses') }}" class="text-sm font-semibold text-blue-700 hover:underline">Completed classes</a>
     <a href="{{ route('vendor.live_classes.create') }}"
        class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition">
       + Create Live Class
     </a>
     @endif
   </div>
-
-  @if(session('success'))
-    <div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm">{{ session('success') }}</div>
-  @endif
-  @if(session('error'))
-    <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">{{ session('error') }}</div>
-  @endif
 
   @forelse($classes as $class)
   @php
@@ -92,11 +86,15 @@
 
         {{-- Actions --}}
         <div class="flex items-center gap-2 flex-shrink-0">
+          @if(!$isVendorOnly)
           <a href="{{ route('vendor.live_classes.show', $class->id) }}"
              class="text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition">
             Manage →
           </a>
-          @if($isLive)
+          @else
+          <span class="text-sm text-gray-500">View only</span>
+          @endif
+          @if($isLive && !$isVendorOnly)
           <form method="POST" action="{{ route('vendor.live_classes.stop', $class->id) }}">
             @csrf
             <button onclick="return confirm('Stop this session?')"
@@ -113,11 +111,13 @@
   <div class="bg-white rounded-2xl border border-gray-100 p-16 text-center text-gray-400">
     <div class="text-5xl mb-3">📡</div>
     <p class="font-semibold text-gray-600">No live classes yet</p>
-    <p class="text-sm mt-1">Create your first live class to get started</p>
+    <p class="text-sm mt-1">{{ $isVendorOnly ? 'A teacher can schedule a live class for this organization.' : 'Create your first live class to get started.' }}</p>
+    @if(!$isVendorOnly)
     <a href="{{ route('vendor.live_classes.create') }}"
        class="inline-block mt-4 bg-blue-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition">
       + Create Live Class
     </a>
+    @endif
   </div>
   @endforelse
 
