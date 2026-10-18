@@ -94,12 +94,14 @@ if (mount && form) {
   };
   const upload = async (files, type) => {
     for (const file of files) {
+      if (file.size > 50 * 1024 * 1024) throw new Error('The file must be 50 MB or smaller.');
       const data = new FormData();
       data.append('file', file);
       data.append('folder', 'course-descriptions');
       data.append('is_public', '1');
       const response = await fetch(mount.dataset.uploadUrl, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': form.querySelector('[name="_token"]').value }, body: data });
-      const payload = await response.json();
+      const payload = await response.json().catch(() => null);
+      if (!payload) throw new Error('The server could not process the upload. Check its PHP upload size limits.');
       if (!response.ok || !payload.url) throw new Error(Object.values(payload.errors || {}).flat().join(' ') || payload.error || 'Upload failed.');
       if (type === 'image') editor.chain().focus().setImage({ src: payload.url }).run();
       else editor.chain().focus().insertContent({ type: 'courseVideo', attrs: { src: payload.url } }).run();

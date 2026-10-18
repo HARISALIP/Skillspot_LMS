@@ -185,6 +185,9 @@ class CourseManagementIndexTest extends TestCase
         $this->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->create('clip.mp4', 1, 'video/mp4')])
             ->assertCreated()->assertJsonStructure(['url']);
         $this->assertDatabaseHas('uploads', ['original_name' => 'clip.mp4', 'mime_type' => 'video/mp4', 'disk' => 'public']);
+        $this->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->create('too-large.mp4', 51201, 'video/mp4')])
+            ->assertUnprocessable()->assertJsonValidationErrors('file');
+        $this->assertDatabaseMissing('uploads', ['original_name' => 'too-large.mp4']);
 
         Setting::set('storage_driver', 'r2');
         config(['filesystems.disks.r2.key' => '', 'filesystems.disks.r2.secret' => '']);

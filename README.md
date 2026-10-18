@@ -34,6 +34,8 @@ npm ci
 npm run build
 ```
 
+For local course image and video uploads on port 8082, start the app with `npm run serve:local`. This keeps PHP's upload limit aligned with the course editor's 50 MB file limit without changing the system-wide PHP configuration.
+
 ## 📁 Stack
 
 | Layer | Tech |
