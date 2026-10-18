@@ -34,14 +34,19 @@ class CourseWorkspaceTest extends TestCase
         $this->actingAs($admin)->get(route('admin.courses.edit', $course))->assertOk()
             ->assertSee('data-thumbnail-color="#5da4e9"', false)
             ->assertSee('id="settingsRelatedPicker"', false)
+            ->assertSee('id="courseEditor"', false)
+            ->assertSee('title="Text and background color"', false)
+            ->assertSee('id="courseEditorTableGrid"', false)
+            ->assertSee('id="courseEditorEmbedModal"', false)
             ->assertSee('Published related')->assertDontSee('Private draft');
         $fields = ['title' => 'Current', 'category' => 'Design', 'level' => 'beginner',
             'language' => 'en', 'price' => 0, 'is_free' => 1, 'thumbnail_color' => '#5da4e9',
-            'related_course_ids_present' => 1];
+            'related_course_ids_present' => 1, 'description' => '<h2>Course overview</h2><p>Rich text keeps its formatting.</p>'];
         $this->put(route('admin.courses.update', $course), $fields + ['related_course_ids' => [$related->id]])
             ->assertRedirect();
         $this->assertSame([$related->id], $course->fresh()->related_course_ids);
         $this->assertSame('#5da4e9', $course->fresh()->thumbnail_color);
+        $this->assertSame('<h2>Course overview</h2><p>Rich text keeps its formatting.</p>', $course->fresh()->description);
         $this->put(route('admin.courses.update', $course), $fields)->assertRedirect();
         $this->assertSame([], $course->fresh()->related_course_ids);
     }

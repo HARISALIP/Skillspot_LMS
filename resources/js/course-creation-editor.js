@@ -8,9 +8,13 @@ import { TableKit } from '@tiptap/extension-table';
 import Placeholder from '@tiptap/extension-placeholder';
 
 const mount = document.getElementById('courseEditor');
-const form = document.getElementById('newCourseForm');
+const form = document.getElementById('newCourseForm') || document.getElementById('courseSettingsForm');
 
 if (mount && form) {
+  if (form.id === 'courseSettingsForm') {
+    form.onsubmit = null;
+    document.querySelectorAll('[data-editor-command]').forEach((button) => { button.onmousedown = null; });
+  }
   const el = (id) => document.getElementById(id);
   const popovers = [...document.querySelectorAll('.frappe-rich-editor__popover')];
   const embedModal = el('courseEditorEmbedModal');
