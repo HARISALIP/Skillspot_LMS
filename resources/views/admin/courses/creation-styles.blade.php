@@ -22,8 +22,9 @@
   .frappe-rich-editor__table-cell { width:16px; height:16px; border:1px solid var(--editor-border); border-radius:3px; background:var(--editor-bg); }
   .frappe-rich-editor__table-cell.is-selected { border-color:var(--editor-muted); background:var(--editor-muted); }
   .frappe-rich-editor__table-size { margin-top:10px; text-align:center; color:var(--editor-muted); font-size:12px; }
-  .frappe-rich-editor__content { min-height:160px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
-  .frappe-rich-editor__content:empty::before { content:attr(data-placeholder); color:var(--editor-muted); pointer-events:none; }
+  .frappe-rich-editor__content { color:var(--editor-text); font-size:14px; line-height:1.5; }
+  .frappe-rich-editor__content .tiptap { min-height:160px; max-height:272px; overflow-y:auto; padding:12px; outline:none; }
+  .frappe-rich-editor__content .tiptap p.is-editor-empty:first-child::before { content:attr(data-placeholder); float:left; height:0; color:var(--editor-muted); pointer-events:none; }
   .frappe-rich-editor__content :where(img, video, iframe) { max-width:100%; margin:.75rem 0; }
   .frappe-rich-editor__content iframe { min-height:220px; width:100%; border:0; }
   .frappe-rich-editor__content :where(ul, ol) { margin:.5rem 0; padding-left:1.5rem; }

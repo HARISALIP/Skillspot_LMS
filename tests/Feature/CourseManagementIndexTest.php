@@ -56,8 +56,7 @@ class CourseManagementIndexTest extends TestCase
             ->assertSee('id="courseEditorTableGrid"', false)
             ->assertSee('id="courseEditorEmbedModal"', false)
             ->assertSeeText('Insert Embed')
-            ->assertSeeText('Text Color')
-            ->assertSeeText('Background Color')
+            ->assertSee('course-creation-editor-', false)
             ->assertDontSee('window.prompt', false)
             ->assertSeeText('Import via ZIP')
             ->assertSeeText('Learning')
@@ -257,6 +256,30 @@ class CourseManagementIndexTest extends TestCase
         $this->assertStringNotContainsString('evil.example.test', $course->description);
         $this->assertStringNotContainsString('<script>', $course->description);
         $this->assertTrue($course->teachers()->whereKey($teacher)->exists());
+    }
+
+    public function test_modal_accepts_a_safe_media_only_description(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+
+        $this->actingAs($admin)->post(route('admin.courses.store'), [
+            'modal_create' => 1,
+            'title' => 'Visual Course',
+            'short_introduction' => 'Learn through visuals',
+            'description' => '<p></p><img src="https://cdn.example.test/course.png"><script>alert(1)</script>',
+            'level' => 'beginner',
+            'language' => 'en',
+            'price' => 0,
+            'is_free' => 1,
+            'visibility' => 'draft',
+            'instructor_ids' => [$admin->id],
+        ])->assertRedirect();
+
+        $description = Course::where('title', 'Visual Course')->firstOrFail()->description;
+        $this->assertStringContainsString('<img src="https://cdn.example.test/course.png">', $description);
+        $this->assertStringNotContainsString('<script>', $description);
     }
 
     public function test_super_admin_can_invite_an_instructor_from_the_course_modal(): void

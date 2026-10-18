@@ -4,7 +4,7 @@
     <input type="hidden" name="modal_create" value="1">
     <input type="hidden" name="category" id="selectedCategory" value="{{ old('category') }}">
     <input type="hidden" name="new_category" id="newCategory" value="{{ old('new_category') }}">
-    <input type="hidden" name="description" id="courseDescription">
+    <textarea name="description" id="courseDescription" hidden>{{ old('description') }}</textarea>
     <input type="hidden" name="level" value="beginner">
     <input type="hidden" name="language" value="en">
     <input type="hidden" name="price" value="0">
@@ -109,7 +109,7 @@
               <div id="courseEditorTableSize" class="frappe-rich-editor__table-size">3 × 3</div>
             </div>
           </div>
-          <div id="courseEditor" contenteditable="true" class="frappe-rich-editor__content" data-placeholder="Write a detailed description of your course" aria-labelledby="courseDescriptionLabel"></div>
+          <div id="courseEditor" class="frappe-rich-editor__content" data-upload-url="{{ route('courses.create.media') }}" aria-labelledby="courseDescriptionLabel"></div>
           <input id="courseEditorImage" type="file" accept="image/*" multiple class="sr-only">
           <input id="courseEditorVideo" type="file" accept="video/*" class="sr-only">
         </div>
@@ -121,6 +121,7 @@
     </div>
   </form>
 </div>
+@vite('resources/js/course-creation-editor.js')
 
 <div id="courseEditorEmbedModal" class="frappe-embed-modal fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="courseEditorEmbedTitle" hidden>
   <div class="w-full max-w-md rounded-2xl border border-gray-700 bg-[#202020] p-6 text-gray-100 shadow-2xl">

@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/frappe-workspace.js'],
+            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/frappe-workspace.js', 'resources/js/course-creation-editor.js'],
             refresh: true,
         }),
         tailwindcss(),

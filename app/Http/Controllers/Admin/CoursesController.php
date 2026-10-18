@@ -172,7 +172,8 @@ class CoursesController extends Controller
                 'instructor_ids' => 'required|array|min:1',
                 'new_category' => 'nullable|string|max:100',
             ]);
-            if (trim(html_entity_decode(strip_tags((string) $request->input('description')))) === '') {
+            $description = (string) $request->input('description');
+            if (trim(html_entity_decode(strip_tags($description))) === '' && !preg_match('/<(?:img|video|iframe)\b[^>]*\bsrc="[^"]+"/i', $description)) {
                 throw ValidationException::withMessages(['description' => 'Enter a course description.']);
             }
         }
