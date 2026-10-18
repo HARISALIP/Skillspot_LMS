@@ -161,6 +161,7 @@ class CoursesController extends Controller
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {
+        if ($request->routeIs('instructor.courses.create.store')) $request->merge(['vendor_id' => null]);
         if (is_string($request->input('description'))) {
             $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
         }
@@ -169,33 +170,51 @@ class CoursesController extends Controller
                 'short_introduction' => 'required|string|max:1000',
                 'description' => 'required|string',
                 'instructor_ids' => 'required|array|min:1',
+                'new_category' => 'nullable|string|max:100',
             ]);
-        }
-        if ($newCategory = trim((string) $request->input('new_category'))) {
-            $category = CourseCategory::firstOrCreate(
-                ['name' => $newCategory],
-                ['is_active' => true, 'order_col' => CourseCategory::max('order_col') + 1]
-            );
-            $request->merge(['category' => $category->name]);
+            if (trim(html_entity_decode(strip_tags((string) $request->input('description')))) === '') {
+                throw ValidationException::withMessages(['description' => 'Enter a course description.']);
+            }
         }
         $data = $this->validateCourse($request);
+        $teacherIds = collect($request->input('instructor_ids', [auth()->id()]))->map(fn ($id) => (int) $id)->unique()->values();
+        $allowed = User::whereKey($teacherIds)->where(function ($query) {
+            $query->whereHas('roles', fn ($roles) => $roles->whereIn('name', ['teacher', 'evaluator', 'admin', 'super-admin']))
+                ->orWhereHas('instructorProfile', fn ($profile) => $profile->whereIn('status', ['pending', 'approved', 'rejected']));
+        })->pluck('id');
+        if ($teacherIds->diff($allowed)->isNotEmpty()) {
+            throw ValidationException::withMessages(['instructor_ids' => 'Choose valid instructors.']);
+        }
+        if ($request->routeIs('vendor.courses.modal.store')) {
+            $vendorTeachers = Vendor::findOrFail($data['vendor_id'])->teachers()->pluck('users.id');
+            if ($teacherIds->diff($vendorTeachers)->isNotEmpty()) {
+                throw ValidationException::withMessages(['instructor_ids' => 'Choose instructors assigned to this organization.']);
+            }
+        }
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
         }
-        $course = DB::transaction(function () use ($data, $request) {
-            $teacherIds = $request->input('instructor_ids', [auth()->id()]);
+        $course = DB::transaction(function () use ($data, $request, $teacherIds) {
+            if ($newCategory = trim((string) $request->input('new_category'))) {
+                $data['category'] = CourseCategory::firstOrCreate(
+                    ['name' => $newCategory],
+                    ['is_active' => true, 'order_col' => ((int) CourseCategory::max('order_col')) + 1]
+                )->name;
+            }
             $data['primary_instructor_id'] = auth()->user()->hasRole(['admin', 'super-admin'])
-                ? ($teacherIds[0] ?? auth()->id())
+                ? ($teacherIds->first() ?? auth()->id())
                 : auth()->id();
             $data['marketplace_status'] = 'draft';
             $data['marketplace_visible'] = false;
             $data['visibility'] = 'draft';
             $data['is_published'] = false;
             $course = Course::create($data);
-            $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
+            $course->teachers()->syncWithPivotValues($teacherIds->all(), ['added_by' => auth()->id()]);
             return $course;
         });
-        return redirect()->route('admin.courses.edit', $course->id)
+        $destination = $request->routeIs('vendor.courses.modal.store') ? route('vendor.courses.edit', $course)
+            : ($request->routeIs('instructor.courses.create.store') ? route('instructor.courses.show', $course) : route('admin.courses.edit', $course));
+        return redirect($destination)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
     }
 

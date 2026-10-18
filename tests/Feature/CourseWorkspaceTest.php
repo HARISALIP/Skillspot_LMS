@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\InstructorProfile;
 use App\Models\Section;
 use App\Models\User;
 use App\Services\CourseService;
@@ -15,6 +16,35 @@ use Tests\TestCase;
 class CourseWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_approved_individual_creator_uses_the_full_course_dialog(): void
+    {
+        Role::findOrCreate('student', 'web');
+        $creator = User::factory()->create();
+        $creator->assignRole('student');
+        InstructorProfile::create(['user_id' => $creator->id, 'status' => 'approved']);
+
+        $this->actingAs($creator)->get(route('instructor.courses.index'))->assertOk()
+            ->assertSee('id="newCourseModal"', false)
+            ->assertSee('Course description')
+            ->assertSee('name="thumbnail_file"', false);
+
+        $this->post(route('instructor.courses.create.store'), [
+            'modal_create' => 1,
+            'title' => 'Individual Creator Draft',
+            'short_introduction' => 'Introduction',
+            'description' => '<p>A complete description.</p>',
+            'instructor_ids' => [$creator->id],
+            'vendor_id' => 9999,
+            'level' => 'beginner', 'language' => 'en', 'price' => 0, 'is_free' => 1,
+        ])->assertRedirect();
+
+        $course = Course::where('title', 'Individual Creator Draft')->firstOrFail();
+        $this->assertNull($course->vendor_id);
+        $this->assertSame($creator->id, $course->primary_instructor_id);
+        $this->assertSame('draft', $course->marketplace_status);
+        $this->assertTrue($course->teachers()->whereKey($creator->id)->exists());
+    }
 
     public function test_teacher_can_open_and_save_the_four_tab_course_workspace(): void
     {

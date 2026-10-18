@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Instructor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CourseCategory;
+use App\Models\User;
 use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\Upload;
@@ -15,7 +17,14 @@ class CourseWorkspaceController extends Controller
 {
     public function index()
     {
-        return view('instructor.workspace', ['course' => null]);
+        $categoryRecords = CourseCategory::where('is_active', true)->orderBy('order_col')->get(['id', 'name']);
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
+            ->orWhereHas('instructorProfile', fn ($query) => $query->whereIn('status', ['pending', 'approved', 'rejected']))
+            ->orderBy('name')->get(['id', 'name', 'email']);
+        if (!$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        $canCreateInstructors = false;
+        $inviteMailReady = false;
+        return view('instructor.workspace', compact('categoryRecords', 'instructors', 'canCreateInstructors', 'inviteMailReady') + ['course' => null]);
     }
 
     public function show(Course $course)

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
+use App\Models\CourseCategory;
 use App\Models\Section;
 use App\Models\Setting;
 use App\Models\User;
@@ -10,6 +11,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -136,6 +138,57 @@ class CourseManagementIndexTest extends TestCase
         ])->assertRedirect();
 
         $this->assertDatabaseHas('courses', ['title' => 'Uncategorized course', 'category' => null]);
+    }
+
+    public function test_modal_validation_preserves_input_without_creating_a_category(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $student = User::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.courses.store'), [
+            'modal_create' => 1,
+            'title' => 'Keep this title',
+            'short_introduction' => 'Keep this introduction',
+            'description' => '<p>Keep this description</p>',
+            'new_category' => 'Do not create',
+            'instructor_ids' => [$student->id],
+            'level' => 'beginner', 'language' => 'en', 'price' => 0, 'is_free' => 1,
+        ])->assertSessionHasErrors('instructor_ids');
+
+        $this->assertDatabaseMissing('courses', ['title' => 'Keep this title']);
+        $this->assertDatabaseMissing('course_categories', ['name' => 'Do not create']);
+        $this->get(route('admin.courses'))->assertOk()
+            ->assertSee('id="newCourseModal" class="fixed inset-0 z-50  overflow-y-auto', false)
+            ->assertSee('Keep this title')
+            ->assertSee('Keep this introduction');
+    }
+
+    public function test_course_modal_category_and_media_actions_require_creator_access(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $student = User::factory()->create();
+        Storage::fake('public');
+        Setting::set('storage_driver', 'public');
+
+        $this->actingAs($student)->postJson(route('courses.create.categories'), ['name' => 'Blocked'])->assertForbidden();
+        $this->actingAs($student)->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->image('blocked.png')])->assertForbidden();
+
+        $this->actingAs($admin)->postJson(route('courses.create.categories'), ['name' => 'New design'])
+            ->assertCreated()->assertJsonPath('name', 'New design');
+        $this->assertSame(1, CourseCategory::where('name', 'New design')->count());
+        $this->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->image('cover.png')])
+            ->assertCreated()->assertJsonStructure(['url']);
+        $this->assertDatabaseHas('uploads', ['original_name' => 'cover.png', 'disk' => 'public']);
+
+        Setting::set('storage_driver', 'r2');
+        config(['filesystems.disks.r2.key' => '', 'filesystems.disks.r2.secret' => '']);
+        $this->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->image('missing-storage.png')])
+            ->assertUnprocessable()->assertJsonValidationErrors('file')
+            ->assertDontSee('R2 storage is not configured');
     }
 
     public function test_admin_can_import_a_frappe_course_zip_as_a_draft(): void

@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\Admin\RolesController;
 use App\Http\Controllers\Admin\CoursesController;
 use App\Http\Controllers\Instructor\CourseWorkspaceController;
+use App\Http\Controllers\CourseCreationController;
 use App\Http\Controllers\Admin\CourseOptionsController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PaymentsController;
@@ -82,6 +83,7 @@ Route::prefix('instructor')->name('instructor.')->middleware('auth')->group(func
 
 Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'creator.access'])->group(function () {
     Route::get('/courses', [CourseWorkspaceController::class, 'index'])->name('courses.index');
+    Route::post('/courses/create', [CoursesController::class, 'store'])->name('courses.create.store');
     Route::get('/courses/{course}', [CourseWorkspaceController::class, 'show'])->name('courses.show');
     Route::prefix('/workspace/courses')->name('api.courses.')->group(function () {
         Route::get('/', [CourseWorkspaceController::class, 'courses'])->name('index');
@@ -94,6 +96,10 @@ Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'creator.a
         Route::patch('/{course}/sections/{section}/lessons/{lesson}', [CourseWorkspaceController::class, 'updateLesson'])->name('lessons.update');
         Route::post('/{course}/outline', [CourseWorkspaceController::class, 'reorder'])->name('outline');
     });
+});
+Route::middleware('auth')->prefix('courses/create')->name('courses.create.')->group(function () {
+    Route::post('/media', [CourseCreationController::class, 'uploadMedia'])->name('media');
+    Route::post('/categories', [CourseCreationController::class, 'storeCategory'])->name('categories');
 });
 // ── Razorpay Webhook (NO csrf — verified via signature) ────────────────────
 Route::post('/webhook/razorpay', [PaymentController::class, 'webhook'])
@@ -363,6 +369,7 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
     Route::middleware('teacher.only')->group(function () {
         // Course full CRUD
         Route::get('/courses/create',                                                     [VendorCourses::class,'create'])->name('courses.create');
+        Route::post('/courses/create-modal',                                               [VendorCourses::class,'storeModal'])->name('courses.modal.store');
         Route::post('/courses',                                                           [VendorCourses::class,'store'])->name('courses.store');
         Route::get('/courses/{course}/edit',                                              [VendorCourses::class,'edit'])->name('courses.edit');
         Route::put('/courses/{course}',                                                   [VendorCourses::class,'update'])->name('courses.update');

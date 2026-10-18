@@ -20,6 +20,34 @@ class VendorNavigationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_organization_teacher_creates_a_draft_from_the_shared_dialog(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $owner = User::factory()->create();
+        $vendor = Vendor::create(['user_id' => $owner->id, 'brand_name' => 'Dialog Academy', 'status' => 'active']);
+        $vendor->teachers()->attach($teacher->id);
+
+        $this->actingAs($teacher)->get(route('vendor.courses'))->assertOk()
+            ->assertSee('id="newCourseModal"', false)
+            ->assertSee('Course description');
+        $this->post(route('vendor.courses.modal.store'), [
+            'modal_create' => 1,
+            'title' => 'Organization Dialog Draft',
+            'short_introduction' => 'Introduction',
+            'description' => '<p>Organization course details.</p>',
+            'instructor_ids' => [$teacher->id],
+            'vendor_id' => 9999,
+            'level' => 'beginner', 'language' => 'en', 'price' => 0, 'is_free' => 1,
+        ])->assertRedirect();
+
+        $course = Course::where('title', 'Organization Dialog Draft')->firstOrFail();
+        $this->assertSame($vendor->id, $course->vendor_id);
+        $this->assertSame('draft', $course->marketplace_status);
+        $this->assertTrue($course->teachers()->whereKey($teacher->id)->exists());
+    }
+
     public function test_view_only_vendor_navigation_has_working_read_only_destinations(): void
     {
         Role::findOrCreate('vendor', 'web');
