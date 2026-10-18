@@ -6,8 +6,7 @@
   .frappe-rich-editor__tool:hover, .frappe-rich-editor__tool:focus-visible, .frappe-rich-editor__tool.is-active { background:var(--editor-hover); color:var(--editor-focus); outline:none; }
   .frappe-rich-editor__heading { min-width:auto; font-size:13px; font-weight:600; }
   .frappe-rich-editor__divider { width:1px; height:16px; margin:0 3px; background:var(--editor-border); }
-  .frappe-rich-editor__history { display:flex; gap:2px; }
-  #newCourseModal input[name="title"], #categoryPickerButton, #instructorPickerButton { height:32px; margin-top:4px; }
+  .frappe-rich-editor__history { display:flex; flex-basis:100%; gap:2px; }
   .frappe-rich-editor__popover { position:absolute; z-index:20; display:flex; width:240px; gap:4px; border:1px solid var(--editor-border); border-radius:8px; background:var(--editor-bg); padding:4px; box-shadow:0 8px 24px rgb(0 0 0 / .22); }
   .frappe-rich-editor__popover[hidden] { display:none; }
   .frappe-rich-editor__popover input { min-width:0; flex:1; border:1px solid var(--editor-border); border-radius:6px; background:var(--editor-bg); color:var(--editor-text); padding:5px 8px; font-size:12px; outline:none; }
@@ -23,7 +22,7 @@
   .frappe-rich-editor__table-cell { width:16px; height:16px; border:1px solid var(--editor-border); border-radius:3px; background:var(--editor-bg); }
   .frappe-rich-editor__table-cell.is-selected { border-color:var(--editor-muted); background:var(--editor-muted); }
   .frappe-rich-editor__table-size { margin-top:10px; text-align:center; color:var(--editor-muted); font-size:12px; }
-  .frappe-rich-editor__content { min-height:110px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
+  .frappe-rich-editor__content { min-height:160px; padding:12px; color:var(--editor-text); font-size:14px; line-height:1.5; outline:none; }
   .frappe-rich-editor__content:empty::before { content:attr(data-placeholder); color:var(--editor-muted); pointer-events:none; }
   .frappe-rich-editor__content :where(img, video, iframe) { max-width:100%; margin:.75rem 0; }
   .frappe-rich-editor__content iframe { min-height:220px; width:100%; border:0; }

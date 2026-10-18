@@ -1,5 +1,5 @@
 <div id="newCourseModal" class="fixed inset-0 z-50 {{ request()->has('new') || old('modal_create') ? '' : 'hidden' }} overflow-y-auto bg-black/35 p-4" role="dialog" aria-modal="true" aria-labelledby="newCourseModalTitle">
-  <form id="newCourseForm" method="POST" action="{{ $courseCreateAction ?? route('admin.courses.store') }}" enctype="multipart/form-data" class="mx-auto my-4 w-full max-w-lg rounded-xl bg-white p-4 shadow-xl">
+  <form id="newCourseForm" method="POST" action="{{ $courseCreateAction ?? route('admin.courses.store') }}" enctype="multipart/form-data" class="mx-auto my-6 w-full max-w-3xl rounded-xl bg-white p-5 shadow-xl md:my-8 md:p-6">
     @csrf
     <input type="hidden" name="modal_create" value="1">
     <input type="hidden" name="category" id="selectedCategory" value="{{ old('category') }}">
@@ -10,15 +10,15 @@
     <input type="hidden" name="price" value="0">
     <input type="hidden" name="is_free" value="1">
     <input type="hidden" name="visibility" value="draft">
-    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
-      <h2 id="newCourseModalTitle" class="text-base font-semibold text-gray-900">New Course</h2>
+    <div class="flex items-center justify-between border-b border-gray-100 pb-5">
+      <h2 id="newCourseModalTitle" class="text-xl font-bold text-gray-900">New Course</h2>
       <button type="button" class="closeNewCourseModal rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700" aria-label="Close new course form">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
 
     @if(old('modal_create') && $errors->any())<div role="alert" class="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ $errors->first() }}</div>@endif
-    <div class="grid gap-x-4 gap-y-3 pt-4 sm:grid-cols-2">
+    <div class="grid gap-x-5 gap-y-5 pt-6 md:grid-cols-2">
       <label class="block text-sm font-medium text-gray-700">Title <span class="text-red-500">*</span>
         <input name="title" type="text" required maxlength="255" value="{{ old('title') }}" autocomplete="off" class="mt-2 h-10 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100" aria-label="Course title">
       </label>
@@ -69,7 +69,7 @@
       </div>
       <div class="text-sm font-medium text-gray-700">Course thumbnail
         <div class="mt-2 flex flex-wrap items-center gap-3">
-          <label id="thumbnailPreview" for="thumbnailFile" class="flex aspect-[750/422] w-36 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-gray-200 bg-gray-50 text-gray-400"><i class="fa-regular fa-image text-xl"></i></label>
+          <label id="thumbnailPreview" for="thumbnailFile" class="flex h-24 flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg border border-dashed border-gray-200 bg-gray-50 text-gray-400"><i class="fa-regular fa-image text-xl"></i></label>
           <label for="thumbnailFile" class="cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">Upload</label>
           <input id="thumbnailFile" name="thumbnail_file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="sr-only">
           <button id="removeThumbnail" type="button" class="hidden text-xs font-medium text-red-600 hover:underline">Remove</button>
@@ -78,11 +78,11 @@
       </div>
     </div>
 
-    <div class="mt-4 border-t border-gray-100 pt-3">
+    <div class="mt-6 border-t border-gray-100 pt-5">
       <label class="block text-sm font-medium text-gray-700">Short introduction <span class="text-red-500">*</span>
-        <textarea name="short_introduction" required maxlength="1000" rows="2" class="mt-2 w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">{{ old('short_introduction') }}</textarea>
+        <textarea name="short_introduction" required maxlength="1000" rows="3" class="mt-2 w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100">{{ old('short_introduction') }}</textarea>
       </label>
-      <div class="mt-3 block text-sm font-medium text-gray-700">
+      <div class="mt-5 block text-sm font-medium text-gray-700">
         <span id="courseDescriptionLabel">Course description <span class="text-red-500">*</span></span>
         <div class="frappe-rich-editor mt-2" data-rich-editor>
           <div class="frappe-rich-editor__toolbar" role="toolbar" aria-label="Course description formatting">
@@ -116,7 +116,7 @@
       </div>
     </div>
 
-    <div class="mt-4 flex justify-end">
+    <div class="mt-6 flex justify-end">
       <button type="submit" class="rounded-md bg-[#171717] px-3 py-1.5 text-sm font-semibold text-white hover:bg-[#333]">Save</button>
     </div>
   </form>
