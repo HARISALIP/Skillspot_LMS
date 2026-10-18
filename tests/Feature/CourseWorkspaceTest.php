@@ -19,6 +19,33 @@ class CourseWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_settings_color_swatches_and_related_picker_can_save_and_clear_selection(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $course = Course::create(['title' => 'Current', 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => true, 'primary_instructor_id' => $admin->id]);
+        $related = Course::create(['title' => 'Published related', 'slug' => 'published-related',
+            'is_published' => true, 'visibility' => 'public', 'price' => 0, 'is_free' => true]);
+        $draft = Course::create(['title' => 'Private draft', 'slug' => 'private-draft',
+            'is_published' => false, 'visibility' => 'draft', 'price' => 0, 'is_free' => true]);
+
+        $this->actingAs($admin)->get(route('admin.courses.edit', $course))->assertOk()
+            ->assertSee('data-thumbnail-color="#5da4e9"', false)
+            ->assertSee('id="settingsRelatedPicker"', false)
+            ->assertSee('Published related')->assertDontSee('Private draft');
+        $fields = ['title' => 'Current', 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => 1, 'thumbnail_color' => '#5da4e9',
+            'related_course_ids_present' => 1];
+        $this->put(route('admin.courses.update', $course), $fields + ['related_course_ids' => [$related->id]])
+            ->assertRedirect();
+        $this->assertSame([$related->id], $course->fresh()->related_course_ids);
+        $this->assertSame('#5da4e9', $course->fresh()->thumbnail_color);
+        $this->put(route('admin.courses.update', $course), $fields)->assertRedirect();
+        $this->assertSame([], $course->fresh()->related_course_ids);
+    }
+
     public function test_settings_can_remove_thumbnail_and_upload_a_preview_video(): void
     {
         Storage::fake('public');

@@ -284,7 +284,11 @@ class CoursesController extends Controller
         $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
             ->orderBy('name')->get(['id', 'name', 'email']);
         if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
-        $relatedCourses = Course::whereKeyNot($course->id)->orderBy('title')->get(['id', 'title']);
+        $relatedCourses = Course::whereKeyNot($course->id)
+            ->where(function ($query) use ($course) {
+                $query->where(function ($published) { $published->where('is_published', true)->where('visibility', 'public'); })
+                    ->orWhereIn('id', $course->related_course_ids ?? []);
+            })->orderBy('title')->get(['id', 'title', 'slug', 'is_published']);
         return view('admin.courses.form', [
             'course'     => $course,
             'vendors'    => $vendors,
@@ -307,6 +311,9 @@ class CoursesController extends Controller
         }
         $request->merge(['visibility' => $request->input('visibility') ?: $course->visibility]);
         $data = $this->validateCourse($request, $course->id);
+        if ($request->boolean('related_course_ids_present')) {
+            $data['related_course_ids'] = $request->input('related_course_ids', []);
+        }
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
         } elseif ($request->boolean('remove_thumbnail')) {

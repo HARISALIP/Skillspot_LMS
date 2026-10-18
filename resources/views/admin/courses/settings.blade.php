@@ -15,14 +15,19 @@
       <div>
         <span class="cw-label">Course thumbnail</span>
         <div class="flex flex-wrap items-start gap-4">
-          <div id="settingsThumbnailPreview" class="settings-media-preview flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-100" style="background:{{ $course->thumbnail_color ?: '#fda4af' }}">@if($course->thumbnail)<img src="{{ $course->thumbnail }}" alt="" class="h-full w-full object-cover">@else<i class="fa-regular fa-image text-gray-400"></i>@endif</div>
+          <div id="settingsThumbnailPreview" class="settings-media-preview flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-100" style="background:{{ $course->thumbnail_color ?: '#aeb7bf' }}">@if($course->thumbnail)<img src="{{ $course->thumbnail }}" alt="" class="h-full w-full object-cover">@endif</div>
           <div class="min-w-0 flex-1 space-y-2">
-            @if($course->thumbnail)<p class="break-all text-xs">{{ basename(parse_url($course->thumbnail, PHP_URL_PATH) ?: '') }}</p>@endif
-            <div class="flex flex-wrap items-center gap-2"><label class="settings-button cursor-pointer">{{ $course->thumbnail ? 'Replace' : 'Upload image' }}<input id="settingsThumbnailFile" type="file" name="thumbnail_file" accept=".jpg,.jpeg,.png,.gif,.webp" class="sr-only"></label>@if($course->thumbnail)<button id="removeThumbnailButton" type="button" class="settings-button text-red-600">Remove</button>@endif</div>
+            <p id="settingsThumbnailName" class="break-all text-xs" @if(!$course->thumbnail) hidden @endif>{{ $course->thumbnail ? basename(parse_url($course->thumbnail, PHP_URL_PATH) ?: '') : '' }}</p>
+            <div id="settingsThumbnailColors" @if($course->thumbnail) hidden @endif><span class="cw-label">Color</span><div class="settings-color-swatches">
+              @foreach(['Red'=>'#f37c8b','Blue'=>'#5da4e9','Green'=>'#6bcf9a','Amber'=>'#e8c173','Purple'=>'#b869e8','Cyan'=>'#52bceb','Orange'=>'#e6a77d','Violet'=>'#9f8bee','Pink'=>'#eb6bb2','Teal'=>'#60bec7','Gray'=>'#aeb7bf','Yellow'=>'#eaca49'] as $name=>$hex)
+                <button type="button" class="settings-color-swatch" data-thumbnail-color="{{ $hex }}" style="background-color:{{ $hex }}" aria-label="{{ $name }}" aria-pressed="false" title="{{ $name }}"></button>
+              @endforeach
+            </div></div>
+            <div class="flex flex-wrap items-center gap-2"><label class="settings-button cursor-pointer"><span id="settingsThumbnailUploadText">{{ $course->thumbnail ? 'Replace' : 'Upload image instead' }}</span><input id="settingsThumbnailFile" type="file" name="thumbnail_file" accept=".jpg,.jpeg,.png,.gif,.webp" class="sr-only"></label><button id="removeThumbnailButton" type="button" class="settings-button text-red-600" @if(!$course->thumbnail) hidden @endif>Remove</button></div>
             <input id="removeThumbnailInput" type="hidden" name="remove_thumbnail" value="0">
             <input id="settingsThumbnailValue" type="hidden" name="thumbnail" value="{{ $course->thumbnail }}">
-            <p class="text-xs text-gray-500">Remove the image to pick a color instead.</p>
-            <label id="settingsThumbnailColor" class="hidden text-xs">Color <input type="color" name="thumbnail_color" value="{{ old('thumbnail_color', $course->thumbnail_color ?: '#fda4af') }}" class="ml-2 h-8 w-10 align-middle"></label>
+            <p id="settingsThumbnailHelp" class="text-xs text-gray-500">{{ $course->thumbnail ? 'Remove the image to pick a color instead.' : 'Upload an image to replace the color.' }}</p>
+            <input id="settingsThumbnailColorInput" type="hidden" name="thumbnail_color" value="{{ old('thumbnail_color', $course->thumbnail_color ?: '#aeb7bf') }}">
           </div>
         </div>
       </div>
@@ -47,7 +52,7 @@
       <input id="settingsEditorImageFile" class="sr-only" type="file" accept="image/jpeg,image/png,image/gif,image/webp" aria-label="Choose image for description"><input id="settingsEditorVideoFile" class="sr-only" type="file" accept="video/mp4,video/webm,video/ogg" aria-label="Choose video for description"><p id="settingsEditorUploadError" class="hidden text-xs text-red-600" role="alert"></p>
       <div id="descriptionEditor" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="courseDescriptionLabel">{!! old('description', $course->description) !!}</div><input id="descriptionInput" type="hidden" name="description">
     </div>
-    <label><span class="cw-label">Related Courses</span><select class="cw-field min-h-24" name="related_course_ids[]" multiple>@foreach($relatedCourses as $related)<option value="{{ $related->id }}" @selected(in_array($related->id, old('related_course_ids', $course->related_course_ids ?? [])))>{{ $related->title }}</option>@endforeach</select></label>
+    <div><span class="cw-label">Related Courses</span><input type="hidden" name="related_course_ids_present" value="1"><details id="settingsRelatedPicker" class="settings-related-picker"><summary><span id="settingsRelatedSummary">Select related courses</span><span aria-hidden="true">⌄</span></summary><div class="settings-related-menu"><input id="settingsRelatedSearch" type="search" class="cw-field" placeholder="Select related courses" aria-label="Search related courses"><div class="settings-related-options">@foreach($relatedCourses as $related)<label class="settings-related-option" data-related-search="{{ Str::lower($related->title.' '.$related->slug) }}"><input type="checkbox" name="related_course_ids[]" value="{{ $related->id }}" @checked(in_array($related->id, old('related_course_ids', $course->related_course_ids ?? [])))><span><span class="block">{{ $related->title }}@if(!$related->is_published) <span class="text-gray-500">(Unpublished)</span>@endif</span><small>{{ $related->slug }}</small></span></label>@endforeach<p id="settingsRelatedEmpty" class="p-3 text-xs text-gray-500" hidden>No other published courses available</p></div><button id="settingsRelatedClear" type="button" class="settings-related-clear">Clear</button></div></details></div>
   </section>
   <section class="space-y-4 border-t pt-6">
     <div><h3 class="text-sm font-semibold">Meta Tags</h3><p class="mt-1 text-xs text-gray-500">These tags help search engines describe and rank your course in results.</p></div>
