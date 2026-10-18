@@ -25,7 +25,7 @@
   </style>
   @stack('styles')
 </head>
-<body class="font-sans bg-gray-50 text-gray-900 antialiased">
+<body class="font-sans bg-gray-50 text-gray-900 antialiased @yield('body-class')">
 <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900">Skip to main content</a>
 @php
   $user = auth()->user();
@@ -91,7 +91,7 @@
   </aside>
   <div id="mobileOverlay" class="fixed inset-0 z-20 hidden bg-black/40 lg:hidden"></div>
   <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
-    <header class="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10"><div class="flex items-center gap-3"><button id="mobileMenuBtn" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false" class="lg:hidden flex h-11 w-11 items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500"><i class="fa-solid fa-bars" aria-hidden="true"></i></button><div><h1 class="text-base md:text-lg font-bold text-gray-900">@yield('page-title', 'Dashboard')</h1><p class="text-xs text-gray-500 hidden sm:block">@yield('page-sub', 'Skillspot.in LMS Admin')</p></div></div><div class="flex items-center gap-3">@yield('page-actions')<a href="{{ route('admin.profile') }}" title="My Profile" class="w-8 h-8 bg-gradient-to-br from-brand-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-black text-sm">{{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}</a></div></header>
+    <header class="admin-page-header h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 flex-shrink-0 z-10"><div class="flex items-center gap-3"><button id="mobileMenuBtn" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false" class="lg:hidden flex h-11 w-11 items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500"><i class="fa-solid fa-bars" aria-hidden="true"></i></button><div><h1 class="text-base md:text-lg font-bold text-gray-900">@yield('page-title', 'Dashboard')</h1><p class="text-xs text-gray-500 hidden sm:block">@yield('page-sub', 'Skillspot.in LMS Admin')</p></div></div><div class="flex items-center gap-3">@yield('page-actions')<a href="{{ route('admin.profile') }}" title="My Profile" class="page-profile-action w-8 h-8 bg-gradient-to-br from-brand-500 to-accent-500 rounded-xl flex items-center justify-center text-white font-black text-sm">{{ strtoupper(substr($user->name ?? 'A', 0, 1)) }}</a></div></header>
     <main id="main-content" tabindex="-1" data-navigation-main class="flex-1 overflow-y-auto">@if(session('impersonating_as'))<div class="bg-purple-600 text-white px-4 py-2.5 flex items-center justify-between text-sm"><span class="font-semibold"><i class="fa-solid fa-user-shield mr-1.5" aria-hidden="true"></i>Impersonating: <strong>{{ $user->name }}</strong> ({{ $user->roles->first()?->name ?? 'user' }})</span><a href="{{ route('admin.users.impersonate.stop') }}" class="bg-white text-purple-600 font-bold px-4 py-1.5 rounded-lg text-xs">Stop Impersonating <i class="fa-solid fa-arrow-right ml-1" aria-hidden="true"></i></a></div>@endif<div class="p-4 md:p-6">@yield('admin-content')</div></main>
   </div>
 </div>

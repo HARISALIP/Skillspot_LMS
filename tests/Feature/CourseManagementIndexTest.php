@@ -30,6 +30,9 @@ class CourseManagementIndexTest extends TestCase
             'category' => 'Technology',
             'visibility' => 'public',
             'is_published' => true,
+            'is_featured' => true,
+            'enable_certification' => true,
+            'thumbnail_color' => '#123456',
         ]);
         Section::create(['course_id' => $course->id, 'title' => 'Start here']);
 
@@ -66,6 +69,12 @@ class CourseManagementIndexTest extends TestCase
             ->assertSeeText('Light')
             ->assertSeeText('Dark')
             ->assertSeeText('System')
+            ->assertSee('style="--tw-gradient-to: #123456"', false)
+            ->assertSee('aria-label="Rating 0"', false)
+            ->assertSee('aria-label="Featured"', false)
+            ->assertSee('aria-label="Get Certified"', false)
+            ->assertDontSee('aria-label="0 lessons"', false)
+            ->assertDontSee('aria-label="0 learners"', false)
             ->assertSee(route('admin.courses.edit', $course));
 
         $this->actingAs($student)->get(route('admin.courses'))->assertForbidden();
