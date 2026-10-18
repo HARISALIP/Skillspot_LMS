@@ -50,6 +50,29 @@
       </div>
     </div>
 
+    @if($course->intro_video)
+    @php
+      $previewHost = strtolower((string) parse_url($course->intro_video, PHP_URL_HOST));
+      $previewPath = (string) parse_url($course->intro_video, PHP_URL_PATH);
+      $previewId = '';
+      if (in_array($previewHost, ['youtube.com', 'www.youtube.com', 'm.youtube.com'], true)) {
+        parse_str((string) parse_url($course->intro_video, PHP_URL_QUERY), $previewQuery);
+        $previewId = (string) ($previewQuery['v'] ?? '');
+      } elseif (in_array($previewHost, ['youtu.be', 'www.youtu.be'], true)) {
+        $previewId = ltrim($previewPath, '/');
+      }
+      $previewId = preg_match('/^[A-Za-z0-9_-]{11}$/', $previewId) ? $previewId : null;
+      $localPreview = str_starts_with($previewPath, '/storage/')
+        && ($previewHost === '' || $previewHost === parse_url(config('app.url'), PHP_URL_HOST));
+    @endphp
+    @if($previewId || $localPreview)
+    <section class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+      <h2 class="px-5 pt-5 text-base font-bold">Course preview</h2>
+      <div class="aspect-video p-5">@if($previewId)<iframe class="h-full w-full rounded-lg" src="https://www.youtube-nocookie.com/embed/{{ $previewId }}" title="Course preview" allowfullscreen></iframe>@else<video class="h-full w-full rounded-lg bg-black" src="{{ $course->intro_video }}" controls preload="metadata"></video>@endif</div>
+    </section>
+    @endif
+    @endif
+
     {{-- What you'll learn --}}
     @if(count($outcomes))
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -182,6 +205,9 @@
         </div>
 
         {{-- CTA --}}
+        @if(!$course->registration_open)
+          <p class="rounded-xl bg-gray-100 p-4 text-center text-sm font-semibold text-gray-600">Self enrollment is closed for this course.</p>
+        @else
         @auth
           @if($course->is_free)
           <form method="POST" action="{{ route('student.enroll-free', $course->id) }}">
@@ -207,6 +233,7 @@
             Create Free Account
           </a>
         @endauth
+        @endif
 
         {{-- Features --}}
         <div class="mt-5 space-y-2.5 text-xs text-gray-500">

@@ -71,6 +71,7 @@ class CourseController extends Controller
     public function enrollFree(Request $request, Course $course)
     {
         abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for enrollment.');
+        abort_unless($course->registration_open, 403, 'Self enrollment is closed for this course.');
         if (!$course->is_free && $course->price > 0) {
             return response()->json(['error'=>'This course requires payment.'], 422);
         }

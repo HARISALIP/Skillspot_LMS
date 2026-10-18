@@ -44,6 +44,7 @@ class PaymentService
 
     public function createOrder(User $user, Course $course): array
     {
+        if (!$course->registration_open) throw new \DomainException('Self enrollment is closed for this course.');
         if (!$course->isMarketplaceLive() || $course->is_free || (float) $course->price <= 0) throw new \DomainException('This course is not available for paid checkout.');
         if (Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->where('status', 'active')->exists()) throw new \DomainException('Already enrolled in this course.');
         if ($reason = $this->checkoutUnavailableReason()) throw new \DomainException($reason);

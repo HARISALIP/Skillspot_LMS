@@ -195,6 +195,9 @@ class CoursesController extends Controller
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
         }
+        if ($request->hasFile('intro_video_file')) {
+            $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
+        }
         $course = DB::transaction(function () use ($data, $request, $teacherIds) {
             if ($newCategory = trim((string) $request->input('new_category'))) {
                 $data['category'] = CourseCategory::firstOrCreate(
@@ -306,8 +309,13 @@ class CoursesController extends Controller
         $data = $this->validateCourse($request, $course->id);
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+        } elseif ($request->boolean('remove_thumbnail')) {
+            $data['thumbnail'] = null;
         }
-        if (!$course->isMarketplaceLive()) {
+        if ($request->hasFile('intro_video_file')) {
+            $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
+        }
+        if ($course->marketplace_status !== 'live' || !$course->marketplace_visible) {
             $data['visibility'] = 'draft';
             $data['is_published'] = false;
         }
@@ -319,16 +327,17 @@ class CoursesController extends Controller
                 if ($teacherIds->isNotEmpty()) $course->update(['primary_instructor_id' => $teacherIds->first()]);
             }
         });
-        return back()->with('success', "Course updated ✅");
+        return redirect(route('admin.courses.edit', $course).'#settings')->with('success', "Course updated ✅");
     }
 
     // ── Toggle publish ─────────────────────────────────────────────────
     public function togglePublish(Course $course)
     {
         $this->authorizeCourseOwner($course);
-        if (!$course->isMarketplaceLive()) return back()->with('error', 'Submit this course for marketplace review before publishing it.');
-        $course->update(['visibility' => 'public', 'is_published' => true]);
-        return back()->with('success', 'Course is live in the Skillspot marketplace.');
+        if ($course->marketplace_status !== 'live') return back()->with('error', 'Submit this course for marketplace review before publishing it.');
+        $publish = !$course->marketplace_visible;
+        $course->update(['marketplace_visible' => $publish, 'visibility' => $publish ? 'public' : 'draft', 'is_published' => $publish]);
+        return back()->with('success', $publish ? 'Course is live in the Skillspot marketplace.' : 'Course has been unpublished.');
     }
 
     // Grant restricted access to specific user
@@ -558,6 +567,8 @@ class CoursesController extends Controller
             'thumbnail'         => 'nullable|string|max:500',
             'thumbnail_color'   => ['nullable','regex:/^#[0-9a-fA-F]{6}$/'],
             'thumbnail_file'    => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'remove_thumbnail'  => 'nullable|boolean',
+            'intro_video_file'  => 'nullable|file|mimes:mp4,webm,ogg,ogv|max:51200',
             'instructor_ids'    => 'nullable|array',
             'instructor_ids.*'  => 'integer|exists:users,id',
             'intro_video'       => 'nullable|string|max:500',
@@ -587,7 +598,7 @@ class CoursesController extends Controller
         $data['upcoming']         = $request->boolean('upcoming');
         $data['enforce_lesson_completion'] = $request->boolean('enforce_lesson_completion');
         $data['enable_certification'] = $ignoreId ? $request->boolean('enable_certification') : true;
-        $data['registration_open']= $request->boolean('registration_open');
+        $data['registration_open']= $ignoreId ? $request->boolean('registration_open') : $request->boolean('registration_open', true);
         $data['max_students']     = (int)($request->input('max_students', 0));
         $data['course_type']      = $request->input('course_type','open');
         if (empty($data['vendor_id'])) $data['vendor_id'] = null;

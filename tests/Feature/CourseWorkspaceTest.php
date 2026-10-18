@@ -10,12 +10,58 @@ use App\Models\User;
 use App\Services\CourseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CourseWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_settings_can_remove_thumbnail_and_upload_a_preview_video(): void
+    {
+        Storage::fake('public');
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $course = Course::create(['title' => 'Settings media', 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => true, 'thumbnail' => '/storage/old.png',
+            'primary_instructor_id' => $admin->id]);
+        $course->teachers()->attach($admin->id, ['added_by' => $admin->id]);
+
+        $this->actingAs($admin)->get(route('admin.courses.edit', $course))->assertOk()
+            ->assertSee('id="removeThumbnailButton"', false)
+            ->assertSee('name="intro_video_file"', false);
+        $this->put(route('admin.courses.update', $course), [
+            'title' => $course->title, 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => 1, 'remove_thumbnail' => 1,
+            'intro_video_file' => UploadedFile::fake()->create('preview.mp4', 10, 'video/mp4'),
+        ])->assertRedirect(route('admin.courses.edit', $course).'#settings');
+
+        $course->refresh();
+        $this->assertNull($course->thumbnail);
+        $this->assertStringStartsWith('/storage/course-previews/', $course->intro_video);
+        Storage::disk('public')->assertExists(str_replace('/storage/', '', $course->intro_video));
+    }
+
+    public function test_unpublish_and_self_enrollment_controls_block_direct_requests(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $learner = User::factory()->create();
+        $course = Course::create(['title' => 'Controlled enrollment', 'is_free' => true, 'price' => 0,
+            'marketplace_status' => 'live', 'marketplace_visible' => true,
+            'is_published' => true, 'visibility' => 'public', 'registration_open' => false,
+            'primary_instructor_id' => $admin->id]);
+
+        $this->actingAs($learner)->post(route('student.enroll-free', $course))->assertForbidden();
+        $this->postJson(route('student.create-order', $course))->assertForbidden();
+        $this->actingAs($admin)->patch(route('admin.courses.toggle-publish', $course))->assertRedirect();
+        $this->assertFalse($course->fresh()->isMarketplaceLive());
+        $this->actingAs($learner)->post(route('student.enroll-free', $course))->assertNotFound();
+    }
 
     public function test_approved_individual_creator_uses_the_full_course_dialog(): void
     {
@@ -43,6 +89,7 @@ class CourseWorkspaceTest extends TestCase
         $this->assertNull($course->vendor_id);
         $this->assertSame($creator->id, $course->primary_instructor_id);
         $this->assertSame('draft', $course->marketplace_status);
+        $this->assertTrue($course->registration_open);
         $this->assertTrue($course->teachers()->whereKey($creator->id)->exists());
     }
 
