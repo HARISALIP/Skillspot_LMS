@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Middleware\TrustProxies;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -40,6 +41,14 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (PostTooLargeException $exception, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'The file exceeds the server upload limit.',
+                ], 413);
+            }
+        });
         $exceptions->render(function (HttpExceptionInterface $exception, Request $request) {
             if ($exception->getStatusCode() === 403 && ! $request->expectsJson()) {
                 return response()->view('errors.403', status: 403);

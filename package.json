@@ -5,7 +5,7 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "serve:local": "php -d upload_max_filesize=50M -d post_max_size=52M -S 127.0.0.1:8082 vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"
+        "serve:local": "cd public && php -d upload_max_filesize=50M -d post_max_size=52M -S 127.0.0.1:8082 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

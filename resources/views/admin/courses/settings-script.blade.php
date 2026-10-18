@@ -134,7 +134,14 @@
           method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
           credentials: 'same-origin', body,
         });
-        const result = await response.json();
+        const responseText = await response.text();
+        let result;
+        try { result = JSON.parse(responseText); }
+        catch (_) {
+          throw new Error(response.status === 413
+            ? 'The video exceeds the server upload limit.'
+            : 'The server rejected the upload. Check the file size or try again.');
+        }
         if (!response.ok || !result.success || !result.url) throw new Error(result.error || 'Upload failed.');
         editor.focus();
         if (editorRange) {
