@@ -633,6 +633,7 @@ class CoursesController extends Controller
                 $styleRules = array_values(array_filter(array_map('trim', explode(';', $attribute->value))));
                 $isSafeStyle = $attribute->name === 'style' && $styleRules !== [] && collect($styleRules)->every(fn ($rule) =>
                     preg_match('/^text-align:\s*(?:left|center|right)$/i', $rule)
+                    || preg_match('/^color:\s*inherit$/i', $rule)
                     || preg_match('/^(?:color|background-color):\s*(?:#[0-9a-f]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i', $rule)
                 );
                 if (!in_array($attribute->name, ['alt', 'target', 'rel', 'title', 'loading', 'allowfullscreen', 'controls', 'preload'], true) && !$isSafeUrl && !$isSafeColor && !$isSafeStyle) $node->removeAttribute($attribute->name);

@@ -182,6 +182,9 @@ class CourseManagementIndexTest extends TestCase
         $this->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->image('cover.png')])
             ->assertCreated()->assertJsonStructure(['url']);
         $this->assertDatabaseHas('uploads', ['original_name' => 'cover.png', 'disk' => 'public']);
+        $this->postJson(route('courses.create.media'), ['file' => UploadedFile::fake()->create('clip.mp4', 1, 'video/mp4')])
+            ->assertCreated()->assertJsonStructure(['url']);
+        $this->assertDatabaseHas('uploads', ['original_name' => 'clip.mp4', 'mime_type' => 'video/mp4', 'disk' => 'public']);
 
         Setting::set('storage_driver', 'r2');
         config(['filesystems.disks.r2.key' => '', 'filesystems.disks.r2.secret' => '']);
@@ -231,7 +234,7 @@ class CourseManagementIndexTest extends TestCase
             'modal_create' => 1,
             'title' => 'Modal Course',
             'short_introduction' => 'A short introduction',
-            'description' => '<p>Course details</p><p style="text-align: center;">Centered</p><font color="#ff0000">Red</font><span style="background-color: rgb(254, 202, 202);">Highlighted</span><code>inline()</code><strike>Removed text</strike><table><thead><tr><th>Heading</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><iframe src="https://evil.example.test/embed"></iframe><script>alert(1)</script>',
+            'description' => '<h2>Heading two</h2><h3>Heading three</h3><h4>Heading four</h4><p>Course details</p><p style="text-align: center;">Centered</p><ul><li><p>Bullet</p></li></ul><ol><li><p>Numbered</p></li></ol><blockquote><p>Quoted</p></blockquote><hr><font color="#ff0000">Red</font><span style="background-color: rgb(254, 202, 202);">Highlighted</span><mark data-color="#fecaca" style="background-color: rgb(254, 202, 202); color: inherit;">Marked</mark><code>inline()</code><strike>Removed text</strike><table><thead><tr><th>Heading</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table><video src="https://cdn.example.test/video.mp4" controls></video><iframe src="https://www.youtube.com/embed/example"></iframe><iframe src="https://evil.example.test/embed"></iframe><script>alert(1)</script>',
             'new_category' => 'Framework',
             'level' => 'beginner',
             'language' => 'en',
@@ -245,11 +248,15 @@ class CourseManagementIndexTest extends TestCase
         $this->assertSame('Framework', $course->category);
         $this->assertSame('A short introduction', $course->short_introduction);
         $this->assertStringContainsString('<p>Course details</p>', $course->description);
+        $this->assertStringContainsString('<h2>Heading two</h2><h3>Heading three</h3><h4>Heading four</h4>', $course->description);
+        $this->assertStringContainsString('<ul><li><p>Bullet</p></li></ul><ol><li><p>Numbered</p></li></ol>', $course->description);
+        $this->assertStringContainsString('<blockquote><p>Quoted</p></blockquote><hr>', $course->description);
         $this->assertStringContainsString('<video', $course->description);
         $this->assertStringContainsString('<iframe', $course->description);
         $this->assertStringContainsString('style="text-align: center;"', $course->description);
         $this->assertStringContainsString('<font color="#ff0000">Red</font>', $course->description);
         $this->assertStringContainsString('background-color: rgb(254, 202, 202)', $course->description);
+        $this->assertStringContainsString('<mark style="background-color: rgb(254, 202, 202); color: inherit;">Marked</mark>', $course->description);
         $this->assertStringContainsString('<code>inline()</code>', $course->description);
         $this->assertStringContainsString('<thead><tr><th>Heading</th></tr></thead>', $course->description);
         $this->assertStringContainsString('<strike>Removed text</strike>', $course->description);

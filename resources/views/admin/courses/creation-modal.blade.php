@@ -100,8 +100,15 @@
             <button type="button" class="frappe-rich-editor__tool" data-editor-action="rule" title="Horizontal Rule"><i class="fa-solid fa-minus"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="table" title="Table"><i class="fa-solid fa-table"></i></button>
             <div class="frappe-rich-editor__history"><button type="button" class="frappe-rich-editor__tool" data-editor-command="undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button></div>
             <div id="courseEditorUrlPopover" class="frappe-rich-editor__popover" role="dialog" aria-label="Edit link" hidden>
-              <input id="courseEditorUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com" aria-label="URL">
-              <button id="courseEditorUrlApply" type="button" class="frappe-rich-editor__tool" aria-label="Apply URL"><i class="fa-solid fa-check"></i></button>
+              <div id="courseEditorLinkPreview" class="frappe-rich-editor__link-preview" hidden>
+                <a id="courseEditorLinkTarget" href="#" target="_blank" rel="noopener noreferrer" class="truncate text-xs text-gray-700"></a>
+                <button id="courseEditorLinkCopy" type="button" class="frappe-rich-editor__tool" aria-label="Copy link"><i class="fa-solid fa-copy"></i></button>
+                <button id="courseEditorLinkEdit" type="button" class="frappe-rich-editor__tool" aria-label="Edit link">Edit</button>
+              </div>
+              <div id="courseEditorLinkFields" class="frappe-rich-editor__link-fields">
+                <input id="courseEditorUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com" aria-label="URL">
+                <button id="courseEditorUrlApply" type="button" class="frappe-rich-editor__tool" aria-label="Apply URL"><i class="fa-solid fa-check"></i></button>
+              </div>
             </div>
             <div id="courseEditorColorPopover" class="frappe-rich-editor__popover frappe-rich-editor__palette" role="dialog" aria-label="Text and background color" hidden></div>
             <div id="courseEditorTablePopover" class="frappe-rich-editor__popover frappe-rich-editor__table-picker" role="dialog" aria-label="Table size, 3 rows by 3 columns" hidden>
@@ -110,7 +117,7 @@
             </div>
           </div>
           <div id="courseEditor" class="frappe-rich-editor__content" data-upload-url="{{ route('courses.create.media') }}" aria-labelledby="courseDescriptionLabel"></div>
-          <input id="courseEditorImage" type="file" accept="image/*" multiple class="sr-only">
+          <input id="courseEditorImage" type="file" accept="image/*" class="sr-only">
           <input id="courseEditorVideo" type="file" accept="video/*" class="sr-only">
         </div>
       </div>

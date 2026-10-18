@@ -79,6 +79,7 @@ if (mount && form) {
       const pressed = active(button.dataset.editorCommand, button.dataset.editorValue);
       button.classList.toggle('is-active', pressed);
       button.setAttribute('aria-pressed', String(pressed));
+      if ((button.dataset.editorCommand === 'formatBlock' && /^h[234]$/.test(button.dataset.editorValue)) || button.dataset.editorValue === 'blockquote') button.disabled = editor.isActive('listItem');
       if (['undo', 'redo'].includes(button.dataset.editorCommand)) button.disabled = !editor.can().chain().focus()[button.dataset.editorCommand]().run();
     });
   }
@@ -102,6 +103,7 @@ if (mount && form) {
       if (!response.ok || !payload.url) throw new Error(Object.values(payload.errors || {}).flat().join(' ') || payload.error || 'Upload failed.');
       if (type === 'image') editor.chain().focus().setImage({ src: payload.url }).run();
       else editor.chain().focus().insertContent({ type: 'courseVideo', attrs: { src: payload.url } }).run();
+      editor.commands.setTextSelection(editor.state.selection.to);
     }
   };
 
@@ -113,10 +115,17 @@ if (mount && form) {
       if (command) return actions[command](button.dataset.editorValue);
       if (action === 'link') {
         if (positionPopover(el('courseEditorUrlPopover'), button, 248)) {
-          el('courseEditorUrl').value = editor.getAttributes('link').href || '';
-          el('courseEditorUrl').focus();
+          const href = editor.getAttributes('link').href;
+          el('courseEditorLinkPreview').hidden = !href;
+          el('courseEditorLinkFields').hidden = Boolean(href);
+          el('courseEditorUrl').value = href || '';
+          el('courseEditorUrl').setCustomValidity('');
+          if (href) {
+            el('courseEditorLinkTarget').href = href;
+            el('courseEditorLinkTarget').textContent = href;
+          } else el('courseEditorUrl').focus();
         }
-      } else if (action === 'color') positionPopover(el('courseEditorColorPopover'), button, 214);
+      } else if (action === 'color') { updateColorSelection(); positionPopover(el('courseEditorColorPopover'), button, 214); }
       else if (action === 'image' || action === 'video') el(action === 'image' ? 'courseEditorImage' : 'courseEditorVideo').click();
       else if (action === 'code') editor.chain().focus().toggleCode().run();
       else if (action === 'rule') editor.chain().focus().setHorizontalRule().run();
@@ -142,6 +151,15 @@ if (mount && form) {
   el('courseEditorUrlApply').addEventListener('click', applyLink);
   urlInput.addEventListener('input', () => urlInput.setCustomValidity(''));
   urlInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); applyLink(); } });
+  el('courseEditorLinkEdit').addEventListener('click', () => {
+    el('courseEditorLinkPreview').hidden = true;
+    el('courseEditorLinkFields').hidden = false;
+    urlInput.focus();
+  });
+  el('courseEditorLinkCopy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(el('courseEditorLinkTarget').href); }
+    catch { window.alert('Could not copy the link.'); }
+  });
 
   const palette = {
     text: { red: '#dc2626', orange: '#ea580c', yellow: '#ca8a04', green: '#16a34a', teal: '#0d9488', cyan: '#06b6d4', blue: '#1579d0', indigo: '#5f46c7', purple: '#9333ea', pink: '#db2777', gray: '#6b7280' },
@@ -150,6 +168,14 @@ if (mount && form) {
   const colorSection = (label, type) => `<div class="frappe-rich-editor__palette-label${type === 'highlight' ? ' mt-4' : ''}">${label}</div><div class="frappe-rich-editor__swatches"><button type="button" class="frappe-rich-editor__swatch" data-editor-color="default" data-color-type="${type}" data-default aria-label="Default ${label}">A</button>${Object.entries(palette[type]).map(([name, color]) => `<button type="button" class="frappe-rich-editor__swatch" data-editor-color="${color}" data-color-type="${type}" aria-label="${name} ${label}" style="${type === 'text' ? `color:${color}` : `background:${color};color:#1f2937`}">A</button>`).join('')}</div>`;
   const colorPopover = el('courseEditorColorPopover');
   colorPopover.innerHTML = colorSection('Text Color', 'text') + colorSection('Background Color', 'highlight');
+  function updateColorSelection() {
+    const selected = { text: editor.getAttributes('textStyle').color, highlight: editor.getAttributes('highlight').color };
+    colorPopover.querySelectorAll('[data-editor-color]').forEach((button) => {
+      const active = button.dataset.editorColor === (selected[button.dataset.colorType] || 'default');
+      button.setAttribute('aria-pressed', String(active));
+      button.classList.toggle('is-active', active);
+    });
+  }
   colorPopover.addEventListener('mousedown', (event) => event.preventDefault());
   colorPopover.addEventListener('click', (event) => {
     const swatch = event.target.closest('[data-editor-color]');
@@ -175,7 +201,7 @@ if (mount && form) {
     cell.className = 'frappe-rich-editor__table-cell';
     cell.dataset.row = row;
     cell.dataset.column = column;
-    cell.setAttribute('aria-label', `${row} rows by ${column} columns`);
+    cell.setAttribute('aria-label', `${row} × ${column}`);
     cell.addEventListener('mouseenter', () => setTableSelection(row, column));
     cell.addEventListener('focus', () => setTableSelection(row, column));
     cell.addEventListener('click', () => {
