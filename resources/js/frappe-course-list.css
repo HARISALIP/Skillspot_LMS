@@ -1,0 +1,24 @@
+.frappe-workspace .course-list{max-width:none;min-height:calc(100vh - 64px);padding:1.25rem;background:#fff}
+.frappe-workspace .list-heading{align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem}
+.frappe-workspace .list-heading h1{font-size:1.125rem;font-weight:600}
+.frappe-workspace .course-list-filters{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+.frappe-workspace .course-list-filters>div{display:flex;max-width:100%;gap:.2rem;overflow:auto;border-radius:7px;background:#f3f4f6;padding:.2rem}
+.frappe-workspace .course-list-filters button{border:0;border-radius:5px;background:transparent;padding:.3rem .55rem;color:#6b7280;white-space:nowrap;cursor:pointer}
+.frappe-workspace .course-list-filters button.active{background:#fff;color:#111827;box-shadow:0 1px 3px #00000014}
+.frappe-workspace .course-list-filters input{width:180px;height:32px;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;padding:.35rem .6rem}
+.frappe-workspace .course-grid{grid-template-columns:repeat(1,minmax(0,1fr));gap:1.25rem}
+.frappe-workspace .course-card{min-height:350px;border:2px solid #ededed;border-radius:10px}
+.frappe-workspace .course-card:hover{border-color:#d1d5db;box-shadow:0 4px 14px #0000000d}
+.frappe-workspace .course-image{height:168px;background-color:#e9e7e1}
+.frappe-workspace .course-image span{display:flex;width:100%;height:100%;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(30deg,#111827,#4b5563);color:#fff;text-align:center;font-size:1.25rem;font-weight:700}
+.frappe-workspace .course-card-details{display:flex;min-height:178px;flex-direction:column}
+.frappe-workspace .course-card-details small{font-size:.75rem}
+.frappe-workspace .course-card-details h2{font-size:1.125rem}
+.frappe-workspace .course-card-details p{min-height:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.frappe-workspace .course-card-details footer{margin-top:auto}
+.frappe-workspace .course-list-empty{padding:3rem;border:1px dashed #d1d5db;border-radius:8px;text-align:center}
+.frappe-workspace .course-list-footer{margin-top:2rem;border-top:1px solid #e5e7eb;padding:.55rem 0;text-align:right;color:#6b7280;font-size:.8rem}
+@media(min-width:768px){.frappe-workspace .course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.frappe-workspace .course-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1536px){.frappe-workspace .course-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:760px){.frappe-workspace .course-list-filters input{width:100%}}

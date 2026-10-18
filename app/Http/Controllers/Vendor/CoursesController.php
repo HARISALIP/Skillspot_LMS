@@ -35,7 +35,11 @@ class CoursesController extends Controller
     public function index()
     {
         $vendor  = $this->vendor();
-        $courses = Course::where('vendor_id', $vendor->id)->withCount('enrollments')->latest()->paginate(15);
+        $courses = Course::where('vendor_id', $vendor->id)
+            ->with(['primaryInstructor', 'vendor'])
+            ->withCount(['sections', 'enrollments'])
+            ->withAvg('reviews', 'rating')
+            ->latest()->paginate(15);
         $isVendorOnly = $this->isVendorOnly();
         $isTeacher    = $this->isTeacher();
         return view('vendor.courses.index', compact('vendor','courses','isVendorOnly','isTeacher'));

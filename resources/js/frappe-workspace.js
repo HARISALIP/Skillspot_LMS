@@ -15,6 +15,7 @@ import InlineCode from '@editorjs/inline-code';
 import DragDrop from 'editorjs-drag-drop';
 import { ArrowLeft, BookOpen, Check, ChevronRight, CircleHelp, Eye, NotebookPen, Plus, Users } from 'lucide-vue-next';
 import './frappe-workspace.css';
+import './frappe-course-list.css';
 import './frappe-lesson-editor.css';
 
 const root = document.querySelector('#frappe-course-workspace');
@@ -290,10 +291,8 @@ const App = {
     <div class="frappe-workspace">
       <template v-if="!course">
         <header class="workspace-top"><a href="/studio" class="brand"><BookOpen :size="20"/> Skillspot Studio</a><button class="primary" @click="createOpen = true"><Plus :size="16"/> New Course</button></header>
-        <main class="course-list"><div class="list-heading"><div><h1>Courses</h1><p>Create and manage your learning content.</p></div><input v-model="search" placeholder="Search courses"></div>
-          <div class="course-grid"><button class="new-course-card" @click="createOpen = true"><Plus :size="22"/><strong>Create a new course</strong><span>Start with Skillspot's guided course form.</span></button>
-            <a v-for="item in filteredCourses" :key="item.id" :href="'/instructor/courses/'+item.id" class="course-card"><div class="course-image" :style="item.thumbnail ? {backgroundImage: 'url('+item.thumbnail+')'} : {}"><span v-if="!item.thumbnail">{{ item.category || 'Course' }}</span></div><div><small>{{ item.category || 'General' }}</small><h2>{{ item.title }}</h2><p>{{ item.short_introduction || 'No introduction yet.' }}</p><footer>{{ item.enrollments_count }} learners · {{ item.marketplace_status || 'Draft' }}</footer></div></a>
-          </div></main><div v-if="createOpen" class="course-modal"><form @submit.prevent="createCourse"><header><h2>New Course</h2><button type="button" @click="createOpen=false">×</button></header><label>Course title<input v-model="createDraft.title" required autofocus></label><label>Category<input v-model="createDraft.category" placeholder="General"></label><label>Short introduction<textarea v-model="createDraft.short_introduction" placeholder="What will students learn?"></textarea></label><footer><button type="button" class="secondary" @click="createOpen=false">Cancel</button><button class="primary">Create Course</button></footer></form></div>
+        <main class="course-list"><div class="list-heading"><h1>All Courses</h1><div class="course-list-filters"><div role="group" aria-label="Course status"><button v-for="option in ['All', 'Published', 'In review', 'Drafts']" :key="option" :aria-pressed="statusFilter === option" :class="{active: statusFilter === option}" @click="statusFilter = option">{{ option }}</button></div><label class="sr-only" for="instructor-course-search">Search courses</label><input id="instructor-course-search" v-model="search" type="search" placeholder="Search"></div></div>
+          <div v-if="filteredCourses.length" class="course-grid"><a v-for="item in filteredCourses" :key="item.id" :href="'/instructor/courses/'+item.id" class="course-card"><div class="course-image" :style="item.thumbnail ? {backgroundImage: 'url('+item.thumbnail+')'} : {}"><span v-if="!item.thumbnail">{{ item.title }}</span></div><div class="course-card-details"><small>{{ item.enrollments_count }} learners</small><h2 v-if="item.thumbnail">{{ item.title }}</h2><p>{{ item.short_introduction || item.category || 'Course' }}</p><footer>{{ item.marketplace_status || 'Draft' }}</footer></div></a></div><p v-else class="course-list-empty">No courses match these filters.</p><div class="course-list-footer">{{ filteredCourses.length }} of {{ courses.length }}</div></main><div v-if="createOpen" class="course-modal"><form @submit.prevent="createCourse"><header><h2>New Course</h2><button type="button" @click="createOpen=false">×</button></header><label>Course title<input v-model="createDraft.title" required autofocus></label><label>Category<input v-model="createDraft.category" placeholder="General"></label><label>Short introduction<textarea v-model="createDraft.short_introduction" placeholder="What will students learn?"></textarea></label><footer><button type="button" class="secondary" @click="createOpen=false">Cancel</button><button class="primary">Create Course</button></footer></form></div>
       </template>
       <template v-else>
         <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button" aria-label="Back to course list"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><span class="saved" v-if="saved"><Check :size="15"/> Saved</span><button class="outline-mobile secondary" aria-label="Show chapters" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/><span class="action-label">Chapters</span></button><a :href="'/instructor/courses/'+course.id+'/preview?from=instructor'" target="_blank" rel="noopener" class="secondary" aria-label="Preview as learner"><Eye :size="16"/><span class="action-label">Preview as learner</span></a></div></header>
@@ -308,14 +307,22 @@ const App = {
     </div>`,
   setup() {
     const courses = ref([]); const course = ref(null); const draft = ref({}); const selectedLesson = ref(null);
-    const tab = ref('overview'); const saved = ref(false); const uploadState = ref(''); const search = ref(''); const mobileOutline = ref(false); const dragging = ref(null); const createOpen = ref(false); const createDraft = ref({ title: '', category: '', short_introduction: '' }); const newSectionOpen = ref(false); const newSectionTitle = ref(''); const newLessonSection = ref(null); const newLessonTitle = ref(''); let saveNotice;
+    const tab = ref('overview'); const saved = ref(false); const uploadState = ref(''); const search = ref(''); const statusFilter = ref('All'); const mobileOutline = ref(false); const dragging = ref(null); const createOpen = ref(false); const createDraft = ref({ title: '', category: '', short_introduction: '' }); const newSectionOpen = ref(false); const newSectionTitle = ref(''); const newLessonSection = ref(null); const newLessonTitle = ref(''); let saveNotice;
     const markSaved = () => { saved.value = true; clearTimeout(saveNotice); saveNotice = setTimeout(() => saved.value = false, 1800); };
     const load = async () => {
       if (courseId) { course.value = await request('/' + courseId); draft.value = { ...course.value }; selectedLesson.value = course.value.sections.flatMap(section => section.lessons)[0] || null; }
       else courses.value = await request('');
     };
     const createCourse = async () => { if (!createDraft.value.title.trim()) return; const item = await request('', { method: 'POST', body: JSON.stringify(createDraft.value) }); window.location.assign('/instructor/courses/' + item.id); };
-    const filteredCourses = computed(() => courses.value.filter(item => (item.title + ' ' + (item.category || '')).toLowerCase().includes(search.value.toLowerCase())));
+    const filteredCourses = computed(() => courses.value.filter(item => {
+      const status = item.marketplace_status || 'draft';
+      return (item.title + ' ' + (item.category || '')).toLowerCase().includes(search.value.toLowerCase()) && (
+        statusFilter.value === 'All' ||
+        (statusFilter.value === 'Published' && status === 'live') ||
+        (statusFilter.value === 'In review' && status === 'submitted') ||
+        (statusFilter.value === 'Drafts' && ['draft', 'needs_changes', 'rejected'].includes(status))
+      );
+    }));
     const lessonCount = computed(() => course.value?.sections?.reduce((count, section) => count + section.lessons.length, 0) || 0);
     const saveCourse = async () => { Object.assign(course.value, await request('/' + course.value.id, { method: 'PATCH', body: JSON.stringify(draft.value) })); markSaved(); };
     const sectionFor = lesson => course.value.sections.find(section => section.lessons.some(item => item.id === lesson.id));
@@ -353,7 +360,7 @@ const App = {
       await request('/' + course.value.id + '/outline', { method: 'POST', body: JSON.stringify({ sections: course.value.sections.map(section => ({ id: section.id, lessons: section.lessons.map(lesson => lesson.id) })) }) }); markSaved();
     };
     load().catch(error => window.alert(error.message));
-    return { courses, course, draft, selectedLesson, tab, saved, uploadState, search, mobileOutline, dragging, createOpen, createDraft, newSectionOpen, newSectionTitle, newLessonSection, newLessonTitle, filteredCourses, lessonCount, createCourse, saveCourse, selectLesson, saveLesson, saveLessonMeta, uploadLessonFile, saveBlocks, addSection, addLesson, renameSection, dropLesson };
+    return { courses, course, draft, selectedLesson, tab, saved, uploadState, search, statusFilter, mobileOutline, dragging, createOpen, createDraft, newSectionOpen, newSectionTitle, newLessonSection, newLessonTitle, filteredCourses, lessonCount, createCourse, saveCourse, selectLesson, saveLesson, saveLessonMeta, uploadLessonFile, saveBlocks, addSection, addLesson, renameSection, dropLesson };
   },
 };
 if (root) createApp(App).mount(root);

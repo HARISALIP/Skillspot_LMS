@@ -66,7 +66,9 @@ class DashboardController extends Controller
     public function courses()
     {
         $user        = Auth::user();
-        $enrollments = Enrollment::with(['course.sections.lessons'])
+        $enrollments = Enrollment::with(['course' => fn ($query) => $query
+            ->with(['sections.lessons', 'primaryInstructor', 'vendor'])
+            ->withCount(['sections', 'enrollments'])])
             ->where('user_id', $user->id)
             ->latest()->paginate(12);
         return view('student.courses', compact('enrollments'));
@@ -90,7 +92,10 @@ class DashboardController extends Controller
     public function browse(Request $request)
     {
         $user  = Auth::user();
-        $query = Course::marketplaceLive()->withCount('enrollments');
+        $query = Course::marketplaceLive()
+            ->with(['primaryInstructor', 'vendor'])
+            ->withCount(['sections', 'enrollments'])
+            ->withAvg('reviews', 'rating');
 
         // Only show public courses on browse + restricted courses this student is allowed in
         $query->where(function($q) use ($user) {

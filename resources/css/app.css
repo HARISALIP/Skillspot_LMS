@@ -46,3 +46,15 @@ table { font-variant-numeric: tabular-nums; }
 .course-modal form{width:min(500px,100%);padding:1.25rem;background:#fff;border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.2)}
 .course-modal header,.course-modal footer{display:flex;align-items:center;justify-content:space-between}.course-modal h2{margin:0;font-size:1.1rem}.course-modal header button{border:0;background:transparent;font-size:1.5rem;cursor:pointer}.course-modal label{display:block;margin-top:1rem;font-size:.8rem;font-weight:600}.course-modal input,.course-modal textarea{box-sizing:border-box;width:100%;margin-top:.35rem;padding:.65rem;border:1px solid #d9dde0;border-radius:6px;font:inherit}.course-modal textarea{min-height:80px;resize:vertical}.course-modal footer{justify-content:flex-end;gap:.6rem;margin-top:1.25rem}
 .outline-create{display:flex;gap:.4rem;padding:.35rem}.outline-create input{min-width:0;flex:1;padding:.45rem;border:1px solid #d9dde0;border-radius:6px;font-size:.75rem}.outline-create .primary{padding:.45rem .55rem;font-size:.72rem}
+
+/* Course lists share the same proportions across learner and creator portals. */
+.skillspot-course-catalog{min-height:100%;background:#fff;color:#111827}
+.skillspot-course-catalog .course-grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:1.25rem}
+.skillspot-course-catalog .course-card{display:flex;min-width:0;flex-direction:column;overflow:hidden;border:2px solid #ededed;border-radius:10px;background:#fff}
+.skillspot-course-catalog .course-card:hover{border-color:#d1d5db;box-shadow:0 4px 14px #0000000d}
+.skillspot-course-catalog .course-card-cover{height:168px;overflow:hidden;background:#f5f1e6}
+.skillspot-course-catalog .course-card-body{display:flex;min-height:178px;flex:1;flex-direction:column;padding:1rem}
+.skillspot-course-catalog .course-card-footer{margin-top:auto}
+@media(min-width:768px){.skillspot-course-catalog .course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1024px){.skillspot-course-catalog .course-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1536px){.skillspot-course-catalog .course-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}

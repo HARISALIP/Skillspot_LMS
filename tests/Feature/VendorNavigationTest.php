@@ -40,6 +40,7 @@ class VendorNavigationTest extends TestCase
 
         $this->actingAs($manager)->get(route('vendor.courses'))
             ->assertOk()->assertSeeText('View Only')->assertSeeText('Read-only course')
+            ->assertSeeText('All Courses')->assertSee('class="course-grid"', false)
             ->assertDontSee(route('vendor.courses.create'))
             ->assertDontSee(route('vendor.courses.edit', $course));
         $this->actingAs($manager)->get(route('vendor.courses.students', $course))
@@ -82,6 +83,7 @@ class VendorNavigationTest extends TestCase
 
         $this->actingAs($teacher)->get(route('vendor.courses'))
             ->assertOk()
+            ->assertSeeText('All Courses')->assertSee('class="course-grid"', false)
             ->assertSee(route('vendor.courses.create'))
             ->assertSee(route('vendor.courses.edit', $course))
             ->assertSee(route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']));

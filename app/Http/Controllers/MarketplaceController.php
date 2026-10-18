@@ -20,7 +20,8 @@ class MarketplaceController extends Controller
 {
     public function browse(Request $request)
     {
-        $query = Course::marketplaceLive()->with(['primaryInstructor', 'vendor'])->withCount('enrollments');
+        $query = Course::marketplaceLive()->with(['primaryInstructor', 'vendor'])
+            ->withCount(['sections', 'enrollments'])->withAvg('reviews', 'rating');
 
         if ($search = $request->string('search')->trim()->value()) {
             $query->where(fn ($courses) => $courses->where('title', 'like', "%{$search}%")->orWhere('short_introduction', 'like', "%{$search}%"));
