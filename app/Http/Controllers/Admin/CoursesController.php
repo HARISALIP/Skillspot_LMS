@@ -214,6 +214,7 @@ class CoursesController extends Controller
             $data['is_published'] = false;
             $course = Course::create($data);
             $course->teachers()->syncWithPivotValues($teacherIds->all(), ['added_by' => auth()->id()]);
+            $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             return $course;
         });
         $destination = $request->routeIs('vendor.courses.modal.store') ? route('vendor.courses.edit', $course)
@@ -328,6 +329,7 @@ class CoursesController extends Controller
         }
         DB::transaction(function () use ($course, $data, $request) {
             $course->update($data);
+            $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             if ($request->has('instructor_ids')) {
                 $teacherIds = collect($request->input('instructor_ids', []))->map(fn ($id) => (int) $id)->unique()->values();
                 $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
@@ -481,6 +483,7 @@ class CoursesController extends Controller
         $data['order'] = $section->lessons()->max('order') + 1;
         $lesson = DB::transaction(function () use ($section, $data, $quiz) {
             $lesson = $section->lessons()->create($data);
+            $this->markMaterialUploadsUsedByCourse($section->course, $data['resources'] ?? []);
             if ($quiz) LessonQuiz::save($lesson, $quiz);
             return $lesson;
         });
@@ -518,8 +521,9 @@ class CoursesController extends Controller
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $data = $this->validateLesson($request);
         $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
-        DB::transaction(function () use ($lesson, $data, $quiz) {
+        DB::transaction(function () use ($course, $lesson, $data, $quiz) {
             $lesson->update($data);
+            $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             if ($quiz) LessonQuiz::save($lesson, $quiz);
         });
         if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode(route('admin.courses.edit', $course->id).'#editor').')</script>');
@@ -724,5 +728,13 @@ class CoursesController extends Controller
             }
         }
         return $resources;
+    }
+
+    private function markMaterialUploadsUsedByCourse(Course $course, array $resources): void
+    {
+        $ids = collect($resources)
+            ->flatMap(fn ($resource) => [$resource['upload_id'] ?? null, $resource['preview_upload_id'] ?? null])
+            ->filter()->unique();
+        Upload::whereIn('id', $ids)->update(['used_in' => json_encode(['course_id' => $course->id])]);
     }
 }

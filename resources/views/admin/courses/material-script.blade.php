@@ -12,14 +12,14 @@ function addMaterialRow(resource = {}) {
       <input name="resources[${index}][title]" required maxlength="120" placeholder="Material title" class="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 text-sm">
       <button type="button" class="text-red-600 text-sm font-bold" onclick="removeMaterialRow(this)">Remove</button>
     </div>
-    <select name="resources[${index}][kind]" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" onchange="this.closest('.rounded-xl').querySelector('.slidePreview').classList.toggle('hidden', this.value !== 'slides');this.closest('.rounded-xl').querySelector('.voiceRecorder').classList.toggle('hidden', this.value !== 'audio')">
+    <select name="resources[${index}][kind]" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" onchange="syncMaterialKind(this.closest('.rounded-xl'))">
       <option value="slides">PowerPoint slides</option><option value="audio">Voice recording / audio</option>
       <option value="image">Image</option><option value="notes">Notes</option>
       <option value="quiz_paper">Quiz PDF</option><option value="question_paper">Question paper PDF</option>
       <option value="study_material">Other study PDF</option>
     </select>
     <div><label class="text-xs font-semibold text-gray-600">Material file</label>
-      <input type="file" accept=".ppt,.pptx,.pdf,.doc,.docx,.txt,.mp3,.m4a,.wav,.ogg,.webm,.png,.jpg,.jpeg,.webp" class="block w-full text-sm mt-1" onchange="uploadMaterial(this, 'upload_id')">
+      <input type="file" class="block w-full text-sm mt-1" onchange="uploadMaterial(this, 'upload_id')">
       <input type="hidden" name="resources[${index}][upload_id]">
       <p class="fileStatus text-xs text-gray-500 mt-1"></p>
     </div>
@@ -36,9 +36,19 @@ function addMaterialRow(resource = {}) {
   row.querySelector('[name$="[preview_upload_id]"]').value = resource.preview_upload_id || '';
   row.querySelector('.fileStatus').textContent = materialNames[resource.upload_id] || '';
   row.querySelector('.previewStatus').textContent = materialNames[resource.preview_upload_id] || '';
-  row.querySelector('.slidePreview').classList.toggle('hidden', (resource.kind || 'slides') !== 'slides');
-  row.querySelector('.voiceRecorder').classList.toggle('hidden', resource.kind !== 'audio');
+  syncMaterialKind(row);
   document.getElementById('materialRows').appendChild(row);
+}
+
+function syncMaterialKind(row) {
+  const kind = row.querySelector('[name$="[kind]"]').value;
+  const accepts = {
+    slides: '.ppt,.pptx', audio: '.mp3,.m4a,.wav,.ogg,.webm', image: '.png,.jpg,.jpeg,.webp',
+    notes: '.pdf,.doc,.docx,.txt', quiz_paper: '.pdf', question_paper: '.pdf', study_material: '.pdf',
+  };
+  row.querySelector('input[type="file"]').accept = accepts[kind];
+  row.querySelector('.slidePreview').classList.toggle('hidden', kind !== 'slides');
+  row.querySelector('.voiceRecorder').classList.toggle('hidden', kind !== 'audio');
 }
 
 function removeMaterialRow(button) {
@@ -106,7 +116,14 @@ async function uploadMaterial(input, field, recordedFile = null) {
   body.append('_token', _csrf);
   try {
     const response = await fetch(_uploadUrl, {method:'POST', headers:{Accept:'application/json'}, body});
-    const result = await response.json();
+    const responseText = await response.text();
+    let result;
+    try { result = JSON.parse(responseText); }
+    catch (_) {
+      throw new Error(response.status === 413
+        ? 'The file exceeds the server upload limit.'
+        : 'The server rejected the upload. Check the file size or try again.');
+    }
     if (!response.ok || !result.success) throw new Error(result.error || 'Upload failed');
     hidden.value = result.id;
     status.textContent = 'Ready: ' + result.name;

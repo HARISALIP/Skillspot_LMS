@@ -97,7 +97,7 @@ document.querySelectorAll('.lesson-select[data-scorm-url]').forEach(button => {
 const scormPreviewValues = {};
 window.API ??= {LMSInitialize:()=> 'true',LMSFinish:()=> 'true',LMSGetValue:key=>scormPreviewValues[key]||'',LMSSetValue:(key,value)=>(scormPreviewValues[key]=String(value),'true'),LMSCommit:()=> 'true',LMSGetLastError:()=> '0',LMSGetErrorString:()=> 'No error',LMSGetDiagnostic:()=> ''};
 window.API_1484_11 ??= {Initialize:()=> 'true',Terminate:()=> 'true',GetValue:key=>scormPreviewValues[key]||'',SetValue:(key,value)=>(scormPreviewValues[key]=String(value),'true'),Commit:()=> 'true',GetLastError:()=> '0',GetErrorString:()=> 'No error',GetDiagnostic:()=> ''};
-Object.assign(window, {addMaterialRow, removeMaterialRow, toggleVoiceRecording, uploadMaterial});
+Object.assign(window, {addMaterialRow, removeMaterialRow, toggleVoiceRecording, uploadMaterial, syncMaterialKind});
 })();
 </script>
 @include('admin.courses.settings-script')
