@@ -30,9 +30,9 @@
   .frappe-rich-editor__content { color:var(--editor-text); font-size:14px; line-height:1.5; }
   .frappe-rich-editor__content .tiptap { min-height:160px; max-height:272px; overflow-y:auto; padding:12px; outline:none; }
   .frappe-rich-editor__content .tiptap p.is-editor-empty:first-child::before { content:attr(data-placeholder); float:left; height:0; color:var(--editor-muted); pointer-events:none; }
-  .frappe-rich-editor__content h2 { margin:0 0 14px; font-size:18px; font-weight:600; line-height:1.4; }
-  .frappe-rich-editor__content h3 { margin:0; font-size:18px; font-weight:600; line-height:24px; }
-  .frappe-rich-editor__content h4 { margin:0 0 8px; font-size:14px; font-weight:600; line-height:20px; }
+  .frappe-rich-editor__content h2 { margin:1.6em 0 .8em; font-size:20px; font-weight:600; line-height:1.4; }
+  .frappe-rich-editor__content h3 { margin:1.5556em 0 .4444em; font-size:18px; font-weight:600; line-height:1.5556; }
+  .frappe-rich-editor__content h4 { margin:1.4286em 0 .5714em; font-size:14px; font-weight:600; line-height:1.4286; }
   .frappe-rich-editor__content :where(img, video, iframe) { max-width:100%; margin:.75rem 0; }
   .frappe-rich-editor__content iframe { min-height:220px; width:100%; border:0; }
   .frappe-rich-editor__content :where(ul, ol) { margin:.5rem 0; padding-left:1.5rem; }

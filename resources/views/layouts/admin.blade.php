@@ -33,6 +33,7 @@
   $navItems = [
     ['icon'=>'fa-house','label'=>'Home','route'=>'admin.dashboard','href'=>route('admin.dashboard'),'teacher'=>true],
     ['icon'=>'fa-book-open','label'=>'Courses','route'=>'admin.courses*','href'=>route('admin.courses'),'teacher'=>true],
+    ['icon'=>'fa-circle-question','label'=>'Quizzes','route'=>'admin.quizzes*','href'=>route('admin.quizzes'),'teacher'=>true],
     ['icon'=>'fa-layer-group','label'=>'Batches','route'=>'admin.batches*','href'=>route('admin.batches'),'teacher'=>true],
     ['icon'=>'fa-certificate','label'=>'Certifications','route'=>'admin.certs*','href'=>route('admin.certs'),'teacher'=>true],
     ['icon'=>'fa-user-graduate','label'=>'Enrollments','route'=>'admin.enrollments*','href'=>route('admin.enrollments'),'teacher'=>true],

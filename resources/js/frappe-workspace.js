@@ -52,9 +52,152 @@ class StructuredBlock {
   save() { return { text: this.input?.value || '' }; }
 }
 const structuredTool = (label, icon) => class extends StructuredBlock { static label = label; static icon = icon; };
-const Quiz = structuredTool('Quiz', 'Q');
 const Assignment = structuredTool('Assignment', 'A');
-const Program = structuredTool('Programming exercise', '</>');
+const Program = structuredTool('Programming Exercise', '</>');
+
+function openQuizPicker({ quizUrl, selectedId, onSave }) {
+  const modalDocument = (() => { try { return window.top?.document || document; } catch { return document; } })();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'frappe-quiz-modal-backdrop';
+  backdrop.innerHTML = `<section class="frappe-quiz-modal" role="dialog" aria-modal="true" aria-labelledby="quizPickerTitle">
+    <header><h2 id="quizPickerTitle">Add a quiz to your lesson</h2><button type="button" class="frappe-quiz-close" aria-label="Close">×</button></header>
+    <div class="frappe-quiz-label"><span>Select a quiz</span><div class="frappe-quiz-select"><button type="button" class="frappe-quiz-select-button" aria-expanded="false">Select a quiz</button><div class="frappe-quiz-options" hidden><div class="frappe-quiz-option-list"></div><footer><button type="button" class="frappe-quiz-clear">Clear</button><button type="button" class="frappe-quiz-create">＋ Create New</button></footer></div></div></div>
+    <p class="frappe-quiz-error" role="alert"></p>
+    <footer><button type="button" class="frappe-quiz-save">Save</button></footer>
+  </section>`;
+  const dialog = backdrop.firstElementChild;
+  const selectButton = dialog.querySelector('.frappe-quiz-select-button');
+  const options = dialog.querySelector('.frappe-quiz-options');
+  const optionList = dialog.querySelector('.frappe-quiz-option-list');
+  const error = dialog.querySelector('.frappe-quiz-error');
+  const close = () => { modalDocument.removeEventListener('keydown', onKeyDown); backdrop.remove(); };
+  const onKeyDown = event => { if (event.key === 'Escape') close(); };
+  let selectedQuiz = null;
+  const setOpen = open => { options.hidden = !open; selectButton.setAttribute('aria-expanded', String(open)); };
+  const choose = quiz => { selectedQuiz = quiz; selectButton.textContent = quiz?.title || 'Select a quiz'; error.textContent = ''; setOpen(false); };
+
+  dialog.querySelector('.frappe-quiz-close').addEventListener('click', close);
+  backdrop.addEventListener('click', event => { if (event.target === backdrop) close(); });
+  selectButton.addEventListener('click', () => setOpen(options.hidden));
+  dialog.querySelector('.frappe-quiz-clear').addEventListener('click', () => choose(null));
+  dialog.querySelector('.frappe-quiz-create').addEventListener('click', () => { setOpen(false); window.location.assign('/admin/quizzes/create'); });
+  dialog.querySelector('.frappe-quiz-save').addEventListener('click', () => {
+    onSave(selectedQuiz);
+    close();
+  });
+  modalDocument.addEventListener('keydown', onKeyDown);
+  modalDocument.body.append(backdrop);
+  selectButton.focus();
+
+  fetch(quizUrl, { headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf }, credentials: 'same-origin' })
+    .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+    .then(quizzes => {
+      quizzes.forEach(quiz => {
+        const option = document.createElement('button'); option.type = 'button'; option.className = 'frappe-quiz-option';
+        option.textContent = `${quiz.title} · ${quiz.questions_count} questions`;
+        option.addEventListener('click', () => choose(quiz));
+        optionList.append(option);
+      });
+      choose(quizzes.find(quiz => Number(quiz.id) === Number(selectedId)) || null);
+    })
+    .catch(() => { error.textContent = 'Could not load quizzes. Refresh and try again.'; });
+}
+
+class QuizBlock {
+  static get toolbox() { return { title: 'Quiz', icon: 'Q' }; }
+  constructor({ data, config, readOnly, block }) { this.data = data || {}; this.config = config || {}; this.readOnly = readOnly; this.block = block; }
+  render() {
+    const wrapper = document.createElement('div'); wrapper.className = 'frappe-structured-block frappe-quiz-block';
+    const label = document.createElement('strong'); label.textContent = 'Quiz';
+    const selected = document.createElement('span');
+    const button = document.createElement('button'); button.type = 'button';
+    const redraw = () => {
+      selected.textContent = this.data.quiz_id ? this.data.quiz_title || 'Selected quiz' : 'No quiz selected';
+      button.textContent = this.data.quiz_id ? 'Change quiz' : 'Select quiz';
+    };
+    const chooseQuiz = () => openQuizPicker({
+      quizUrl: this.config.quizUrl,
+      selectedId: this.data.quiz_id,
+      onSave: quiz => { this.data.quiz_id = quiz?.id || null; this.data.quiz_title = quiz?.title || null; redraw(); this.block?.dispatchChange(); },
+    });
+    button.disabled = this.readOnly;
+    button.addEventListener('click', chooseQuiz);
+    wrapper.append(label, selected, button); redraw();
+    if (!this.readOnly && !this.data.quiz_id) queueMicrotask(chooseQuiz);
+    return wrapper;
+  }
+  save() { return { quiz_id: this.data.quiz_id || null, quiz_title: this.data.quiz_title || null }; }
+  validate(data) { return Boolean(data.quiz_id); }
+}
+
+class CodeBox {
+  static get toolbox() {
+    return { title: 'CodeBox', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m8 9-3 3 3 3m8-6 3 3-3 3M13.5 5l-3 14"/></svg>' };
+  }
+  static get isReadOnlySupported() { return true; }
+  constructor({ data, readOnly }) { this.data = data || {}; this.readOnly = readOnly; }
+  render() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'frappe-code-box';
+    const language = document.createElement('select');
+    language.setAttribute('aria-label', 'Code language');
+    ['plaintext', 'javascript', 'html', 'css', 'php', 'python', 'sql'].forEach(value => {
+      const option = new Option(value === 'plaintext' ? 'Plain text' : value.toUpperCase(), value);
+      option.selected = value === (this.data.language || 'plaintext');
+      language.add(option);
+    });
+    const code = document.createElement('textarea');
+    code.placeholder = 'Write code';
+    code.spellcheck = false;
+    code.value = this.data.code || '';
+    code.readOnly = this.readOnly;
+    language.disabled = this.readOnly;
+    wrapper.append(language, code);
+    this.language = language;
+    this.code = code;
+    return wrapper;
+  }
+  save() { return { code: this.code?.value || '', language: this.language?.value || 'plaintext' }; }
+  validate(data) { return Boolean(data.code?.trim()); }
+}
+
+let copiedBlock = null;
+const tuneIcon = {
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  cut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><path d="m8 7 10 10M8 17 18 7"/></svg>',
+  paste: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 4h6v3H9z"/><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 13h6m-6 4h4"/></svg>',
+};
+const copyCurrentBlock = async block => {
+  const saved = await block.save();
+  if (saved) copiedBlock = { tool: saved.tool, data: saved.data };
+};
+class CopyBlockTune {
+  static get isTune() { return true; }
+  constructor({ block }) { this.block = block; }
+  render() { return { icon: tuneIcon.copy, title: 'Copy', name: 'copy-block', onActivate: () => copyCurrentBlock(this.block) }; }
+}
+class CutBlockTune {
+  static get isTune() { return true; }
+  constructor({ api, block }) { this.api = api; this.block = block; }
+  render() {
+    return { icon: tuneIcon.cut, title: 'Cut', name: 'cut-block', onActivate: async () => {
+      await copyCurrentBlock(this.block);
+      const index = this.api.blocks.getCurrentBlockIndex();
+      if (index >= 0) this.api.blocks.delete(index);
+    } };
+  }
+}
+class PasteBlockTune {
+  static get isTune() { return true; }
+  constructor({ api }) { this.api = api; }
+  render() {
+    return { icon: tuneIcon.paste, title: 'Paste', name: 'paste-block', isDisabled: copiedBlock === null, onActivate: () => {
+      if (!copiedBlock) return;
+      const index = this.api.blocks.getCurrentBlockIndex();
+      this.api.blocks.insert(copiedBlock.tool, copiedBlock.data, {}, index < 0 ? this.api.blocks.getBlocksCount() : index + 1, true);
+    } };
+  }
+}
 
 class UploadBlock {
   static get toolbox() {
@@ -143,14 +286,15 @@ class UploadBlock {
 function editorTools(config = {}) {
   return {
     paragraph: { class: Paragraph, inlineToolbar: true },
-    header: { class: Header, inlineToolbar: true, config: { placeholder: 'Heading' } },
+    header: { class: Header, inlineToolbar: true, config: { placeholder: 'Heading', levels: [1, 2, 3, 4, 5, 6], defaultLevel: 2 } },
     list: { class: NestedList, inlineToolbar: true },
     table: Table,
     image: { class: SimpleImage },
     embed: { class: Embed, config: { services: { youtube: true, vimeo: true, codepen: true, github: true, codesandbox: true } } },
     inlineCode: InlineCode,
     upload: { class: UploadBlock, config },
-    quiz: Quiz, assignment: Assignment, program: Program,
+    quiz: { class: QuizBlock, config }, assignment: Assignment, program: Program, codeBox: CodeBox,
+    copyBlock: CopyBlockTune, cutBlock: CutBlockTune, pasteBlock: PasteBlockTune,
   };
 }
 
@@ -164,9 +308,10 @@ const BlockEditor = {
     const mount = async () => {
       await nextTick(); editor?.destroy();
       editor = new EditorJS({
-        holder: holderId, tools: editorTools({ courseId: Number(lessonRoot?.dataset.courseId || courseId) }),
+        holder: holderId, tools: editorTools({ courseId: Number(lessonRoot?.dataset.courseId || courseId), quizUrl: `${api}/${Number(lessonRoot?.dataset.courseId || courseId)}/quizzes` }),
         data: props.lesson.blocks || { time: Date.now(), blocks: [], version: '2.29.0' },
         autofocus: true, placeholder: 'Type / to choose a block',
+        tunes: ['copyBlock', 'cutBlock', 'pasteBlock'],
         onReady: () => new DragDrop(editor),
         onChange: () => { clearTimeout(timer); timer = setTimeout(save, 700); },
       });
@@ -295,7 +440,7 @@ const App = {
           <div v-if="filteredCourses.length" class="course-grid"><a v-for="item in filteredCourses" :key="item.id" :href="'/instructor/courses/'+item.id" class="course-card"><div class="course-image" :style="item.thumbnail ? {backgroundImage: 'url('+item.thumbnail+')'} : {}"><span v-if="!item.thumbnail">{{ item.title }}</span></div><div class="course-card-details"><small>{{ item.enrollments_count }} learners</small><h2 v-if="item.thumbnail">{{ item.title }}</h2><p>{{ item.short_introduction || item.category || 'Course' }}</p><footer>{{ item.marketplace_status || 'Draft' }}</footer></div></a></div><p v-else class="course-list-empty">No courses match these filters.</p><div class="course-list-footer">{{ filteredCourses.length }} of {{ courses.length }}</div></main>
       </template>
       <template v-else>
-        <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button" aria-label="Back to course list"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><span class="saved" v-if="saved"><Check :size="15"/> Saved</span><button class="outline-mobile secondary" aria-label="Show chapters" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/><span class="action-label">Chapters</span></button><a :href="'/instructor/courses/'+course.id+'/preview?from=instructor'" target="_blank" rel="noopener" class="secondary" aria-label="Preview as learner"><Eye :size="16"/><span class="action-label">Preview as learner</span></a></div></header>
+        <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button" aria-label="Back to course list"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><span class="saved" v-if="saved"><Check :size="15"/> Saved</span><button class="outline-mobile secondary" aria-label="Show chapters" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/><span class="action-label">Chapters</span></button><a :href="'/instructor/courses/'+course.id+'/preview?from=instructor'" rel="noopener" class="secondary" aria-label="Preview as learner"><Eye :size="16"/><span class="action-label">Preview as learner</span></a></div></header>
         <nav class="course-tabs"><button v-for="item in ['Overview','Dashboard','Editor','Settings']" :class="{active: tab === item.toLowerCase()}" @click="tab = item.toLowerCase()">{{ item }}</button></nav>
         <main v-if="tab === 'overview'" class="tab-panel overview"><section><label>Course title<input v-model="draft.title" @change="saveCourse"></label><label>Category<input v-model="draft.category" @change="saveCourse"></label><label>Short introduction<textarea v-model="draft.short_introduction" @change="saveCourse"></textarea></label><label>Description<textarea v-model="draft.description" @change="saveCourse"></textarea></label></section><aside><h2>Instructors</h2><p v-for="teacher in course.teachers" :key="teacher.id">{{ teacher.name }}<small>{{ teacher.email }}</small></p><h2>Course image</h2><p>Set the course image URL in Settings.</p></aside></main>
         <main v-else-if="tab === 'dashboard'" class="tab-panel dashboard"><div><Users :size="21"/><strong>{{ course.enrollments_count }}</strong><span>Learners</span></div><div><BookOpen :size="21"/><strong>{{ lessonCount }}</strong><span>Lessons</span></div><div><Check :size="21"/><strong>{{ course.marketplace_status || 'Draft' }}</strong><span>Marketplace status</span></div></main>

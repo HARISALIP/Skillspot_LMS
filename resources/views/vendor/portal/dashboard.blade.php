@@ -94,7 +94,7 @@
           </div>
           <div class="flex gap-2 flex-shrink-0">
             @if($isLive && $lc->meeting_url)
-              <a href="{{ $lc->meeting_url }}" target="_blank"
+              <a href="{{ $lc->meeting_url }}"
                  class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
                 🔴 Join Now
               </a>
@@ -161,7 +161,7 @@
           <div class="text-xs text-gray-400 mt-0.5">📅 {{ $lesson->live_scheduled_at->format('d M Y, h:i A') }}</div>
         </div>
         @if($lesson->live_url)
-          <a href="{{ $lesson->live_url }}" target="_blank" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition flex-shrink-0">Join →</a>
+          <a href="{{ $lesson->live_url }}" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition flex-shrink-0">Join →</a>
         @endif
       </div>
       @endforeach

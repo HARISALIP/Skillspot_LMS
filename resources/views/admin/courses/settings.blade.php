@@ -1,5 +1,5 @@
 <section class="course-panel" data-course-panel="settings" hidden>
-<form id="courseSettingsForm" method="POST" enctype="multipart/form-data" action="{{ route('admin.courses.update', $course) }}" class="settings-grid grid min-h-full grid-cols-[minmax(0,1fr)_30%]">
+<form id="courseSettingsForm" method="POST" enctype="multipart/form-data" action="{{ route($workspaceRoutePrefix.'.update', $course) }}" class="settings-grid grid min-h-full grid-cols-[minmax(0,1fr)_30%]">
 @csrf @method('PUT')
 <div class="settings-main space-y-8 p-5">
   <section class="space-y-5">
@@ -7,7 +7,11 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <label><span class="cw-label">Title <b class="text-red-600">*</b></span><input class="cw-field" name="title" required value="{{ old('title', $course->title) }}"></label>
       <label><span class="cw-label">Category</span><select class="cw-field" name="category">@foreach($categories as $category)<option @selected(old('category', $course->category) === $category)>{{ $category }}</option>@endforeach</select></label>
+      @if($creatorWorkspace ?? false)
+      <label><span class="cw-label">Instructors</span><div class="cw-field flex items-center" aria-label="Course instructors">{{ $course->teachers->pluck('name')->whenEmpty(fn () => collect([$course->primaryInstructor?->name]))->filter()->join(', ') }}</div></label>
+@else
       <label><span class="cw-label">Instructors <b class="text-red-600">*</b></span><select class="cw-field" name="instructor_ids[]" multiple required>@foreach($instructors as $instructor)<option value="{{ $instructor->id }}" @selected(in_array($instructor->id, $selectedTeachers))>{{ $instructor->name }}</option>@endforeach</select></label>
+@endif
       <label><span class="cw-label">Tags</span><input class="cw-field" name="tags" value="{{ old('tags', $course->tags) }}" placeholder="Add tags, separated by commas"></label>
       <label class="sm:col-span-2"><span class="cw-label">Short description <b class="text-red-600">*</b></span><textarea class="cw-field" rows="3" name="short_introduction" required>{{ old('short_introduction', $course->short_introduction) }}</textarea></label>
     </div>
@@ -57,7 +61,7 @@
   </section>
   <details class="border-t pt-5"><summary class="cursor-pointer text-sm font-semibold">Additional Skillspot settings</summary><div class="mt-5 space-y-5">
     <div class="grid gap-4 sm:grid-cols-2">
-      <label><span class="cw-label">Organization</span><select class="cw-field" name="vendor_id"><option value="">Skillspot (No organization)</option>@foreach($vendors as $vendor)<option value="{{ $vendor->id }}" @selected($course->vendor_id == $vendor->id)>{{ $vendor->brand_name }}</option>@endforeach</select></label>
+      @unless($creatorWorkspace ?? false)<label><span class="cw-label">Organization</span><select class="cw-field" name="vendor_id"><option value="">Skillspot (No organization)</option>@foreach($vendors as $vendor)<option value="{{ $vendor->id }}" @selected($course->vendor_id == $vendor->id)>{{ $vendor->brand_name }}</option>@endforeach</select></label>@endunless
       <label><span class="cw-label">Language</span><select class="cw-field" name="language">@foreach($languages as $code=>$language)<option value="{{ $code }}" @selected($course->language === $code)>{{ $language }}</option>@endforeach</select></label>
       <label><span class="cw-label">Level</span><select class="cw-field" name="level">@foreach($levels as $level)<option value="{{ $level }}" @selected($course->level === $level)>{{ ucfirst($level) }}</option>@endforeach</select></label>
       <label><span class="cw-label">Course type</span><select class="cw-field" name="course_type">@foreach(['open'=>'Open','one_time'=>'One time','batch'=>'Batch'] as $value=>$label)<option value="{{ $value }}" @selected($course->course_type === $value)>{{ $label }}</option>@endforeach</select></label>
@@ -72,7 +76,9 @@
     @foreach([['upcoming','Upcoming','Not yet open for enrollment.'],['is_featured','Featured','Highlight on the homepage.'],['registration_open','Self enrollment','Let users enroll themselves.'],['enforce_lesson_completion','Enforce Lesson Completion','Students must complete each lesson before the next one opens.']] as [$name,$label,$help])
       <label class="flex items-start gap-3"><span class="flex-1"><b class="block text-sm font-normal">{{ $label }}</b><span class="text-xs text-gray-500">{{ $help }}</span></span><input class="cw-toggle" type="checkbox" name="{{ $name }}" value="1" @checked(old($name, $course->$name))></label>
     @endforeach
+    @unless($creatorWorkspace ?? false)
     <label class="block"><span class="cw-label">Access</span><select class="cw-field" name="visibility">@foreach(['draft'=>'Draft','public'=>'Public','restricted'=>'Restricted'] as $value=>$label)<option value="{{ $value }}" @selected($course->visibility === $value)>{{ $label }}</option>@endforeach</select></label>
+@endunless
   </div></details>
   <details open class="settings-side-section"><summary>Pricing and certification</summary><div class="space-y-5 p-5 pt-3">
     <label class="flex items-start gap-3"><span class="flex-1"><b class="block text-sm font-normal">Paid course</b><span class="text-xs text-gray-500">Charge learners to enroll in this course.</span></span><input id="paidToggle" class="cw-toggle" type="checkbox" @checked(!$course->is_free)></label>
@@ -83,5 +89,5 @@
   <details class="settings-side-section"><summary>Marketplace review</summary><div class="space-y-3 p-5 pt-3 text-xs"><p>Status: <b>{{ ucfirst(str_replace('_', ' ', $course->marketplace_status ?? 'draft')) }}</b></p>@if($course->review_feedback)<p class="rounded bg-amber-50 p-2 text-amber-800">{{ $course->review_feedback }}</p>@endif @if(in_array($course->marketplace_status, ['draft','needs_changes','rejected']))<button form="reviewForm" class="settings-button">Submit for review</button>@endif</div></details>
 </aside>
 </form>
-<form id="reviewForm" method="POST" action="{{ route('admin.courses.submit-review', $course) }}">@csrf</form>
+<form id="reviewForm" method="POST" action="{{ route(($creatorWorkspace ?? false) ? 'studio.courses.submit-review' : 'admin.courses.submit-review', $course) }}">@csrf</form>
 </section>

@@ -17,7 +17,7 @@ class QuizQuestion extends Model {
                 'actor_id' => auth()->id(), 'subject_type' => 'quiz_question', 'subject_id' => $question->id, 'changed_fields' => ['deleted']]);
         });
     }
-    protected $fillable = ['quiz_id','question','question_type','options','correct_answer','correct_answers','order'];
-    protected $casts    = ['options'=>'array', 'correct_answers'=>'array'];
+    protected $fillable = ['quiz_id','question','question_type','marks','options','correct_answer','correct_answers','accepted_answers','explanations','order'];
+    protected $casts    = ['options'=>'array', 'correct_answers'=>'array', 'accepted_answers'=>'array', 'explanations'=>'array'];
     public function quiz() { return $this->belongsTo(Quiz::class); }
 }

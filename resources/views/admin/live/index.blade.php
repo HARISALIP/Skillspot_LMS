@@ -201,7 +201,7 @@
             </div>
             @if($lesson->live_url)
             <div class="mt-1.5">
-              <a href="{{ $lesson->live_url }}" target="_blank"
+              <a href="{{ $lesson->live_url }}"
                  class="text-xs text-brand-600 hover:text-brand-700 font-mono hover:underline">
                 {{ Str::limit($lesson->live_url, 50) }}
               </a>

@@ -57,7 +57,7 @@
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
           @if($lesson->live_url)
-          <a href="{{ $lesson->live_url }}" target="_blank"
+          <a href="{{ $lesson->live_url }}"
              class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold transition">
             Join →
           </a>

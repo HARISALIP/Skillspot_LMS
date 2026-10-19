@@ -30,8 +30,12 @@ function markNonDriveForms() {
   });
 }
 
+function keepLinksInCurrentTab() {
+  document.querySelectorAll('a[target], form[target]').forEach(element => element.removeAttribute('target'));
+}
+
 function markNonDriveLinks() {
-  document.querySelectorAll('a[download], a[target], a[href*="/download"], a[href*="/export"], a[href^="mailto:"], a[href^="tel:"]').forEach(link => { link.dataset.turbo = 'false'; });
+  document.querySelectorAll('a[download], a[href*="/download"], a[href*="/export"], a[href^="mailto:"], a[href^="tel:"]').forEach(link => { link.dataset.turbo = 'false'; });
 }
 
 function showNavigationLoading() {
@@ -289,14 +293,31 @@ function initialiseAdminWorkspace() {
 }
 
 function initialiseVendorWorkspace() {
-  const sidebar = document.getElementById('sidebar');
+  window.__skillspotVendorCleanup?.();
+  const sidebar = document.querySelector('[data-navigation-sidebar="vendor"]')?.closest('#sidebar');
   if (!sidebar || sidebar.dataset.vendorNavigationReady === 'true') return;
   sidebar.dataset.vendorNavigationReady = 'true';
   const overlay = document.getElementById('mobileOverlay');
+  const syncMobileSidebar = () => {
+    if (window.innerWidth >= 1024) {
+      sidebar.style.removeProperty('transform');
+      sidebar.style.removeProperty('transition');
+      overlay?.classList.add('hidden');
+      document.body.style.removeProperty('overflow');
+    } else if (!sidebar.style.transform) {
+      sidebar.style.transform = 'translateX(-100%)';
+      sidebar.style.transition = 'transform .25s ease';
+    }
+  };
   document.getElementById('sidebarToggle')?.addEventListener('click', () => { sidebar.classList.toggle('sidebar-collapsed'); sidebar.classList.toggle('sidebar'); });
   document.getElementById('mobileMenuBtn')?.addEventListener('click', () => { sidebar.style.transform = 'translateX(0)'; overlay?.classList.remove('hidden'); document.body.style.overflow = 'hidden'; });
   overlay?.addEventListener('click', () => { sidebar.style.transform = 'translateX(-100%)'; overlay.classList.add('hidden'); document.body.style.overflow = ''; });
-  if (window.innerWidth < 1024) { sidebar.style.transform = 'translateX(-100%)'; sidebar.style.transition = 'transform .25s ease'; }
+  window.addEventListener('resize', syncMobileSidebar);
+  window.__skillspotVendorCleanup = () => {
+    window.removeEventListener('resize', syncMobileSidebar);
+    delete window.__skillspotVendorCleanup;
+  };
+  syncMobileSidebar();
 }
 
 function initialiseCourseWorkspace() {
@@ -304,9 +325,24 @@ function initialiseCourseWorkspace() {
   const workspace = document.querySelector('.course-workspace');
   document.body.classList.toggle('course-workspace-page', Boolean(workspace));
   if (!workspace) return;
+  const sidebar = document.getElementById('sidebar');
+  const sidebarCollapsedClass = sidebar?.classList.contains('frappe-sidebar') ? 'is-collapsed' : 'sidebar-collapsed';
+  let sidebarBeforeEditor;
+  let sidebarChangedByUser = false;
+  const rememberSidebarChoice = () => { if (sidebarBeforeEditor !== undefined) sidebarChangedByUser = true; };
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  sidebarToggle?.addEventListener('click', rememberSidebarChoice);
+  import('./course-creation-editor').then(({ initializeCourseEditor }) => initializeCourseEditor());
 
   const showTab = requestedTab => {
     const tab = workspace.querySelector(`[data-course-tab="${requestedTab}"]`) ? requestedTab : 'overview';
+    if (sidebar && tab === 'editor') {
+      if (sidebarBeforeEditor === undefined) sidebarBeforeEditor = sidebar.classList.contains(sidebarCollapsedClass);
+      sidebar.classList.add(sidebarCollapsedClass);
+    } else if (sidebar && sidebarBeforeEditor !== undefined) {
+      if (!sidebarChangedByUser) sidebar.classList.toggle(sidebarCollapsedClass, sidebarBeforeEditor);
+      sidebarBeforeEditor = undefined; sidebarChangedByUser = false;
+    }
     workspace.querySelectorAll('[data-course-tab]').forEach(element => element.classList.toggle('is-active', element.dataset.courseTab === tab));
     workspace.querySelectorAll('[data-course-panel]').forEach(element => { element.hidden = element.dataset.coursePanel !== tab; });
     document.querySelectorAll('[data-tab-action]').forEach(element => element.classList.toggle('hidden', element.dataset.tabAction !== tab));
@@ -316,6 +352,7 @@ function initialiseCourseWorkspace() {
   syncTab();
   window.__skillspotCourseWorkspaceCleanup = () => {
     window.removeEventListener('hashchange', syncTab);
+    sidebarToggle?.removeEventListener('click', rememberSidebarChoice);
     delete window.__skillspotCourseWorkspaceCleanup;
   };
 }
@@ -365,7 +402,7 @@ document.addEventListener('submit', event => {
 window.addEventListener('beforeunload', event => { if (hasDirtyForm()) { event.preventDefault(); event.returnValue = ''; } });
 document.addEventListener('turbo:load', () => {
   clearPendingFeedback();
-  markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseCourseWorkspace(); initialiseLanding(); initialiseSettingsNavigation();
+  keepLinksInCurrentTab(); markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseCourseWorkspace(); initialiseLanding(); initialiseSettingsNavigation();
   if (window.self !== window.top && location.pathname === '/admin/settings') { const url = new URL(location.href); window.parent.postMessage({ type: 'skillspot:settings-tab', tab: url.searchParams.get('tab') || 'general', gateway: url.searchParams.get('gateway') }, location.origin); }
 });
 document.addEventListener('click', event => { const link = event.target.closest('[data-settings-tab]'); if (link && window.self !== window.top && !event.defaultPrevented) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: link.dataset.settingsTab, gateway: link.dataset.settingsGateway, push: true }, location.origin); });

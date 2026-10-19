@@ -79,7 +79,7 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <a href="{{ $v->portalUrl() }}" target="_blank" class="text-xs text-brand-600 hover:underline">Visit Portal</a>
+          <a href="{{ $v->portalUrl() }}" class="text-xs text-brand-600 hover:underline">Visit Portal</a>
           <form method="POST" action="{{ route('admin.users.access.remove', [$user, $v]) }}" onsubmit="return confirm('Remove access?')">
             @csrf @method('DELETE')
             <button class="text-xs text-red-500 hover:text-red-700 font-semibold transition">Revoke</button>

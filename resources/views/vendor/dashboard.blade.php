@@ -42,7 +42,7 @@
       <div class="text-white/70 text-sm mt-0.5">Student Portal URL</div>
       <div class="font-mono text-white/90 text-sm mt-1">{{ $vendor->portalUrl() }}</div>
     </div>
-    <a href="{{ $vendor->portalUrl() }}" target="_blank" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold text-sm transition">Open Portal →</a>
+    <a href="{{ $vendor->portalUrl() }}" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold text-sm transition">Open Portal →</a>
   </div>
 
   {{-- Teacher/Admin only: Batches + Upcoming Live + Courses overview --}}

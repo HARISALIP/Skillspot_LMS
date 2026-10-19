@@ -59,7 +59,7 @@
             </span>
           </td>
           <td class="px-4 py-3">
-            <a href="{{ url('/v/'.$vendor->slug) }}" target="_blank" class="text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}</a>
+            <a href="{{ url('/v/'.$vendor->slug) }}" class="text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}</a>
           </td>
           <td class="px-4 py-3">
             <div class="flex items-center gap-2 justify-end">

@@ -98,10 +98,11 @@
             <button type="button" class="frappe-rich-editor__tool" data-editor-action="image" title="Image / Gallery"><i class="fa-regular fa-image"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="video" title="Video"><i class="fa-solid fa-video"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="formatBlock" data-editor-value="blockquote" title="Blockquote"><i class="fa-solid fa-quote-right"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="code" title="Inline Code"><i class="fa-solid fa-code"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="embed" title="Embed"><i class="fa-solid fa-window-maximize"></i></button>
             <span class="frappe-rich-editor__divider"></span>
             <button type="button" class="frappe-rich-editor__tool" data-editor-action="rule" title="Horizontal Rule"><i class="fa-solid fa-minus"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-action="table" title="Table"><i class="fa-solid fa-table"></i></button>
+            <span class="frappe-rich-editor__divider"></span>
             <div class="frappe-rich-editor__history"><button type="button" class="frappe-rich-editor__tool" data-editor-command="undo" title="Undo"><i class="fa-solid fa-rotate-left"></i></button><button type="button" class="frappe-rich-editor__tool" data-editor-command="redo" title="Redo"><i class="fa-solid fa-rotate-right"></i></button></div>
             <div id="courseEditorUrlPopover" class="frappe-rich-editor__popover" role="dialog" aria-label="Edit link" hidden>
               <div id="courseEditorLinkPreview" class="frappe-rich-editor__link-preview" hidden>
-                <a id="courseEditorLinkTarget" href="#" target="_blank" rel="noopener noreferrer" class="truncate text-xs text-gray-700"></a>
+                <a id="courseEditorLinkTarget" href="#" rel="noopener noreferrer" class="truncate text-xs text-gray-700"></a>
                 <button id="courseEditorLinkCopy" type="button" class="frappe-rich-editor__tool" aria-label="Copy link"><i class="fa-solid fa-copy"></i></button>
                 <button id="courseEditorLinkEdit" type="button" class="frappe-rich-editor__tool" aria-label="Edit link">Edit</button>
               </div>

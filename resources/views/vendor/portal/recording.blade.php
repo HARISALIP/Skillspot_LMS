@@ -39,7 +39,7 @@
     @else
       <div class="bg-gray-800 rounded-2xl p-8 text-center">
         <p class="text-gray-400 mb-4">Recording available at external link:</p>
-        <a href="{{ $url }}" target="_blank" class="bg-white text-gray-900 font-bold px-6 py-3 rounded-xl hover:bg-gray-100 transition inline-block">Watch Recording →</a>
+        <a href="{{ $url }}" class="bg-white text-gray-900 font-bold px-6 py-3 rounded-xl hover:bg-gray-100 transition inline-block">Watch Recording →</a>
       </div>
     @endif
 

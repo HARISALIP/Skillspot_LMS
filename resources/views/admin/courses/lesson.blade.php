@@ -294,7 +294,7 @@
               <div class="text-xs font-semibold text-blue-800">Current PDF</div>
               <div class="text-xs text-blue-600 truncate font-mono">{{ basename($lesson->content) }}</div>
             </div>
-            <a href="{{ $lesson->content }}" target="_blank"
+            <a href="{{ $lesson->content }}"
                class="text-xs text-blue-700 font-bold hover:underline flex-shrink-0">View →</a>
           </div>
           @endif
@@ -346,7 +346,7 @@
               <div class="text-xs font-semibold text-green-800">PDF ready</div>
               <div id="pdfPreviewName" class="text-xs text-green-600 truncate font-mono"></div>
             </div>
-            <a id="pdfPreviewLink" href="#" target="_blank"
+            <a id="pdfPreviewLink" href="#"
                class="text-xs text-green-700 font-bold hover:underline flex-shrink-0">View PDF →</a>
           </div>
 

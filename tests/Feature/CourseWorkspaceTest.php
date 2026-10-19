@@ -294,9 +294,78 @@ class CourseWorkspaceTest extends TestCase
         $this->assertSame('2.29.0', $lesson->block_document['version']);
         $this->assertSame('New content', $lesson->block_document['blocks'][0]['data']['text']);
         $this->actingAs($teacher)->get(route('instructor.courses.show', $course))
-            ->assertOk()->assertSee('frappe-course-workspace', false);
+            ->assertOk()->assertSee('data-course-tab="overview"', false)->assertSee('data-course-panel="settings"', false);
         $this->actingAs($teacher)->getJson(route('instructor.api.courses.show', $course))
             ->assertOk()->assertJsonPath('sections.0.lessons.0.blocks.blocks.0.data.text', 'New content');
+    }
+
+    public function test_workspace_persists_a_codebox_block_for_the_learner_renderer(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('admin');
+        $course = Course::create(['title' => 'Code lesson', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start', 'order' => 1]);
+        $lesson = $section->lessons()->create(['title' => 'Example', 'type' => 'text', 'order' => 1]);
+        $blocks = ['time' => 1, 'version' => '2.29.0', 'blocks' => [[
+            'type' => 'codeBox', 'data' => ['code' => 'console.log("Skillspot");', 'language' => 'javascript'],
+        ]]];
+
+        $this->actingAs($teacher)->patchJson(route('instructor.api.courses.lessons.update', [$course, $section, $lesson]), [
+            'block_document' => $blocks,
+        ])->assertOk()->assertJsonPath('blocks.blocks.0.type', 'codeBox')
+            ->assertJsonPath('blocks.blocks.0.data.code', 'console.log("Skillspot");');
+
+        $saved = $lesson->fresh()->block_document;
+        $this->assertSame('codeBox', $saved['blocks'][0]['type']);
+        $this->assertSame('console.log("Skillspot");', $saved['blocks'][0]['data']['code']);
+        $this->assertSame('javascript', $saved['blocks'][0]['data']['language']);
+    }
+
+    public function test_workspace_preserves_all_frappe_heading_levels(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('admin');
+        $course = Course::create(['title' => 'Heading levels', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start', 'order' => 1]);
+        $lesson = $section->lessons()->create(['title' => 'Example', 'type' => 'text', 'order' => 1]);
+        $blocks = ['time' => 1, 'version' => '2.29.0', 'blocks' => [
+            ['type' => 'header', 'data' => ['text' => 'Main title', 'level' => 1]],
+            ['type' => 'header', 'data' => ['text' => 'Small heading', 'level' => 6]],
+        ]];
+
+        $this->actingAs($teacher)->patchJson(route('instructor.api.courses.lessons.update', [$course, $section, $lesson]), [
+            'block_document' => $blocks,
+        ])->assertOk()
+            ->assertJsonPath('blocks.blocks.0.data.level', 1)
+            ->assertJsonPath('blocks.blocks.1.data.level', 6);
+
+        $this->assertSame(1, $lesson->fresh()->block_document['blocks'][0]['data']['level']);
+        $this->assertSame(6, $lesson->fresh()->block_document['blocks'][1]['data']['level']);
+    }
+
+    public function test_workspace_quiz_block_selects_an_owned_library_quiz(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('admin');
+        $course = Course::create(['title' => 'Quiz block course', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start', 'order' => 1]);
+        $lesson = $section->lessons()->create(['title' => 'Assessment', 'type' => 'text', 'order' => 1]);
+        $quiz = \App\Models\Quiz::create(['owner_id' => $teacher->id, 'title' => 'Saved assessment', 'pass_score' => 70]);
+        $quiz->questions()->create(['question' => 'Question', 'question_type' => 'single', 'marks' => 1, 'options' => ['One', 'Two'], 'correct_answer' => '0']);
+        $blocks = ['time' => 1, 'version' => '2.29.0', 'blocks' => [
+            ['type' => 'quiz', 'data' => ['quiz_id' => $quiz->id]],
+        ]];
+
+        $this->actingAs($teacher)->getJson(route('instructor.api.courses.quizzes.index', $course))
+            ->assertOk()->assertJsonPath('0.id', $quiz->id);
+        $this->patchJson(route('instructor.api.courses.lessons.update', [$course, $section, $lesson]), [
+            'block_document' => $blocks,
+        ])->assertOk()->assertJsonPath('quiz_id', $quiz->id);
+
+        $this->assertSame($quiz->id, $lesson->fresh()->quiz_id);
     }
 
     public function test_teacher_cannot_open_another_instructors_workspace(): void

@@ -63,13 +63,13 @@
     {{-- Join button --}}
     <div class="w-full flex-shrink-0 sm:w-auto">
       @if($isLive)
-        <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
+        <a href="{{ $lesson->live_url }}" rel="noopener"
            class="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-5 py-2.5 rounded-xl text-sm transition shadow-lg shadow-red-200 animate-pulse">
           🔴 Join Now
         </a>
       @elseif($isUpcoming)
         @if($diffMin !== null && $diffMin <= 15)
-          <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
+          <a href="{{ $lesson->live_url }}" rel="noopener"
              class="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition shadow-lg">
             📡 Join Class
           </a>
@@ -82,7 +82,7 @@
       @elseif($isPast)
         <span class="text-xs text-gray-400 font-medium">✅ Class ended</span>
       @else
-        <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
+        <a href="{{ $lesson->live_url }}" rel="noopener"
            class="inline-flex items-center gap-2 bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 font-bold px-5 py-2.5 rounded-xl text-sm transition">
           📡 Join
         </a>

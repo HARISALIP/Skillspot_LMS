@@ -119,12 +119,12 @@
                   Meeting link not added yet
                 </span>
                 @elseif($isLive)
-                <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
+                <a href="{{ $lesson->live_url }}" rel="noopener"
                    class="flex-shrink-0 inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-5 py-2.5 rounded-xl text-sm transition shadow-lg shadow-red-200 animate-pulse">
                   🔴 Join Now
                 </a>
                 @elseif($canJoin)
-                <a href="{{ $lesson->live_url }}" target="_blank" rel="noopener"
+                <a href="{{ $lesson->live_url }}" rel="noopener"
                    class="flex-shrink-0 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition shadow-md">
                   📡 Join Class
                 </a>
@@ -200,7 +200,6 @@
             @endif
             <span class="text-gray-300">|</span>
             <a href="https://calendar.google.com/calendar/render?action=TEMPLATE&text={{ urlencode($lesson->title) }}&dates={{ $sched->format('Ymd\THis') }}%2F{{ $endTime->format('Ymd\THis') }}&details={{ urlencode($calendarDetails) }}"
-               target="_blank"
                class="text-xs text-gray-500 hover:text-gray-700 font-semibold hover:underline">
               📅 Add to Google Calendar
             </a>

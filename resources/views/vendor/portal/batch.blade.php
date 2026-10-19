@@ -57,7 +57,7 @@
           @if($lesson->description)<div class="text-xs text-gray-500 mt-1">{{ Str::limit($lesson->description, 100) }}</div>@endif
         </div>
         @if($lesson->live_url && (!$isPast))
-          <a href="{{ $lesson->live_url }}" target="_blank"
+          <a href="{{ $lesson->live_url }}"
              class="flex-shrink-0 text-sm font-semibold text-white px-4 py-2 rounded-xl transition"
              style="background: {{ $vendor->primary_color ?? '#2563eb' }}">
             Join Class →
@@ -103,7 +103,7 @@
         <div class="space-y-2">
           @foreach($resources as $res)
           @php $resArr = is_array($res) ? $res : ['name'=>$res,'url'=>$res]; @endphp
-          <a href="{{ $resArr['url'] ?? '#' }}" target="_blank"
+          <a href="{{ $resArr['url'] ?? '#' }}"
              class="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-brand-50 border border-gray-100 hover:border-brand-200 transition text-sm text-gray-700 hover:text-brand-700 font-medium">
             <span class="text-lg">📎</span>
             {{ $resArr['name'] ?? 'Download File' }}

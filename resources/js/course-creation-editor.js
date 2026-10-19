@@ -7,10 +7,10 @@ import Image from '@tiptap/extension-image';
 import { TableKit } from '@tiptap/extension-table';
 import Placeholder from '@tiptap/extension-placeholder';
 
-const mount = document.getElementById('courseEditor');
-const form = document.getElementById('newCourseForm') || document.getElementById('courseSettingsForm');
-
-if (mount && form) {
+export function initializeCourseEditor() {
+  const mount = document.getElementById('courseEditor');
+  const form = document.getElementById('newCourseForm') || document.getElementById('courseSettingsForm');
+  if (!mount || !form || mount.dataset.editorInitialized === 'true') return;
   if (form.id === 'courseSettingsForm') {
     form.onsubmit = null;
     document.querySelectorAll('[data-editor-command]').forEach((button) => { button.onmousedown = null; });
@@ -57,6 +57,7 @@ if (mount && form) {
     onUpdate: ({ editor: current }) => { el('courseDescription').value = current.getHTML(); updateToolbar(); },
     onSelectionUpdate: () => updateToolbar(),
   });
+  mount.dataset.editorInitialized = 'true';
 
   const actions = {
     formatBlock: (value) => value === 'p' ? editor.chain().focus().setParagraph().run() : value === 'blockquote' ? editor.chain().focus().toggleBlockquote().run() : editor.chain().focus().toggleHeading({ level: Number(value.slice(1)) }).run(),
@@ -272,3 +273,5 @@ if (mount && form) {
   };
   updateToolbar();
 }
+
+initializeCourseEditor();
