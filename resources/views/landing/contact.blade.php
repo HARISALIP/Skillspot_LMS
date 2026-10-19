@@ -61,7 +61,7 @@
 
         {{-- WhatsApp --}}
         @if($siteWA)
-        <a href="https://wa.me/{{ preg_replace('/[^0-9]/','',$siteWA) }}" target="_blank"
+        <a href="https://wa.me/{{ preg_replace('/[^0-9]/','',$siteWA) }}"
            class="flex items-start gap-4 p-4 rounded-2xl border border-gray-100 hover:border-green-300 hover:bg-green-50 transition group">
           <div class="w-11 h-11 bg-green-50 group-hover:bg-green-100 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition">💬</div>
           <div>
@@ -86,7 +86,7 @@
         {{-- Address --}}
         @if($siteAddress)
         <div class="{{ $mapsUrl ? 'cursor-pointer' : '' }} flex items-start gap-4 p-4 rounded-2xl border border-gray-100 {{ $mapsUrl ? 'hover:border-orange-200 hover:bg-orange-50' : '' }} transition group"
-             @if($mapsUrl) onclick="window.open('{{ $mapsUrl }}','_blank')" @endif>
+             @if($mapsUrl) onclick="window.location.assign('{{ $mapsUrl }}')" @endif>
           <div class="w-11 h-11 bg-orange-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">📍</div>
           <div>
             <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Address</div>

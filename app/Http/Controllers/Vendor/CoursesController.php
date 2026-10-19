@@ -35,10 +35,26 @@ class CoursesController extends Controller
     public function index()
     {
         $vendor  = $this->vendor();
-        $courses = Course::where('vendor_id', $vendor->id)->withCount('enrollments')->latest()->paginate(15);
+        $courses = Course::where('vendor_id', $vendor->id)
+            ->with(['primaryInstructor', 'vendor'])
+            ->withCount(['sections', 'enrollments'])
+            ->withAvg('reviews', 'rating')
+            ->latest()->paginate(15);
         $isVendorOnly = $this->isVendorOnly();
         $isTeacher    = $this->isTeacher();
-        return view('vendor.courses.index', compact('vendor','courses','isVendorOnly','isTeacher'));
+        $categoryRecords = CourseCategory::where('is_active', true)->orderBy('order_col')->get(['id', 'name']);
+        $instructors = $vendor->teachers()->orderBy('users.name')->get(['users.id', 'users.name', 'users.email']);
+        $canCreateInstructors = false;
+        $inviteMailReady = false;
+        return view('vendor.courses.index', compact('vendor','courses','isVendorOnly','isTeacher','categoryRecords','instructors','canCreateInstructors','inviteMailReady'));
+    }
+
+    public function storeModal(Request $request)
+    {
+        $vendor = $this->vendor();
+        $request->merge(['vendor_id' => $vendor->id]);
+
+        return app(\App\Http\Controllers\Admin\CoursesController::class)->store($request);
     }
 
     // ── Create form ──────────────────────────────────────────────────────

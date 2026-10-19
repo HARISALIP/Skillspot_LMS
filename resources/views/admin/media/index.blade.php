@@ -227,7 +227,7 @@
         </div>
       </div>
       <div class="flex gap-3">
-        <a id="modalOpenBtn" href="#" target="_blank"
+        <a id="modalOpenBtn" href="#"
            class="flex-1 text-center py-2.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-xl text-sm font-semibold transition">
           🔗 Open File
         </a>

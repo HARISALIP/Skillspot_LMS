@@ -4,17 +4,126 @@ namespace Tests\Feature;
 
 use App\Models\Course;
 use App\Models\Enrollment;
+use App\Models\InstructorProfile;
 use App\Models\Section;
 use App\Models\User;
 use App\Services\CourseService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CourseWorkspaceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_settings_color_swatches_and_related_picker_can_save_and_clear_selection(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $course = Course::create(['title' => 'Current', 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => true, 'primary_instructor_id' => $admin->id]);
+        $related = Course::create(['title' => 'Published related', 'slug' => 'published-related',
+            'is_published' => true, 'visibility' => 'public', 'price' => 0, 'is_free' => true]);
+        $draft = Course::create(['title' => 'Private draft', 'slug' => 'private-draft',
+            'is_published' => false, 'visibility' => 'draft', 'price' => 0, 'is_free' => true]);
+
+        $this->actingAs($admin)->get(route('admin.courses.edit', $course))->assertOk()
+            ->assertSee('data-thumbnail-color="#5da4e9"', false)
+            ->assertSee('id="settingsRelatedPicker"', false)
+            ->assertSee('id="courseEditor"', false)
+            ->assertSee('title="Text and background color"', false)
+            ->assertSee('id="courseEditorTableGrid"', false)
+            ->assertSee('id="courseEditorEmbedModal"', false)
+            ->assertSee('Published related')->assertDontSee('Private draft');
+        $fields = ['title' => 'Current', 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => 1, 'thumbnail_color' => '#5da4e9',
+            'related_course_ids_present' => 1, 'description' => '<h2>Course overview</h2><p>Rich text keeps its formatting.</p>'];
+        $this->put(route('admin.courses.update', $course), $fields + ['related_course_ids' => [$related->id]])
+            ->assertRedirect();
+        $this->assertSame([$related->id], $course->fresh()->related_course_ids);
+        $this->assertSame('#5da4e9', $course->fresh()->thumbnail_color);
+        $this->assertSame('<h2>Course overview</h2><p>Rich text keeps its formatting.</p>', $course->fresh()->description);
+        $this->put(route('admin.courses.update', $course), $fields)->assertRedirect();
+        $this->assertSame([], $course->fresh()->related_course_ids);
+    }
+
+    public function test_settings_can_remove_thumbnail_and_upload_a_preview_video(): void
+    {
+        Storage::fake('public');
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $course = Course::create(['title' => 'Settings media', 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => true, 'thumbnail' => '/storage/old.png',
+            'primary_instructor_id' => $admin->id]);
+        $course->teachers()->attach($admin->id, ['added_by' => $admin->id]);
+
+        $this->actingAs($admin)->get(route('admin.courses.edit', $course))->assertOk()
+            ->assertSee('id="removeThumbnailButton"', false)
+            ->assertSee('name="intro_video_file"', false);
+        $this->put(route('admin.courses.update', $course), [
+            'title' => $course->title, 'category' => 'Design', 'level' => 'beginner',
+            'language' => 'en', 'price' => 0, 'is_free' => 1, 'remove_thumbnail' => 1,
+            'intro_video_file' => UploadedFile::fake()->create('preview.mp4', 10, 'video/mp4'),
+        ])->assertRedirect(route('admin.courses.edit', $course).'#settings');
+
+        $course->refresh();
+        $this->assertNull($course->thumbnail);
+        $this->assertStringStartsWith('/storage/course-previews/', $course->intro_video);
+        Storage::disk('public')->assertExists(str_replace('/storage/', '', $course->intro_video));
+    }
+
+    public function test_unpublish_and_self_enrollment_controls_block_direct_requests(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $admin = User::factory()->create();
+        $admin->assignRole('admin');
+        $learner = User::factory()->create();
+        $course = Course::create(['title' => 'Controlled enrollment', 'is_free' => true, 'price' => 0,
+            'marketplace_status' => 'live', 'marketplace_visible' => true,
+            'is_published' => true, 'visibility' => 'public', 'registration_open' => false,
+            'primary_instructor_id' => $admin->id]);
+
+        $this->actingAs($learner)->post(route('student.enroll-free', $course))->assertForbidden();
+        $this->postJson(route('student.create-order', $course))->assertForbidden();
+        $this->actingAs($admin)->patch(route('admin.courses.toggle-publish', $course))->assertRedirect();
+        $this->assertFalse($course->fresh()->isMarketplaceLive());
+        $this->actingAs($learner)->post(route('student.enroll-free', $course))->assertNotFound();
+    }
+
+    public function test_approved_individual_creator_uses_the_full_course_dialog(): void
+    {
+        Role::findOrCreate('student', 'web');
+        $creator = User::factory()->create();
+        $creator->assignRole('student');
+        InstructorProfile::create(['user_id' => $creator->id, 'status' => 'approved']);
+
+        $this->actingAs($creator)->get(route('instructor.courses.index'))->assertOk()
+            ->assertSee('id="newCourseModal"', false)
+            ->assertSee('Course description')
+            ->assertSee('name="thumbnail_file"', false);
+
+        $this->post(route('instructor.courses.create.store'), [
+            'modal_create' => 1,
+            'title' => 'Individual Creator Draft',
+            'short_introduction' => 'Introduction',
+            'description' => '<p>A complete description.</p>',
+            'instructor_ids' => [$creator->id],
+            'vendor_id' => 9999,
+            'level' => 'beginner', 'language' => 'en', 'price' => 0, 'is_free' => 1,
+        ])->assertRedirect();
+
+        $course = Course::where('title', 'Individual Creator Draft')->firstOrFail();
+        $this->assertNull($course->vendor_id);
+        $this->assertSame($creator->id, $course->primary_instructor_id);
+        $this->assertSame('draft', $course->marketplace_status);
+        $this->assertTrue($course->registration_open);
+        $this->assertTrue($course->teachers()->whereKey($creator->id)->exists());
+    }
 
     public function test_teacher_can_open_and_save_the_four_tab_course_workspace(): void
     {
@@ -185,9 +294,78 @@ class CourseWorkspaceTest extends TestCase
         $this->assertSame('2.29.0', $lesson->block_document['version']);
         $this->assertSame('New content', $lesson->block_document['blocks'][0]['data']['text']);
         $this->actingAs($teacher)->get(route('instructor.courses.show', $course))
-            ->assertOk()->assertSee('frappe-course-workspace', false);
+            ->assertOk()->assertSee('data-course-tab="overview"', false)->assertSee('data-course-panel="settings"', false);
         $this->actingAs($teacher)->getJson(route('instructor.api.courses.show', $course))
             ->assertOk()->assertJsonPath('sections.0.lessons.0.blocks.blocks.0.data.text', 'New content');
+    }
+
+    public function test_workspace_persists_a_codebox_block_for_the_learner_renderer(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('admin');
+        $course = Course::create(['title' => 'Code lesson', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start', 'order' => 1]);
+        $lesson = $section->lessons()->create(['title' => 'Example', 'type' => 'text', 'order' => 1]);
+        $blocks = ['time' => 1, 'version' => '2.29.0', 'blocks' => [[
+            'type' => 'codeBox', 'data' => ['code' => 'console.log("Skillspot");', 'language' => 'javascript'],
+        ]]];
+
+        $this->actingAs($teacher)->patchJson(route('instructor.api.courses.lessons.update', [$course, $section, $lesson]), [
+            'block_document' => $blocks,
+        ])->assertOk()->assertJsonPath('blocks.blocks.0.type', 'codeBox')
+            ->assertJsonPath('blocks.blocks.0.data.code', 'console.log("Skillspot");');
+
+        $saved = $lesson->fresh()->block_document;
+        $this->assertSame('codeBox', $saved['blocks'][0]['type']);
+        $this->assertSame('console.log("Skillspot");', $saved['blocks'][0]['data']['code']);
+        $this->assertSame('javascript', $saved['blocks'][0]['data']['language']);
+    }
+
+    public function test_workspace_preserves_all_frappe_heading_levels(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('admin');
+        $course = Course::create(['title' => 'Heading levels', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start', 'order' => 1]);
+        $lesson = $section->lessons()->create(['title' => 'Example', 'type' => 'text', 'order' => 1]);
+        $blocks = ['time' => 1, 'version' => '2.29.0', 'blocks' => [
+            ['type' => 'header', 'data' => ['text' => 'Main title', 'level' => 1]],
+            ['type' => 'header', 'data' => ['text' => 'Small heading', 'level' => 6]],
+        ]];
+
+        $this->actingAs($teacher)->patchJson(route('instructor.api.courses.lessons.update', [$course, $section, $lesson]), [
+            'block_document' => $blocks,
+        ])->assertOk()
+            ->assertJsonPath('blocks.blocks.0.data.level', 1)
+            ->assertJsonPath('blocks.blocks.1.data.level', 6);
+
+        $this->assertSame(1, $lesson->fresh()->block_document['blocks'][0]['data']['level']);
+        $this->assertSame(6, $lesson->fresh()->block_document['blocks'][1]['data']['level']);
+    }
+
+    public function test_workspace_quiz_block_selects_an_owned_library_quiz(): void
+    {
+        Role::findOrCreate('admin', 'web');
+        $teacher = User::factory()->create();
+        $teacher->assignRole('admin');
+        $course = Course::create(['title' => 'Quiz block course', 'primary_instructor_id' => $teacher->id]);
+        $section = Section::create(['course_id' => $course->id, 'title' => 'Start', 'order' => 1]);
+        $lesson = $section->lessons()->create(['title' => 'Assessment', 'type' => 'text', 'order' => 1]);
+        $quiz = \App\Models\Quiz::create(['owner_id' => $teacher->id, 'title' => 'Saved assessment', 'pass_score' => 70]);
+        $quiz->questions()->create(['question' => 'Question', 'question_type' => 'single', 'marks' => 1, 'options' => ['One', 'Two'], 'correct_answer' => '0']);
+        $blocks = ['time' => 1, 'version' => '2.29.0', 'blocks' => [
+            ['type' => 'quiz', 'data' => ['quiz_id' => $quiz->id]],
+        ]];
+
+        $this->actingAs($teacher)->getJson(route('instructor.api.courses.quizzes.index', $course))
+            ->assertOk()->assertJsonPath('0.id', $quiz->id);
+        $this->patchJson(route('instructor.api.courses.lessons.update', [$course, $section, $lesson]), [
+            'block_document' => $blocks,
+        ])->assertOk()->assertJsonPath('quiz_id', $quiz->id);
+
+        $this->assertSame($quiz->id, $lesson->fresh()->quiz_id);
     }
 
     public function test_teacher_cannot_open_another_instructors_workspace(): void

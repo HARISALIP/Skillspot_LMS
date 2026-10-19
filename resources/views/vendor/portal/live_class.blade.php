@@ -43,7 +43,7 @@
         </div>
         {{-- Join button if LIVE --}}
         @if($liveClass->status === 'live' && $liveClass->meeting_url)
-        <a href="{{ $liveClass->meeting_url }}" target="_blank"
+        <a href="{{ $liveClass->meeting_url }}"
            class="flex-shrink-0 bg-white font-black px-6 py-3 rounded-xl transition hover:bg-gray-50 text-sm"
            style="color: var(--primary)">
           🔴 Join Class Now →
@@ -73,7 +73,7 @@
       @if($liveClass->meeting_url)
       <div class="flex items-center gap-3">
         <span class="text-gray-500 w-28 flex-shrink-0">Join Link:</span>
-        <a href="{{ $liveClass->meeting_url }}" target="_blank" class="text-blue-600 hover:underline truncate">{{ $liveClass->meeting_url }}</a>
+        <a href="{{ $liveClass->meeting_url }}" class="text-blue-600 hover:underline truncate">{{ $liveClass->meeting_url }}</a>
       </div>
       @endif
       @if($liveClass->meeting_id)
@@ -118,7 +118,7 @@
       </div>
     </div>
     @if($liveClass->meeting_url)
-    <a href="{{ $liveClass->meeting_url }}" target="_blank"
+    <a href="{{ $liveClass->meeting_url }}"
        class="flex-shrink-0 bg-white font-black text-xs px-5 py-2.5 rounded-xl transition hover:bg-red-50"
        style="color: var(--primary)">
       Join Now →
@@ -191,7 +191,6 @@
             : ($file->file_type === 'notes' ? 'text-blue-700' : 'text-gray-700');
         @endphp
         <a href="{{ route('vendor.portal.live_class.file.view', [$vendor->slug, $liveClass->slug, $file->id]) }}"
-           target="_blank"
            class="flex items-center justify-between gap-3 px-4 py-3 border rounded-xl transition {{ $typeBg }}">
           <div class="flex items-center gap-3 min-w-0">
             <span class="text-2xl flex-shrink-0">{{ $typeIcon }}</span>

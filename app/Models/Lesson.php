@@ -22,7 +22,7 @@ class Lesson extends Model
         });
     }
     protected $fillable = [
-        'section_id','title','description','type','content',
+        'section_id','quiz_id','title','description','type','content',
         'video_url','video_storage','video_r2_path',
         'live_platform','live_url','live_share_link','live_scheduled_at','live_duration_min','live_meeting_id','live_password',
         'recording_url','recording_shared',
@@ -40,6 +40,7 @@ class Lesson extends Model
 
     public function section() { return $this->belongsTo(Section::class); }
     public function quiz()    { return $this->hasOne(Quiz::class); }
+    public function selectedQuiz() { return $this->belongsTo(Quiz::class, 'quiz_id'); }
     public function assignment() { return $this->hasOne(Assignment::class); }
 
     public function isLiveNow(): bool

@@ -129,7 +129,7 @@ class CourseTeachingController extends Controller
         $openIds = $quiz->questions->where('question_type', 'open')->pluck('id');
         abort_unless($openIds->isNotEmpty() && $openIds->every(fn ($id) => array_key_exists($id, $data['open_results'])), 422, 'Grade every open answer.');
         $manual = collect($data['open_results'])->only($openIds->map(fn ($id) => (string) $id)->all())->map(fn ($value) => (bool) $value)->all();
-        $score = QuizGrader::score($quiz->questions, $attempt->answers, $manual);
+        $score = QuizGrader::score($quiz->questions, $attempt->answers, $manual, $quiz);
         $passed = $score >= $quiz->pass_score;
         DB::transaction(function () use ($attempt, $manual, $score, $passed, $request, $data, $quiz) {
             $attempt->update(['manual_results' => $manual, 'score' => $score, 'passed' => $passed,

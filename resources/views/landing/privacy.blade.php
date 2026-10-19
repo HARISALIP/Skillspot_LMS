@@ -43,7 +43,7 @@
         ],
         [
           'title' => '3. Payment Data & Razorpay',
-          'content' => 'All payments are processed securely through <strong>Razorpay</strong>. Skillspot.in does not store your card numbers, CVV, or bank credentials. We only store transaction IDs and order references for record keeping. Razorpay\'s privacy policy applies to all payment processing. <a href="https://razorpay.com/privacy/" target="_blank" class="text-brand-600 hover:underline">View Razorpay Privacy Policy →</a>'
+          'content' => 'All payments are processed securely through <strong>Razorpay</strong>. Skillspot.in does not store your card numbers, CVV, or bank credentials. We only store transaction IDs and order references for record keeping. Razorpay\'s privacy policy applies to all payment processing. <a href="https://razorpay.com/privacy/" class="text-brand-600 hover:underline">View Razorpay Privacy Policy →</a>'
         ],
         [
           'title' => '4. SMS & Email Communications',

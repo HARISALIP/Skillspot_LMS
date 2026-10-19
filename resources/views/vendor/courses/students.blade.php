@@ -15,7 +15,7 @@
     </div>
     <div class="min-w-0 text-left text-sm text-gray-500 sm:text-right">
       Portal Reg. Link:<br>
-      <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" target="_blank" rel="noopener" class="break-all text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}/register/{{ $course->id }}</a>
+      <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" rel="noopener" class="break-all text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}/register/{{ $course->id }}</a>
     </div>
   </div>
 

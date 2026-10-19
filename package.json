@@ -4,7 +4,8 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "serve:local": "cd public && php -d upload_max_filesize=50M -d post_max_size=52M -S 127.0.0.1:8082 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
@@ -23,6 +24,14 @@
         "@editorjs/simple-image": "^1.6.0",
         "@editorjs/table": "^2.4.2",
         "@hotwired/turbo": "^8.0.23",
+        "@tiptap/core": "3.32.0",
+        "@tiptap/extension-highlight": "3.32.0",
+        "@tiptap/extension-image": "3.32.0",
+        "@tiptap/extension-placeholder": "3.32.0",
+        "@tiptap/extension-table": "3.32.0",
+        "@tiptap/extension-text-align": "3.32.0",
+        "@tiptap/extension-text-style": "3.32.0",
+        "@tiptap/starter-kit": "3.32.0",
         "@vitejs/plugin-vue": "^6.0.10",
         "editorjs-drag-drop": "^1.1.16",
         "lucide-vue-next": "^0.383.0",

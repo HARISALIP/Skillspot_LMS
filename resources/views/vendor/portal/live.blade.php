@@ -25,11 +25,11 @@
         <span class="text-red-400 font-bold">LIVE NOW</span>
       </div>
       @if($lesson->live_share_link)
-        <a href="{{ $lesson->live_share_link }}" target="_blank" class="btn-primary text-white text-lg font-bold px-8 py-4 rounded-2xl inline-block hover:opacity-90 transition mb-4">
+        <a href="{{ $lesson->live_share_link }}" class="btn-primary text-white text-lg font-bold px-8 py-4 rounded-2xl inline-block hover:opacity-90 transition mb-4">
           Join Live Class →
         </a>
       @else
-        <a href="{{ $lesson->live_url }}" target="_blank" class="btn-primary text-white text-lg font-bold px-8 py-4 rounded-2xl inline-block hover:opacity-90 transition mb-4">
+        <a href="{{ $lesson->live_url }}" class="btn-primary text-white text-lg font-bold px-8 py-4 rounded-2xl inline-block hover:opacity-90 transition mb-4">
           Join Live Class →
         </a>
       @endif

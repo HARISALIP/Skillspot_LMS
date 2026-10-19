@@ -152,7 +152,8 @@ class Course extends Model
 
     public function isMarketplaceLive(): bool
     {
-        return $this->marketplace_status === 'live' && (bool) $this->marketplace_visible && !$this->upcoming;
+        return $this->marketplace_status === 'live' && (bool) $this->marketplace_visible
+            && (bool) $this->is_published && $this->visibility === 'public' && !$this->upcoming;
     }
 
     public function getLessonsCountAttribute(): int

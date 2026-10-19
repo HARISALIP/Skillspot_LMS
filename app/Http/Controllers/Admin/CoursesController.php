@@ -161,6 +161,7 @@ class CoursesController extends Controller
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {
+        if ($request->routeIs('instructor.courses.create.store')) $request->merge(['vendor_id' => null]);
         if (is_string($request->input('description'))) {
             $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
         }
@@ -169,33 +170,56 @@ class CoursesController extends Controller
                 'short_introduction' => 'required|string|max:1000',
                 'description' => 'required|string',
                 'instructor_ids' => 'required|array|min:1',
+                'new_category' => 'nullable|string|max:100',
             ]);
-        }
-        if ($newCategory = trim((string) $request->input('new_category'))) {
-            $category = CourseCategory::firstOrCreate(
-                ['name' => $newCategory],
-                ['is_active' => true, 'order_col' => CourseCategory::max('order_col') + 1]
-            );
-            $request->merge(['category' => $category->name]);
+            $description = (string) $request->input('description');
+            if (trim(html_entity_decode(strip_tags($description))) === '' && !preg_match('/<(?:img|video|iframe)\b[^>]*\bsrc="[^"]+"/i', $description)) {
+                throw ValidationException::withMessages(['description' => 'Enter a course description.']);
+            }
         }
         $data = $this->validateCourse($request);
+        $teacherIds = collect($request->input('instructor_ids', [auth()->id()]))->map(fn ($id) => (int) $id)->unique()->values();
+        $allowed = User::whereKey($teacherIds)->where(function ($query) {
+            $query->whereHas('roles', fn ($roles) => $roles->whereIn('name', ['teacher', 'evaluator', 'admin', 'super-admin']))
+                ->orWhereHas('instructorProfile', fn ($profile) => $profile->whereIn('status', ['pending', 'approved', 'rejected']));
+        })->pluck('id');
+        if ($teacherIds->diff($allowed)->isNotEmpty()) {
+            throw ValidationException::withMessages(['instructor_ids' => 'Choose valid instructors.']);
+        }
+        if ($request->routeIs('vendor.courses.modal.store')) {
+            $vendorTeachers = Vendor::findOrFail($data['vendor_id'])->teachers()->pluck('users.id');
+            if ($teacherIds->diff($vendorTeachers)->isNotEmpty()) {
+                throw ValidationException::withMessages(['instructor_ids' => 'Choose instructors assigned to this organization.']);
+            }
+        }
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
         }
-        $course = DB::transaction(function () use ($data, $request) {
-            $teacherIds = $request->input('instructor_ids', [auth()->id()]);
+        if ($request->hasFile('intro_video_file')) {
+            $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
+        }
+        $course = DB::transaction(function () use ($data, $request, $teacherIds) {
+            if ($newCategory = trim((string) $request->input('new_category'))) {
+                $data['category'] = CourseCategory::firstOrCreate(
+                    ['name' => $newCategory],
+                    ['is_active' => true, 'order_col' => ((int) CourseCategory::max('order_col')) + 1]
+                )->name;
+            }
             $data['primary_instructor_id'] = auth()->user()->hasRole(['admin', 'super-admin'])
-                ? ($teacherIds[0] ?? auth()->id())
+                ? ($teacherIds->first() ?? auth()->id())
                 : auth()->id();
             $data['marketplace_status'] = 'draft';
             $data['marketplace_visible'] = false;
             $data['visibility'] = 'draft';
             $data['is_published'] = false;
             $course = Course::create($data);
-            $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
+            $course->teachers()->syncWithPivotValues($teacherIds->all(), ['added_by' => auth()->id()]);
+            $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             return $course;
         });
-        return redirect()->route('admin.courses.edit', $course->id)
+        $destination = $request->routeIs('vendor.courses.modal.store') ? route('vendor.courses.edit', $course)
+            : ($request->routeIs('instructor.courses.create.store') ? route('instructor.courses.show', $course) : route('admin.courses.edit', $course));
+        return redirect($destination)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
     }
 
@@ -261,7 +285,11 @@ class CoursesController extends Controller
         $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
             ->orderBy('name')->get(['id', 'name', 'email']);
         if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
-        $relatedCourses = Course::whereKeyNot($course->id)->orderBy('title')->get(['id', 'title']);
+        $relatedCourses = Course::whereKeyNot($course->id)
+            ->where(function ($query) use ($course) {
+                $query->where(function ($published) { $published->where('is_published', true)->where('visibility', 'public'); })
+                    ->orWhereIn('id', $course->related_course_ids ?? []);
+            })->orderBy('title')->get(['id', 'title', 'slug', 'is_published']);
         return view('admin.courses.form', [
             'course'     => $course,
             'vendors'    => $vendors,
@@ -279,36 +307,57 @@ class CoursesController extends Controller
     public function update(Request $request, Course $course)
     {
         $this->authorizeCourseOwner($course);
+        $creatorWorkspaceRequest = $request->routeIs('instructor.courses.update');
+        if ($creatorWorkspaceRequest) {
+            $request->merge([
+                'vendor_id' => $course->vendor_id,
+                'instructor_ids' => $course->teachers()->pluck('users.id')->whenEmpty(fn () => collect([$course->primary_instructor_id]))->all(),
+            ]);
+        }
         if (is_string($request->input('description'))) {
             $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
         }
         $request->merge(['visibility' => $request->input('visibility') ?: $course->visibility]);
         $data = $this->validateCourse($request, $course->id);
+        if ($creatorWorkspaceRequest) {
+            $data['visibility'] = $course->visibility;
+            $data['is_published'] = $course->is_published;
+        }
+        if ($request->boolean('related_course_ids_present')) {
+            $data['related_course_ids'] = $request->input('related_course_ids', []);
+        }
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+        } elseif ($request->boolean('remove_thumbnail')) {
+            $data['thumbnail'] = null;
         }
-        if (!$course->isMarketplaceLive()) {
+        if ($request->hasFile('intro_video_file')) {
+            $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
+        }
+        if ($course->marketplace_status !== 'live' || !$course->marketplace_visible) {
             $data['visibility'] = 'draft';
             $data['is_published'] = false;
         }
         DB::transaction(function () use ($course, $data, $request) {
             $course->update($data);
+            $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             if ($request->has('instructor_ids')) {
                 $teacherIds = collect($request->input('instructor_ids', []))->map(fn ($id) => (int) $id)->unique()->values();
                 $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
                 if ($teacherIds->isNotEmpty()) $course->update(['primary_instructor_id' => $teacherIds->first()]);
             }
         });
-        return back()->with('success', "Course updated ✅");
+        return redirect($this->workspaceEditUrl($course).'#settings')->with('success', "Course updated ✅");
     }
 
     // ── Toggle publish ─────────────────────────────────────────────────
     public function togglePublish(Course $course)
     {
         $this->authorizeCourseOwner($course);
-        if (!$course->isMarketplaceLive()) return back()->with('error', 'Submit this course for marketplace review before publishing it.');
-        $course->update(['visibility' => 'public', 'is_published' => true]);
-        return back()->with('success', 'Course is live in the Skillspot marketplace.');
+        if ($course->marketplace_status !== 'live') return back()->with('error', 'Submit this course for marketplace review before publishing it.');
+        $publish = !$course->marketplace_visible;
+        $course->update(['marketplace_visible' => $publish, 'visibility' => $publish ? 'public' : 'draft', 'is_published' => $publish]);
+        return back()->with('success', $publish ? 'Course is live in the Skillspot marketplace.' : 'Course has been unpublished.');
     }
 
     // Grant restricted access to specific user
@@ -376,7 +425,7 @@ class CoursesController extends Controller
             throw $validation;
         }
         if ($section?->is_scorm) CourseService::refreshEnrollmentProgress($course);
-        return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter added.');
+        return redirect($this->workspaceEditUrl($course).'#editor')->with('success', 'Chapter added.');
     }
 
     // ── Section: update ────────────────────────────────────────────────
@@ -399,7 +448,7 @@ class CoursesController extends Controller
         $section->delete();
         if ($hadLessons) CourseService::refreshEnrollmentProgress($course);
         if (request()->expectsJson()) return response()->noContent();
-        return redirect(route('admin.courses.edit', $course).'#editor')->with('success', 'Chapter deleted.');
+        return redirect($this->workspaceEditUrl($course).'#editor')->with('success', 'Chapter deleted.');
     }
 
     // ── Section: reorder ───────────────────────────────────────────────
@@ -432,6 +481,7 @@ class CoursesController extends Controller
             'lesson'  => new Lesson(),
             'isEdit'  => false,
             'materialUploads' => [],
+            'availableQuizzes' => $this->availableQuizzes(),
         ]);
     }
 
@@ -441,16 +491,17 @@ class CoursesController extends Controller
         $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id, 404);
         $data = $this->validateLesson($request);
-        $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
+        $quiz = $data['type'] === 'quiz' && empty($data['quiz_id']) ? LessonQuiz::validate($request) : null;
         $data['order'] = $section->lessons()->max('order') + 1;
         $lesson = DB::transaction(function () use ($section, $data, $quiz) {
             $lesson = $section->lessons()->create($data);
+            $this->markMaterialUploadsUsedByCourse($section->course, $data['resources'] ?? []);
             if ($quiz) LessonQuiz::save($lesson, $quiz);
             return $lesson;
         });
         CourseService::refreshEnrollmentProgress($course);
-        if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode(route('admin.courses.edit', $course->id).'#editor').')</script>');
-        return redirect()->route('admin.courses.edit', $course->id)
+        if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode($this->workspaceEditUrl($course).'#editor').')</script>');
+        return redirect($this->workspaceEditUrl($course))
             ->with('success', "Lesson \"{$lesson->title}\" added ✅");
     }
 
@@ -472,6 +523,7 @@ class CoursesController extends Controller
             'lesson'  => $lesson,
             'isEdit'  => true,
             'materialUploads' => $materialUploads,
+            'availableQuizzes' => $this->availableQuizzes(),
         ]);
     }
 
@@ -481,13 +533,14 @@ class CoursesController extends Controller
         $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
         $data = $this->validateLesson($request);
-        $quiz = $data['type'] === 'quiz' ? LessonQuiz::validate($request) : null;
-        DB::transaction(function () use ($lesson, $data, $quiz) {
+        $quiz = $data['type'] === 'quiz' && empty($data['quiz_id']) ? LessonQuiz::validate($request) : null;
+        DB::transaction(function () use ($course, $lesson, $data, $quiz) {
             $lesson->update($data);
+            $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             if ($quiz) LessonQuiz::save($lesson, $quiz);
         });
-        if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode(route('admin.courses.edit', $course->id).'#editor').')</script>');
-        return redirect()->route('admin.courses.edit', $course->id)
+        if ($request->boolean('embed')) return response('<script>window.parent.location.assign('.json_encode($this->workspaceEditUrl($course).'#editor').')</script>');
+        return redirect($this->workspaceEditUrl($course))
             ->with('success', "Lesson updated ✅");
     }
 
@@ -538,6 +591,8 @@ class CoursesController extends Controller
             'thumbnail'         => 'nullable|string|max:500',
             'thumbnail_color'   => ['nullable','regex:/^#[0-9a-fA-F]{6}$/'],
             'thumbnail_file'    => 'nullable|image|mimes:jpg,jpeg,png,gif,webp|max:5120',
+            'remove_thumbnail'  => 'nullable|boolean',
+            'intro_video_file'  => 'nullable|file|mimes:mp4,webm,ogg,ogv|max:51200',
             'instructor_ids'    => 'nullable|array',
             'instructor_ids.*'  => 'integer|exists:users,id',
             'intro_video'       => 'nullable|string|max:500',
@@ -567,7 +622,7 @@ class CoursesController extends Controller
         $data['upcoming']         = $request->boolean('upcoming');
         $data['enforce_lesson_completion'] = $request->boolean('enforce_lesson_completion');
         $data['enable_certification'] = $ignoreId ? $request->boolean('enable_certification') : true;
-        $data['registration_open']= $request->boolean('registration_open');
+        $data['registration_open']= $ignoreId ? $request->boolean('registration_open') : $request->boolean('registration_open', true);
         $data['max_students']     = (int)($request->input('max_students', 0));
         $data['course_type']      = $request->input('course_type','open');
         if (empty($data['vendor_id'])) $data['vendor_id'] = null;
@@ -587,6 +642,13 @@ class CoursesController extends Controller
         $user = auth()->user();
         if ($user->hasRole(['admin', 'super-admin'])) return;
         abort_unless($course->primary_instructor_id === $user->id || $course->teachers()->where('users.id', $user->id)->exists(), 403);
+    }
+
+    private function workspaceEditUrl(Course $course): string
+    {
+        return request()->routeIs('instructor.courses.*')
+            ? route('instructor.courses.show', $course)
+            : route('admin.courses.edit', $course);
     }
 
     private function sanitizeRichText(string $html): string
@@ -613,11 +675,11 @@ class CoursesController extends Controller
                 $styleRules = array_values(array_filter(array_map('trim', explode(';', $attribute->value))));
                 $isSafeStyle = $attribute->name === 'style' && $styleRules !== [] && collect($styleRules)->every(fn ($rule) =>
                     preg_match('/^text-align:\s*(?:left|center|right)$/i', $rule)
+                    || preg_match('/^color:\s*inherit$/i', $rule)
                     || preg_match('/^(?:color|background-color):\s*(?:#[0-9a-f]{6}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i', $rule)
                 );
-                if (!in_array($attribute->name, ['alt', 'target', 'rel', 'title', 'loading', 'allowfullscreen', 'controls', 'preload'], true) && !$isSafeUrl && !$isSafeColor && !$isSafeStyle) $node->removeAttribute($attribute->name);
+                if (!in_array($attribute->name, ['alt', 'rel', 'title', 'loading', 'allowfullscreen', 'controls', 'preload'], true) && !$isSafeUrl && !$isSafeColor && !$isSafeStyle) $node->removeAttribute($attribute->name);
             }
-            if ($node->tagName === 'a' && $node->hasAttribute('target')) $node->setAttribute('rel', 'noopener');
             if ($node->tagName === 'iframe') {
                 $host = strtolower(parse_url($node->getAttribute('src'), PHP_URL_HOST) ?: '');
                 $allowedEmbedHosts = ['youtube.com', 'youtu.be', 'youtube-nocookie.com', 'vimeo.com', 'player.vimeo.com', 'codepen.io', 'codesandbox.io', 'figma.com', 'embed.figma.com', 'docs.google.com', 'drive.google.com', 'notion.so'];
@@ -655,8 +717,13 @@ class CoursesController extends Controller
             'notes'           => 'nullable|string',
             'duration'        => 'nullable|integer|min:0|max:1440',
             'is_preview'      => 'boolean',
+            'quiz_id'         => 'nullable|integer|exists:quizzes,id',
         ], self::MATERIAL_RULES));
         $data['is_preview']    = $request->boolean('is_preview');
+        if (!empty($data['quiz_id'])) {
+            $quiz = \App\Models\Quiz::whereNull('lesson_id')->findOrFail($data['quiz_id']);
+            abort_unless(auth()->user()->hasRole(['admin', 'super-admin']) || $quiz->owner_id === auth()->id(), 403);
+        }
         $data['video_storage'] = $request->input('video_storage', 'external');
         $data['resources'] = $this->validatedMaterials($data['resources'] ?? []);
         if (isset($data['duration'])) $data['duration'] *= 60;
@@ -685,5 +752,20 @@ class CoursesController extends Controller
             }
         }
         return $resources;
+    }
+
+    private function markMaterialUploadsUsedByCourse(Course $course, array $resources): void
+    {
+        $ids = collect($resources)
+            ->flatMap(fn ($resource) => [$resource['upload_id'] ?? null, $resource['preview_upload_id'] ?? null])
+            ->filter()->unique();
+        Upload::whereIn('id', $ids)->update(['used_in' => json_encode(['course_id' => $course->id])]);
+    }
+
+    private function availableQuizzes()
+    {
+        return \App\Models\Quiz::query()->whereNull('lesson_id')
+            ->when(!auth()->user()->hasRole(['admin', 'super-admin']), fn ($query) => $query->where('owner_id', auth()->id()))
+            ->withCount('questions')->orderBy('title')->get();
     }
 }

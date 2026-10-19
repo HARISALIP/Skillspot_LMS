@@ -160,7 +160,7 @@
         <div class="font-semibold text-gray-900">{{ $lesson->title }}</div>
         <div class="text-xs text-gray-400 mt-0.5">{{ $lesson->section->course->title ?? '' }} · {{ ucfirst($lesson->live_platform) }}</div>
       </div>
-      <a href="{{ $lesson->live_url }}" target="_blank" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition">Join Now</a>
+      <a href="{{ $lesson->live_url }}" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition">Join Now</a>
     </div>
     @endforeach
   </div>
@@ -226,7 +226,7 @@
         </form>
         @elseif($lesson->recording_url)
         <div class="mt-2">
-          <a href="{{ $lesson->recording_url }}" target="_blank" class="text-xs bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg font-medium hover:bg-brand-100 transition">▶ View Recording</a>
+          <a href="{{ $lesson->recording_url }}" class="text-xs bg-brand-50 text-brand-700 px-3 py-1.5 rounded-lg font-medium hover:bg-brand-100 transition">▶ View Recording</a>
         </div>
         @endif
       </div>

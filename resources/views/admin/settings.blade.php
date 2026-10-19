@@ -618,7 +618,7 @@ $tabs = [
                   <span class="text-xs text-green-600 font-semibold">Fast2SMS connected ✅ — Quick SMS (no DLT) ready</span>
                 @else
                   <span class="w-2 h-2 bg-gray-300 rounded-full"></span>
-                  <span class="text-xs text-gray-400">Add your API key from <a href="https://www.fast2sms.com" target="_blank" class="text-brand-600 font-semibold hover:underline">fast2sms.com</a> → Dev API → Copy API Key</span>
+                  <span class="text-xs text-gray-400">Add your API key from <a href="https://www.fast2sms.com" class="text-brand-600 font-semibold hover:underline">fast2sms.com</a> → Dev API → Copy API Key</span>
                 @endif
               </div>
             </div>

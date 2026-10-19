@@ -99,6 +99,28 @@ body.frappe-lesson-embed {
 .frappe-lesson-form .codex-editor__redactor { padding-bottom: 80px !important; }
 .frappe-lesson-form .ce-block__content,
 .frappe-lesson-form .ce-toolbar__content { max-width: none; }
+.frappe-lesson-form .ce-toolbar__actions,
+.frappe-lesson-form .codex-editor--narrow .ce-toolbar__actions { right: auto; left: auto; inset-inline-end: 100%; }
+.frappe-lesson-form .ce-toolbar__plus,
+.frappe-lesson-form .ce-toolbar__settings-btn { color: #8b949b; }
+.frappe-lesson-form .ce-toolbar__settings-btn--hidden { display: flex; }
+.frappe-lesson-form .ce-toolbar__plus:hover,
+.frappe-lesson-form .ce-toolbar__settings-btn:hover { color: #313b44; background: #f0f1f2; }
+.frappe-lesson-form .ce-popover { --color-background: #fff; --color-text-primary: #313b44; --color-text-secondary: #687178; --color-border: #dfe1e3; --color-border-icon: #dfe1e3; --color-border-icon-disabled: #eef0f1; --color-background-item-hover: #f0f1f2; --color-background-item-focus: #f5f6f7; --color-shadow: rgba(0,0,0,.12); border-radius: 12px; }
+.frappe-lesson-form .ce-popover--opened { max-height: none; padding: 8px; }
+.frappe-lesson-form .ce-popover-item__title { font-size: 13px; font-weight: 400; }
+.frappe-lesson-form .ce-popover-item__icon { margin-inline-end: 10px; background: #fff; }
+.frappe-lesson-form .ce-popover-item__icon svg,
+.frappe-lesson-form .cdx-search-field__icon svg { width: 15px; height: 15px; }
+.frappe-lesson-form .cdx-search-field { border: 0; background: #f0f1f2; }
+.frappe-lesson-form .cdx-search-field__input { font-size: 13px; font-weight: 400; color: #313b44; }
+.frappe-lesson-form .ce-header { color: #313b44; font-weight: 600; margin: 0; }
+.frappe-lesson-form h1.ce-header { font-size: 20px; line-height: 24px; }
+.frappe-lesson-form h2.ce-header { font-size: 18px; line-height: 22.5px; }
+.frappe-lesson-form h3.ce-header { font-size: 16px; line-height: 24.9px; }
+.frappe-lesson-form h4.ce-header { font-size: 14px; line-height: 20px; }
+.frappe-lesson-form h5.ce-header { font-size: 13px; }
+.frappe-lesson-form h6.ce-header { font-size: 14px; font-weight: 400; }
 
 .save-state {
   position: fixed;
@@ -122,6 +144,35 @@ body.frappe-lesson-embed {
 .frappe-upload-preview { display: block; width: 100%; max-width: 100%; border: 0; border-radius: 7px; background: #f5f5f5; }
 .frappe-upload-audio { height: 44px; }
 .frappe-upload-pdf { height: 700px; }
+.frappe-code-box { overflow: hidden; margin: 18px 0; border: 1px solid #dfe1e3; border-radius: 8px; background: #1f2937; }
+.frappe-code-box select { display: block; width: 100%; border: 0; border-bottom: 1px solid #475569; background: #334155; padding: 8px 10px; color: #e2e8f0; font: 12px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; }
+.frappe-code-box textarea { display: block; box-sizing: border-box; width: 100%; min-height: 160px; resize: vertical; border: 0; background: transparent; padding: 12px; color: #f8fafc; font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; outline: 0; }
+.frappe-quiz-block { display: flex; align-items: center; gap: 10px; }
+.frappe-quiz-block strong { font-size: 14px; }
+.frappe-quiz-block span { color: #687178; font-size: 13px; }
+.frappe-quiz-block button { margin-left: auto; border: 0; border-radius: 6px; background: #f0f1f2; padding: 6px 10px; color: #313b44; font: 500 13px/1.2 Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.frappe-quiz-block button:hover { background: #e3e6e8; }
+.frappe-quiz-modal-backdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; background: rgba(30, 41, 59, .38); padding: 16px; }
+.frappe-quiz-modal { box-sizing: border-box; width: min(576px, 100%); border-radius: 14px; background: #fff; padding: 24px; box-shadow: 0 18px 42px rgba(15, 23, 42, .22); color: #313b44; }
+.frappe-quiz-modal header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.frappe-quiz-modal h2 { margin: 0; color: #1f272e; font: 600 16px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; }
+.frappe-quiz-close { width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #687178; font: 22px/1 sans-serif; cursor: pointer; }
+.frappe-quiz-label { display: grid; gap: 7px; color: #687178; font-size: 12px; }
+.frappe-quiz-select { position: relative; }
+.frappe-quiz-select-button { box-sizing: border-box; width: 100%; border: 1px solid #d9dde1; border-radius: 7px; background: #f7f8fa; padding: 8px 10px; color: #313b44; text-align: left; font: 13px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.frappe-quiz-select-button::after { float: right; content: '⌄'; color: #687178; }
+.frappe-quiz-options { position: absolute; z-index: 1; top: calc(100% + 2px); width: 100%; overflow: hidden; border: 1px solid #d9dde1; border-radius: 7px; background: #fff; box-shadow: 0 8px 16px rgba(15, 23, 42, .12); }
+.frappe-quiz-option-list { max-height: 180px; overflow-y: auto; }
+.frappe-quiz-option { display: block; width: 100%; border: 0; background: #fff; padding: 9px 10px; color: #313b44; text-align: left; font: 13px/1.3 Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.frappe-quiz-option:hover { background: #f0f1f2; }
+.frappe-quiz-options footer { border-top: 1px solid #dfe1e3; background: #fff; }
+.frappe-quiz-error { min-height: 18px; margin: 6px 0 0; color: #c0392b; font-size: 12px; }
+.frappe-quiz-modal footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.frappe-quiz-modal footer button { border: 0; border-radius: 6px; background: transparent; padding: 7px 9px; color: #313b44; font: 500 13px/1.2 Inter, ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.frappe-quiz-modal .frappe-quiz-clear { margin-right: auto; }
+.frappe-quiz-modal .frappe-quiz-save { background: #1f272e; color: #fff; }
+.frappe-quiz-modal button:hover { background: #f0f1f2; }
+.frappe-quiz-modal .frappe-quiz-save:hover { background: #111827; }
 
 @media (max-width: 900px) {
   .frappe-lesson-form { padding: 28px 44px 60px; }

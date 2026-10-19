@@ -150,6 +150,8 @@ class MarketplaceWorkflowTest extends TestCase
 
         $this->get(route('marketplace.browse'))
             ->assertOk()
+            ->assertSeeText('All Courses')
+            ->assertSee('class="course-grid"', false)
             ->assertSee('Visible Marketplace Course')
             ->assertDontSee('Unpublished Approved Course')
             ->assertDontSee('Private Draft Course');

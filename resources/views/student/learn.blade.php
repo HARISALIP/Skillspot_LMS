@@ -89,7 +89,7 @@
         <div id="livePlatformName" class="font-black text-xl text-gray-900 mb-2"></div>
         <div id="liveSchedule" class="text-gray-500 text-sm mb-5"></div>
         <div id="liveMeetingInfo" class="hidden mb-5 bg-gray-50 rounded-xl p-4 text-left space-y-2 text-sm"></div>
-        <a id="liveJoinBtn" href="#" target="_blank" @if(!empty($isCreatorPreview)) hidden @endif
+        <a id="liveJoinBtn" href="#" @if(!empty($isCreatorPreview)) hidden @endif
            class="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-8 py-3 rounded-2xl transition shadow-lg text-sm">
           📡 Join Live Class
         </a>
@@ -419,7 +419,7 @@ async function loadLesson(lessonId) {
       renderContent('<p class="text-gray-500">No video has been saved for this lesson yet.</p>', data.title);
     } else if (data.type === 'live') {
       renderLive(data);
-    } else if (data.type === 'quiz' && data.quiz) {
+    } else if (data.quiz) {
       renderQuiz(data.quiz, data.completed);
     } else if (data.type === 'assignment' && data.assignment) {
       renderAssignment(data.assignment);
@@ -481,7 +481,7 @@ function renderBlockDocument(document) {
   };
   return (document?.blocks || []).map(block => {
     const data = block.data || {};
-    if (block.type === 'header') return '<h' + Math.min(Math.max(data.level || 2, 2), 4) + '>' + escape(data.text) + '</h' + Math.min(Math.max(data.level || 2, 2), 4) + '>';
+    if (block.type === 'header') return '<h' + Math.min(Math.max(data.level || 2, 1), 6) + '>' + escape(data.text) + '</h' + Math.min(Math.max(data.level || 2, 1), 6) + '>';
     if (block.type === 'paragraph') return '<p>' + escape(data.text) + '</p>';
     if (block.type === 'list') return '<ul>' + (data.items || []).map(item => '<li>' + escape(typeof item === 'string' ? item : item.content) + '</li>').join('') + '</ul>';
     if (block.type === 'table') return '<table><tbody>' + (data.content || []).map(row => '<tr>' + row.map(cell => '<td>' + escape(cell) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
@@ -501,6 +501,7 @@ function renderBlockDocument(document) {
       if (data.file_type === 'pdf') return '<iframe src="' + url + '" title="' + escape(data.file_name || 'PDF document') + '"></iframe>';
       return '<img src="' + url + '" alt="' + escape(data.file_name || '') + '">';
     }
+    if (block.type === 'codeBox') return '<pre class="my-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-sm text-slate-100"><code>' + escape(data.code || '') + '</code></pre>';
     if (['quiz','assignment','program'].includes(block.type)) return '<div class="rounded-xl border border-blue-100 bg-blue-50 p-4 my-4"><strong>' + escape(block.type.replace('_', ' ')) + '</strong><p>' + escape(data.text) + '</p></div>';
     if (block.type === 'instructorNote') return '';
     return '';
@@ -644,6 +645,11 @@ function renderQuiz(quiz, completed) {
         input.required = true; input.rows = 5; input.maxLength = 10000;
         input.className = 'mt-2 w-full rounded-xl border-gray-200';
         fieldset.appendChild(input);
+      } else if (question.type === 'user_input') {
+        const input = document.createElement('input'); input.name = `q${question.id}`;
+        input.required = true; input.maxLength = 2000;
+        input.className = 'mt-2 w-full rounded-xl border-gray-200';
+        fieldset.appendChild(input);
       } else {
         (question.options || []).forEach((option, choice) => {
           const label = document.createElement('label');
@@ -674,7 +680,7 @@ function renderQuiz(quiz, completed) {
       if (CREATOR_PREVIEW) return;
       button.disabled = true;
       const fields = new FormData(form);
-      const answers = Object.fromEntries(quiz.questions.map(q => [q.id, q.type === 'open'
+      const answers = Object.fromEntries(quiz.questions.map(q => [q.id, ['open', 'user_input'].includes(q.type)
         ? fields.get(`q${q.id}`) : (q.type === 'multiple'
           ? fields.getAll(`q${q.id}`).map(Number) : Number(fields.get(`q${q.id}`)))]));
       try {

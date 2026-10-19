@@ -71,6 +71,7 @@ class CourseController extends Controller
     public function enrollFree(Request $request, Course $course)
     {
         abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for enrollment.');
+        abort_unless($course->registration_open, 403, 'Self enrollment is closed for this course.');
         if (!$course->is_free && $course->price > 0) {
             return response()->json(['error'=>'This course requires payment.'], 422);
         }
@@ -223,15 +224,25 @@ class CourseController extends Controller
             ->first();
 
         $quizData = null;
-        if ($lesson->type === 'quiz' && $quiz = $lesson->quiz()->with('questions')->first()) {
+        if ($quiz = $this->lessonQuiz($lesson)) {
             $latestAttempt = $preview ? null : $quiz->attempts()->where('user_id', $user->id)->latest('id')->first();
+            $questionRows = $quiz->questions->sortBy('order');
+            $attemptKey = $this->quizAttemptKey($user->id, $lesson->id, $quiz->id);
+            if (!$preview && $quiz->shuffle_questions) {
+                $ids = session($attemptKey.'.questions') ?: $questionRows->shuffle()->take($quiz->limit_questions_to ?: $questionRows->count())->pluck('id')->all();
+                session([$attemptKey.'.questions' => $ids]);
+                $questionRows = collect($ids)->map(fn ($id) => $quiz->questions->firstWhere('id', $id))->filter();
+            }
+            if (!$preview && $quiz->time_limit) session([$attemptKey.'.started_at' => session($attemptKey.'.started_at') ?: now()->timestamp]);
             $quizData = [
                 'title' => $quiz->title,
                 'pass_score' => $quiz->pass_score,
+                'time_limit' => $quiz->time_limit,
+                'show_answers' => $quiz->show_answers,
                 'pending' => $latestAttempt?->status === 'pending',
                 'feedback' => $latestAttempt?->feedback,
                 'last_score' => $latestAttempt?->status === 'graded' ? $latestAttempt->score : null,
-                'questions' => $quiz->questions->sortBy('order')->map(fn($q) => [
+                'questions' => $questionRows->map(fn($q) => [
                     'id' => $q->id, 'question' => $q->question, 'options' => $q->options,
                     'type' => $q->question_type ?: 'single',
                 ])->values(),
@@ -371,16 +382,22 @@ class CourseController extends Controller
     {
         $user = Auth::user();
         abort_unless($lesson->section?->course_id === $course->id && CourseService::hasAccess($user, $course), 403);
-        abort_unless($lesson->type === 'quiz', 404);
+        $quiz = $this->lessonQuiz($lesson);
+        abort_unless($quiz, 404);
         $data = $request->validate([
             'answers' => 'required|array',
         ]);
-        $quiz = $lesson->quiz()->with('questions')->firstOrFail();
+        abort_if($quiz->enable_scheduling && (!$quiz->schedule_start || now()->lt($quiz->schedule_start) || ($quiz->schedule_end && now()->gt($quiz->schedule_end))), 422, 'This quiz is not available at this time.');
+        abort_if($quiz->max_attempts && $quiz->attempts()->where('user_id', $user->id)->count() >= $quiz->max_attempts, 422, 'You have used all quiz attempts.');
         abort_if($quiz->attempts()->where('user_id', $user->id)->latest('id')->value('status') === 'pending', 422, 'Your open answers are awaiting grading.');
-        $questions = $quiz->questions;
+        $attemptKey = $this->quizAttemptKey($user->id, $lesson->id, $quiz->id);
+        $startedAt = session($attemptKey.'.started_at');
+        abort_if($quiz->time_limit && (!$startedAt || now()->gt(now()->setTimestamp($startedAt)->addMinutes($quiz->time_limit))), 422, 'The quiz time limit has expired.');
+        $questionIds = session($attemptKey.'.questions');
+        $questions = $questionIds ? $quiz->questions->whereIn('id', $questionIds)->values() : $quiz->questions;
         abort_unless($questions->isNotEmpty() && $questions->every(fn($q) => array_key_exists($q->id, $data['answers'])), 422, 'Answer every question.');
         try {
-            $score = \App\Services\QuizGrader::score($questions, $data['answers']);
+            $score = \App\Services\QuizGrader::score($questions, $data['answers'], [], $quiz);
         } catch (\DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -389,6 +406,7 @@ class CourseController extends Controller
         $quiz->attempts()->create(['user_id' => $user->id, 'score' => $score,
             'passed' => $passed, 'answers' => $data['answers'],
             'status' => $pending ? 'pending' : 'graded', 'graded_at' => $pending ? null : now()]);
+        session()->forget($attemptKey);
         $result = $passed ? CourseService::updateLessonProgress($user, $lesson, 100) : null;
 
         return response()->json([
@@ -399,5 +417,16 @@ class CourseController extends Controller
             'course_progress' => $result['progress'] ?? Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->value('progress') ?? 0,
             'certificate' => $result['certificate']?->certificate_number ?? null,
         ]);
+    }
+
+    private function lessonQuiz(Lesson $lesson): ?\App\Models\Quiz
+    {
+        return $lesson->selectedQuiz()->with('questions')->first()
+            ?? $lesson->quiz()->with('questions')->first();
+    }
+
+    private function quizAttemptKey(int $userId, int $lessonId, int $quizId): string
+    {
+        return "quiz-attempt.$userId.$lessonId.$quizId";
     }
 }

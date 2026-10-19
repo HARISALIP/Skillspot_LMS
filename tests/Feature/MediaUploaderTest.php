@@ -8,7 +8,10 @@ use App\Models\Enrollment;
 use App\Models\Upload;
 use App\Models\User;
 use App\Services\MediaUploader;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Exceptions\PostTooLargeException;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
@@ -17,6 +20,16 @@ use Tests\TestCase;
 class MediaUploaderTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_oversized_ajax_upload_returns_json_instead_of_an_html_error(): void
+    {
+        $request = Request::create('/admin/media/upload', 'POST', server: ['HTTP_ACCEPT' => 'application/json']);
+        $response = app(ExceptionHandler::class)->render($request, new PostTooLargeException);
+
+        $this->assertSame(413, $response->getStatusCode());
+        $this->assertSame('application/json', $response->headers->get('Content-Type'));
+        $this->assertSame('The file exceeds the server upload limit.', json_decode($response->getContent(), true)['error']);
+    }
 
     public function test_admin_media_manager_exposes_named_keyboard_accessible_controls(): void
     {

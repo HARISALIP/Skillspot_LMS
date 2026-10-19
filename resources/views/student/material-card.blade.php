@@ -16,7 +16,7 @@
       <button type="button" class="text-brand-700 hover:underline" onclick="openMaterial(this)"
               data-title="{{ $material['title'] }}" data-type="{{ $material['type'] }}" data-url="{{ $material['preview_url'] ?: $material['url'] }}" data-download-url="{{ $material['download_url'] }}">Preview {{ $material['type'] === 'presentation' ? 'slides' : '' }} ↗</button>
     @else
-      <a href="{{ $material['url'] }}" target="_blank" rel="noopener noreferrer" class="text-brand-700 hover:underline">Open file ↗</a>
+      <a href="{{ $material['url'] }}" rel="noopener noreferrer" class="text-brand-700 hover:underline">Open file ↗</a>
     @endif
     <a href="{{ $material['download_url'] }}" class="text-gray-700 hover:underline">Download ↓</a>
   </div>

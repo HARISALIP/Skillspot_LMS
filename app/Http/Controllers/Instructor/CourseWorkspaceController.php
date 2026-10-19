@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Instructor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\CourseCategory;
+use App\Models\User;
 use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\Upload;
@@ -15,13 +17,22 @@ class CourseWorkspaceController extends Controller
 {
     public function index()
     {
-        return view('instructor.workspace', ['course' => null]);
+        $categoryRecords = CourseCategory::where('is_active', true)->orderBy('order_col')->get(['id', 'name']);
+        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
+            ->orWhereHas('instructorProfile', fn ($query) => $query->whereIn('status', ['pending', 'approved', 'rejected']))
+            ->orderBy('name')->get(['id', 'name', 'email']);
+        if (!$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
+        $canCreateInstructors = false;
+        $inviteMailReady = false;
+        return view('instructor.workspace', compact('categoryRecords', 'instructors', 'canCreateInstructors', 'inviteMailReady') + ['course' => null]);
     }
 
     public function show(Course $course)
     {
         $this->authorizeCourse($course);
-        return view('instructor.workspace', compact('course'));
+        return app(\App\Http\Controllers\Admin\CoursesController::class)
+            ->edit($course)
+            ->with('creatorWorkspace', true);
     }
 
     public function courses(Request $request)
@@ -42,6 +53,16 @@ class CourseWorkspaceController extends Controller
         $course->load(['sections.lessons', 'teachers:id,name,email'])->loadCount('enrollments');
 
         return $this->courseData($course, true);
+    }
+
+    public function quizLibrary(Course $course)
+    {
+        $this->authorizeCourse($course);
+        return \App\Models\Quiz::query()->whereNull('lesson_id')
+            ->when(!request()->user()->hasRole(['admin', 'super-admin']), fn ($query) => $query->where('owner_id', request()->user()->id))
+            ->withCount('questions')->orderBy('title')->get()->map(fn ($quiz) => [
+                'id' => $quiz->id, 'title' => $quiz->title, 'questions_count' => $quiz->questions_count,
+            ]);
     }
 
     public function storeCourse(Request $request)
@@ -153,6 +174,15 @@ class CourseWorkspaceController extends Controller
             'instructor_notes_document.time' => 'nullable|integer',
             'instructor_notes_document.version' => 'nullable|string|max:40',
         ]);
+        if (array_key_exists('block_document', $data)) {
+            $quizBlock = collect($data['block_document']['blocks'] ?? [])->first(fn ($block) => ($block['type'] ?? null) === 'quiz');
+            $quizId = data_get($quizBlock, 'data.quiz_id');
+            if ($quizId) {
+                $quiz = \App\Models\Quiz::whereNull('lesson_id')->findOrFail($quizId);
+                abort_unless(request()->user()->hasRole(['admin', 'super-admin']) || $quiz->owner_id === request()->user()->id, 403);
+            }
+            $data['quiz_id'] = $quizId;
+        }
         foreach ($data['resources'] ?? [] as $resource) {
             abort_unless((int) data_get(Upload::find($resource['upload_id'])?->used_in, 'course_id') === $course->id, 422, 'Files must belong to this course.');
         }
@@ -243,6 +273,7 @@ class CourseWorkspaceController extends Controller
             'blocks' => $lesson->block_document,
             'video_url' => $lesson->video_url, 'duration' => $lesson->duration ? (int) ceil($lesson->duration / 60) : 0,
             'resources' => $lesson->resources ?? [],
+            'quiz_id' => $lesson->quiz_id,
             'instructor_notes' => $lesson->instructor_notes_document,
             'legacy_content' => $lesson->block_document ? null : $lesson->content,
         ];

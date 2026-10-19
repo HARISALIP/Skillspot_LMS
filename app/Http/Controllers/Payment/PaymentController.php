@@ -38,6 +38,7 @@ class PaymentController extends Controller
         $request->validate(['course_id' => 'required|exists:courses,id']);
         $course = Course::findOrFail($request->course_id);
         abort_unless($course->isMarketplaceLive(), 404, 'This course is not available for purchase.');
+        abort_unless($course->registration_open, 403, 'Self enrollment is closed for this course.');
         if ($course->is_free || $course->price == 0) return $this->enrollFree($request->user(), $course);
         try {
             return response()->json($this->payments->createOrder($request->user(), $course));

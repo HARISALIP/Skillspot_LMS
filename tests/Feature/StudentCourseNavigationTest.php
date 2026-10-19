@@ -112,6 +112,8 @@ class StudentCourseNavigationTest extends TestCase
         $this->actingAs($student)->get(route('student.browse', ['sort' => 'price_lo']))
             ->assertOk()
             ->assertSeeInOrder(['Affordable course', 'Expensive course'])
+            ->assertSeeText('All Courses')
+            ->assertSee('class="course-grid"', false)
             ->assertSee('for="course-category"', false)
             ->assertSee('for="course-level"', false)
             ->assertSee('for="course-sort"', false);
@@ -177,6 +179,13 @@ class StudentCourseNavigationTest extends TestCase
 
         $this->post(route('student.enroll-free', $course))
             ->assertRedirect(route('student.learn', $course));
+
+        $this->get(route('student.courses'))
+            ->assertOk()
+            ->assertSeeText('My Courses')
+            ->assertSee('class="course-grid"', false)
+            ->assertSee(route('student.learn', $course))
+            ->assertSee('role="progressbar"', false);
 
         $this->get(route('student.learn', $course))
             ->assertOk()

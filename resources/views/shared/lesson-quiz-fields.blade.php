@@ -10,6 +10,17 @@
     <div class="font-bold text-violet-900 text-sm">📝 Graded quiz</div>
     <p class="text-xs text-violet-700 mt-1">Students answer every question and must pass before this lesson counts as complete.</p>
   </div>
+  @if(($availableQuizzes ?? collect())->isNotEmpty())
+  <label class="block text-xs font-bold text-gray-600">Use a saved quiz
+    <select name="quiz_id" id="savedQuiz" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm">
+      <option value="">Create a new quiz in this lesson</option>
+      @foreach($availableQuizzes as $savedQuiz)
+      <option value="{{ $savedQuiz->id }}" {{ (string)old('quiz_id', $lesson->quiz_id) === (string)$savedQuiz->id ? 'selected' : '' }}>{{ $savedQuiz->title }} · {{ $savedQuiz->questions_count }} questions</option>
+      @endforeach
+    </select>
+  </label>
+  <p class="text-xs text-gray-500">Saved quizzes are managed in <a href="{{ route('admin.quizzes') }}" class="font-semibold text-brand-700 underline">Quizzes</a>. Selecting one keeps its questions and settings shared with this lesson.</p>
+  @endif
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
     <label class="sm:col-span-2 text-xs font-bold text-gray-600">Quiz title
       <input name="quiz_title" value="{{ old('quiz_title', $lesson->quiz?->title ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm" placeholder="Module knowledge check">

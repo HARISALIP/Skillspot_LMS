@@ -38,6 +38,8 @@ class CourseMaterialsTest extends TestCase
         $this->actingAs($teacher)->post(route('admin.courses.store'), $input)->assertRedirect();
         $course = Course::where('title', 'Robotics')->firstOrFail();
         $this->assertCount(2, $course->resources);
+        $this->assertSame($course->id, (int) data_get($paper->fresh()->used_in, 'course_id'));
+        $this->assertSame($course->id, (int) data_get($image->fresh()->used_in, 'course_id'));
         $section = Section::create(['course_id' => $course->id, 'title' => 'Start']);
         $section->lessons()->create(['title' => 'First lesson', 'type' => 'text', 'resources' => [
             ['title' => 'Lesson-only diagram', 'kind' => 'image', 'upload_id' => $image->id],
@@ -87,6 +89,9 @@ class CourseMaterialsTest extends TestCase
 
         $lesson = $section->lessons()->firstOrFail();
         $this->assertSame($deck->id, $lesson->resources[0]['upload_id']);
+        $this->assertSame($course->id, (int) data_get($deck->fresh()->used_in, 'course_id'));
+        $this->assertSame($course->id, (int) data_get($preview->fresh()->used_in, 'course_id'));
+        $this->get(route('media.course', [$course, $preview->uuid]))->assertOk();
         CourseService::enrollFree($student, $course);
         $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
             ->assertSee('Intro slides')->assertSee('Narration')->assertSee('Diagram')->assertSee('Practice quiz')

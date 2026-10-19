@@ -9,11 +9,13 @@ use App\Http\Controllers\Admin\UsersController;
 use App\Http\Controllers\Admin\RolesController;
 use App\Http\Controllers\Admin\CoursesController;
 use App\Http\Controllers\Instructor\CourseWorkspaceController;
+use App\Http\Controllers\CourseCreationController;
 use App\Http\Controllers\Admin\CourseOptionsController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PaymentsController;
 use App\Http\Controllers\Admin\CertificatesController;
 use App\Http\Controllers\Admin\LiveController;
+use App\Http\Controllers\Admin\QuizController;
 use App\Http\Controllers\Admin\BatchController as AdminBatch;
 use App\Http\Controllers\Admin\EnrollmentsController;
 use App\Http\Controllers\Student\DashboardController as StudentDash;
@@ -82,10 +84,22 @@ Route::prefix('instructor')->name('instructor.')->middleware('auth')->group(func
 
 Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'creator.access'])->group(function () {
     Route::get('/courses', [CourseWorkspaceController::class, 'index'])->name('courses.index');
+    Route::post('/courses/create', [CoursesController::class, 'store'])->name('courses.create.store');
     Route::get('/courses/{course}', [CourseWorkspaceController::class, 'show'])->name('courses.show');
+    Route::put('/courses/{course}', [CoursesController::class, 'update'])->name('courses.update');
+    Route::post('/courses/{course}/sections', [CoursesController::class, 'storeSection'])->name('courses.sections.store');
+    Route::put('/courses/{course}/sections/{section}', [CoursesController::class, 'updateSection'])->name('courses.sections.update');
+    Route::delete('/courses/{course}/sections/{section}', [CoursesController::class, 'destroySection'])->name('courses.sections.destroy');
+    Route::post('/courses/{course}/sections/reorder', [CoursesController::class, 'reorderSections'])->name('courses.sections.reorder');
+    Route::get('/courses/{course}/sections/{section}/lessons/create', [CoursesController::class, 'createLesson'])->name('courses.lessons.create');
+    Route::post('/courses/{course}/sections/{section}/lessons', [CoursesController::class, 'storeLesson'])->name('courses.lessons.store');
+    Route::get('/courses/{course}/sections/{section}/lessons/{lesson}/edit', [CoursesController::class, 'editLesson'])->name('courses.lessons.edit');
+    Route::put('/courses/{course}/sections/{section}/lessons/{lesson}', [CoursesController::class, 'updateLesson'])->name('courses.lessons.update');
+    Route::delete('/courses/{course}/sections/{section}/lessons/{lesson}', [CoursesController::class, 'destroyLesson'])->name('courses.lessons.destroy');
     Route::prefix('/workspace/courses')->name('api.courses.')->group(function () {
         Route::get('/', [CourseWorkspaceController::class, 'courses'])->name('index');
         Route::post('/', [CourseWorkspaceController::class, 'storeCourse'])->name('store');
+        Route::get('/{course}/quizzes', [CourseWorkspaceController::class, 'quizLibrary'])->name('quizzes.index');
         Route::get('/{course}', [CourseWorkspaceController::class, 'course'])->name('show');
         Route::patch('/{course}', [CourseWorkspaceController::class, 'updateCourse'])->name('update');
         Route::post('/{course}/sections', [CourseWorkspaceController::class, 'storeSection'])->name('sections.store');
@@ -94,6 +108,10 @@ Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'creator.a
         Route::patch('/{course}/sections/{section}/lessons/{lesson}', [CourseWorkspaceController::class, 'updateLesson'])->name('lessons.update');
         Route::post('/{course}/outline', [CourseWorkspaceController::class, 'reorder'])->name('outline');
     });
+});
+Route::middleware('auth')->prefix('courses/create')->name('courses.create.')->group(function () {
+    Route::post('/media', [CourseCreationController::class, 'uploadMedia'])->name('media');
+    Route::post('/categories', [CourseCreationController::class, 'storeCategory'])->name('categories');
 });
 // ── Razorpay Webhook (NO csrf — verified via signature) ────────────────────
 Route::post('/webhook/razorpay', [PaymentController::class, 'webhook'])
@@ -153,6 +171,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin.only'])->group
     Route::patch('/courses/{course}/toggle-publish',                  [CoursesController::class,'togglePublish'])->name('courses.toggle-publish');
     Route::delete('/courses/{course}',                                [CoursesController::class,'destroy'])->name('courses.destroy');
     Route::post('/courses/{course}/submit-review', [MarketplaceController::class, 'submitCourse'])->name('courses.submit-review');
+    // Quiz library
+    Route::get('/quizzes', [QuizController::class, 'index'])->name('quizzes');
+    Route::get('/quizzes/questions', [QuizController::class, 'questions'])->name('quizzes.questions');
+    Route::get('/quizzes/submissions', [QuizController::class, 'submissions'])->name('quizzes.submissions');
+    Route::get('/quizzes/create', [QuizController::class, 'create'])->name('quizzes.create');
+    Route::post('/quizzes', [QuizController::class, 'store'])->name('quizzes.store');
+    Route::get('/quizzes/{quiz}/edit', [QuizController::class, 'edit'])->name('quizzes.edit');
+    Route::put('/quizzes/{quiz}', [QuizController::class, 'update'])->name('quizzes.update');
+    Route::delete('/quizzes/{quiz}', [QuizController::class, 'destroy'])->name('quizzes.destroy');
     // Sections
     Route::post('/courses/{course}/sections',                         [CoursesController::class,'storeSection'])->name('courses.sections.store');
     Route::put('/courses/{course}/sections/{section}',                [CoursesController::class,'updateSection'])->name('courses.sections.update');
@@ -363,6 +390,7 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
     Route::middleware('teacher.only')->group(function () {
         // Course full CRUD
         Route::get('/courses/create',                                                     [VendorCourses::class,'create'])->name('courses.create');
+        Route::post('/courses/create-modal',                                               [VendorCourses::class,'storeModal'])->name('courses.modal.store');
         Route::post('/courses',                                                           [VendorCourses::class,'store'])->name('courses.store');
         Route::get('/courses/{course}/edit',                                              [VendorCourses::class,'edit'])->name('courses.edit');
         Route::put('/courses/{course}',                                                   [VendorCourses::class,'update'])->name('courses.update');

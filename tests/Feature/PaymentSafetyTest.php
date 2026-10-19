@@ -143,7 +143,7 @@ class PaymentSafetyTest extends TestCase
         $vendor = Vendor::create(['user_id' => $owner->id, 'brand_name' => 'Paid Academy', 'status' => 'active']);
         $course = Course::create(['title' => 'Paid portal course', 'vendor_id' => $vendor->id,
             'is_free' => false, 'price' => 100, 'is_published' => true,
-            'marketplace_status' => 'live', 'marketplace_visible' => true]);
+            'marketplace_status' => 'live', 'marketplace_visible' => true, 'visibility' => 'public']);
 
         $this->get(route('vendor.portal.register', [$vendor->slug, $course->id]))
             ->assertRedirect(route('student.course-detail', $course->slug));
