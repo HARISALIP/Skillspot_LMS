@@ -64,7 +64,7 @@
 <template id="question-template">@include('admin.quizzes.question', ['i' => '__INDEX__', 'question' => ['type'=>'single','marks'=>1,'options'=>['',''],'correct_answer'=>0]])</template>
 @php($questionBankData = $questionBank->map(fn ($question) => ['id' => $question->id, 'question' => $question->question, 'type' => $question->question_type, 'marks' => $question->marks, 'options' => $question->options, 'explanations' => $question->explanations, 'correct_answer' => $question->correct_answer, 'correct_answers' => $question->correct_answers, 'accepted_answers' => $question->accepted_answers])->values())
 @vite('resources/js/quiz-question-editor.js')
-@push('scripts')<script>
+@push('scripts')<script>(() => {
 const quizForm = document.querySelector('#quizForm'), questions = document.querySelector('#questions'), template = document.querySelector('#question-template');
 const bankQuestions = @json($questionBankData);
 const editing = quizForm.dataset.new === '0';
@@ -201,5 +201,5 @@ function filterBank() {
 document.querySelector('#question-bank-search')?.addEventListener('input', filterBank);
 document.querySelector('#question-bank-type')?.addEventListener('change', filterBank);
 
-</script>@endpush
+})();</script>@endpush
 @endsection
