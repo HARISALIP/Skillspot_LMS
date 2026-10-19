@@ -133,7 +133,7 @@ async function saveQuiz() {
       throw new Error(data.message || 'Your changes could not be saved.');
     }
     setSaveStatus('saved');
-    const title = quizForm.title.value.trim();
+    const title = quizForm.querySelector('#quiz-title').value.trim();
     const pageTitle = document.querySelector('.admin-page-header h1');
     if (pageTitle?.lastChild) pageTitle.lastChild.nodeValue = ' ' + title;
     document.title = title + ' � Skillspot';
@@ -204,7 +204,7 @@ document.querySelector('#question-bank-type')?.addEventListener('change', filter
 if (!editing) {
   let creating = false;
   document.querySelector('#quiz-title').addEventListener('blur', async () => {
-    if (creating || !quizForm.title.value.trim()) return;
+    if (creating || !quizForm.querySelector('#quiz-title').value.trim()) return;
     creating = true;
     const response = await fetch(quizForm.action, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': quizForm.querySelector('[name="_token"]').value }, credentials: 'same-origin', body: new FormData(quizForm) });
     if (response.ok) { location.href = (await response.json()).edit_url; return; }
