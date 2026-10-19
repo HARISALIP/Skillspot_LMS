@@ -331,6 +331,8 @@ function initialiseCourseWorkspace() {
   let sidebarChangedByUser = false;
   const rememberSidebarChoice = () => { if (sidebarBeforeEditor !== undefined) sidebarChangedByUser = true; };
   const sidebarToggle = document.getElementById('sidebarToggle');
+  const editorPreviewTemplate = document.getElementById('editorPreviewTemplate');
+  const courseActions = document.querySelector('[data-course-actions]');
   sidebarToggle?.addEventListener('click', rememberSidebarChoice);
   import('./course-creation-editor').then(({ initializeCourseEditor }) => initializeCourseEditor());
 
@@ -346,6 +348,12 @@ function initialiseCourseWorkspace() {
     workspace.querySelectorAll('[data-course-tab]').forEach(element => element.classList.toggle('is-active', element.dataset.courseTab === tab));
     workspace.querySelectorAll('[data-course-panel]').forEach(element => { element.hidden = element.dataset.coursePanel !== tab; });
     document.querySelectorAll('[data-tab-action]').forEach(element => element.classList.toggle('hidden', element.dataset.tabAction !== tab));
+    const editorPreview = document.querySelector('[data-editor-preview]');
+    if (tab === 'editor' && !editorPreview && editorPreviewTemplate && courseActions) {
+      courseActions.prepend(editorPreviewTemplate.content.cloneNode(true));
+    } else if (tab !== 'editor') {
+      editorPreview?.remove();
+    }
   };
   const syncTab = () => showTab(location.hash.slice(1) || 'overview');
   window.addEventListener('hashchange', syncTab);

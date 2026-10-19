@@ -354,10 +354,26 @@ class CoursesController extends Controller
     public function togglePublish(Course $course)
     {
         $this->authorizeCourseOwner($course);
-        if ($course->marketplace_status !== 'live') return back()->with('error', 'Submit this course for marketplace review before publishing it.');
         $publish = !$course->marketplace_visible;
-        $course->update(['marketplace_visible' => $publish, 'visibility' => $publish ? 'public' : 'draft', 'is_published' => $publish]);
+        $course->update(['marketplace_status' => $publish ? 'live' : $course->marketplace_status, 'marketplace_visible' => $publish, 'visibility' => $publish ? 'public' : 'draft', 'is_published' => $publish]);
         return back()->with('success', $publish ? 'Course is live in the Skillspot marketplace.' : 'Course has been unpublished.');
+    }
+
+    public function export(Course $course)
+    {
+        $this->authorizeCourseOwner($course);
+        $course->load('sections.lessons');
+
+        $export = [
+            'course' => $course->only(['title', 'slug', 'description', 'short_introduction', 'meta_description', 'meta_keywords', 'thumbnail', 'thumbnail_color', 'intro_video', 'language', 'level', 'category', 'tags', 'price', 'sale_price', 'is_free', 'is_featured', 'upcoming', 'enforce_lesson_completion', 'enable_certification', 'requirements', 'outcomes', 'resources', 'max_students', 'course_type', 'batch_name', 'batch_start_date', 'batch_end_date', 'registration_open']),
+            'sections' => $course->sections->map(fn (Section $section) => [
+                'title' => $section->title,
+                'order' => $section->order,
+                'lessons' => $section->lessons->map(fn (Lesson $lesson) => $lesson->only(['title', 'description', 'type', 'content', 'video_url', 'notes', 'resources', 'duration', 'is_preview', 'order', 'block_document', 'instructor_notes_document']))->values(),
+            ])->values(),
+        ];
+
+        return response()->streamDownload(fn () => print(json_encode($export, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)), Str::slug($course->title).'-course.json', ['Content-Type' => 'application/json']);
     }
 
     // Grant restricted access to specific user
@@ -387,7 +403,7 @@ class CoursesController extends Controller
         $title = $course->title;
         $course->sections()->where('is_scorm', true)->get()->each(fn (Section $section) => $scormPackages->delete($section));
         $course->delete();
-        return redirect()->route('admin.courses')
+        return redirect()->route(request()->routeIs('instructor.courses.*') ? 'instructor.courses.index' : 'admin.courses')
             ->with('success', "Course \"{$title}\" deleted.");
     }
 

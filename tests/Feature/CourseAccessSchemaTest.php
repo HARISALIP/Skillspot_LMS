@@ -51,7 +51,12 @@ class CourseAccessSchemaTest extends TestCase
             ->assertSee('data-course-tab="dashboard"', false)
             ->assertSee('data-course-tab="editor"', false)
             ->assertSee('data-course-tab="settings"', false)
+            ->assertSee('data-editor-preview', false)
+            ->assertDontSee('data-tab-action="editor"', false)
             ->assertSee('action="'.route('instructor.courses.update', $course).'"', false)
+            ->assertSee('action="'.route('instructor.courses.toggle-publish', $course).'"', false)
+            ->assertSee('href="'.route('instructor.courses.export', $course).'"', false)
+            ->assertSee('action="'.route('instructor.courses.destroy', $course).'"', false)
             ->assertDontSee('data-tab-action="dashboard"', false)
             ->assertDontSee('Publish with admin override')
             ->assertDontSee('name="vendor_id"', false)
@@ -91,5 +96,40 @@ class CourseAccessSchemaTest extends TestCase
         $this->actingAs($otherTeacher)->post(route('instructor.courses.sections.store', $course), ['title' => 'Taken'])->assertForbidden();
         $this->actingAs($otherTeacher)->get(route('instructor.courses.lessons.create', [$course, $chapter]))->assertForbidden();
         $this->actingAs($creator)->get(route('admin.courses.edit', $course))->assertForbidden();
+    }
+
+    public function test_creator_can_only_export_publish_or_delete_their_own_course(): void
+    {
+        Role::findOrCreate('teacher', 'web');
+        $creator = User::factory()->create();
+        $creator->assignRole('teacher');
+        InstructorProfile::create(['user_id' => $creator->id, 'status' => 'approved']);
+        $otherCreator = User::factory()->create();
+        $otherCreator->assignRole('teacher');
+        InstructorProfile::create(['user_id' => $otherCreator->id, 'status' => 'approved']);
+        $course = Course::create([
+            'title' => 'Creator controls', 'slug' => 'creator-controls', 'primary_instructor_id' => $creator->id,
+            'marketplace_status' => 'live', 'marketplace_visible' => true, 'visibility' => 'public', 'is_published' => true,
+        ]);
+
+        $this->actingAs($otherCreator)->get(route('instructor.courses.export', $course))->assertForbidden();
+        $this->actingAs($otherCreator)->patch(route('instructor.courses.toggle-publish', $course))->assertForbidden();
+        $this->actingAs($otherCreator)->delete(route('instructor.courses.destroy', $course))->assertForbidden();
+
+        $this->actingAs($creator)->get(route('instructor.courses.export', $course))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/json');
+        $this->actingAs($creator)->patch(route('instructor.courses.toggle-publish', $course))->assertRedirect();
+        $this->assertFalse($course->fresh()->marketplace_visible);
+        $this->actingAs($creator)->patch(route('instructor.courses.toggle-publish', $course))->assertRedirect();
+        $this->assertTrue($course->fresh()->marketplace_visible);
+
+        $draft = Course::create(['title' => 'Direct creator draft', 'slug' => 'direct-creator-draft', 'primary_instructor_id' => $creator->id]);
+        $this->actingAs($creator)->patch(route('instructor.courses.toggle-publish', $draft))->assertRedirect();
+        $this->assertTrue($draft->fresh()->marketplace_visible);
+        $this->assertSame('live', $draft->fresh()->marketplace_status);
+        $this->actingAs($creator)->delete(route('instructor.courses.destroy', $course))
+            ->assertRedirect(route('instructor.courses.index'));
+        $this->assertSoftDeleted('courses', ['id' => $course->id]);
     }
 }

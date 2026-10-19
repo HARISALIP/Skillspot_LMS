@@ -87,6 +87,9 @@ Route::prefix('instructor')->name('instructor.')->middleware(['auth', 'creator.a
     Route::post('/courses/create', [CoursesController::class, 'store'])->name('courses.create.store');
     Route::get('/courses/{course}', [CourseWorkspaceController::class, 'show'])->name('courses.show');
     Route::put('/courses/{course}', [CoursesController::class, 'update'])->name('courses.update');
+    Route::get('/courses/{course}/export', [CoursesController::class, 'export'])->name('courses.export');
+    Route::patch('/courses/{course}/toggle-publish', [CoursesController::class, 'togglePublish'])->name('courses.toggle-publish');
+    Route::delete('/courses/{course}', [CoursesController::class, 'destroy'])->name('courses.destroy');
     Route::post('/courses/{course}/sections', [CoursesController::class, 'storeSection'])->name('courses.sections.store');
     Route::put('/courses/{course}/sections/{section}', [CoursesController::class, 'updateSection'])->name('courses.sections.update');
     Route::delete('/courses/{course}/sections/{section}', [CoursesController::class, 'destroySection'])->name('courses.sections.destroy');
@@ -166,6 +169,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin.only'])->group
     Route::post('/courses/instructors',                               [CoursesController::class,'storeInstructor'])->name('courses.instructors.store');
     Route::get('/courses/{course}/edit',                              [CoursesController::class,'edit'])->name('courses.edit');
     Route::put('/courses/{course}',                                   [CoursesController::class,'update'])->name('courses.update');
+    Route::get('/courses/{course}/export',                            [CoursesController::class,'export'])->name('courses.export');
     Route::post('/courses/{course}/grant-access',        [CoursesController::class,'grantAccess'])->name('courses.grant-access');
     Route::delete('/courses/{course}/revoke-access/{user}', [CoursesController::class,'revokeAccess'])->name('courses.revoke-access');
     Route::patch('/courses/{course}/toggle-publish',                  [CoursesController::class,'togglePublish'])->name('courses.toggle-publish');
