@@ -5,7 +5,7 @@
 
 @section('page-title')<span class="font-normal text-gray-500">Quizzes /</span> {{ $quiz->exists ? $quiz->title : 'New Quiz' }}@endsection
 @section('page-actions')
-  @if($quiz->exists)<span id="quiz-save-status" role="status" class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Saved</span><button id="save-quiz" type="button" class="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white">Save quiz</button><form method="POST" action="{{ route('admin.quizzes.destroy', $quiz) }}" onsubmit="return confirm('Delete this quiz?')">@csrf @method('DELETE')<button class="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700">Delete</button></form>@endif
+  @if($quiz->exists)<span id="quiz-save-status" role="status" class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Saved</span><button id="save-quiz" type="button" class="rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white">Save quiz</button><form method="POST" action="{{ route('admin.quizzes.destroy', $quiz) }}" onsubmit="return confirm('Delete this quiz?')">@csrf @method('DELETE')<button class="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700">Delete</button></form>@else<button form="quizForm" type="submit" class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700">Create quiz</button>@endif
 @endsection
 
 @section('admin-content')
@@ -170,7 +170,7 @@ document.addEventListener('click', event => {
   saveQuiz();
 });
 document.querySelector('#save-quiz')?.addEventListener('click', () => { setSaveStatus('pending'); saveQuiz(); });
-quizForm.addEventListener('submit', event => event.preventDefault());
+quizForm.addEventListener('submit', event => { if (editing) event.preventDefault(); });
 
 document.querySelectorAll('.quiz-question').forEach(toggleQuestion);
 document.querySelectorAll('.setting-toggle').forEach(toggleSetting);
@@ -201,16 +201,5 @@ function filterBank() {
 document.querySelector('#question-bank-search')?.addEventListener('input', filterBank);
 document.querySelector('#question-bank-type')?.addEventListener('change', filterBank);
 
-if (!editing) {
-  let creating = false;
-  document.querySelector('#quiz-title').addEventListener('blur', async () => {
-    if (creating || !quizForm.querySelector('#quiz-title').value.trim()) return;
-    creating = true;
-    const response = await fetch(quizForm.action, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': quizForm.querySelector('[name="_token"]').value }, credentials: 'same-origin', body: new FormData(quizForm) });
-    if (response.ok) { location.href = (await response.json()).edit_url; return; }
-    creating = false;
-    alert('Could not create the quiz. Check the required fields and try again.');
-  });
-}
 </script>@endpush
 @endsection
