@@ -2,109 +2,48 @@
 @section('title', 'Skillspot.in — Learn. Build. Grow.')
 @section('content')
 
-<!-- HERO -->
-<section class="gradient-hero px-4 pt-28 pb-20 relative overflow-hidden">
-  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[300px] bg-gradient-to-tr from-brand-200/50 to-accent-200/50 rounded-full blur-3xl pointer-events-none"></div>
-
-  <div class="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] items-center gap-10">
-    <div class="text-center lg:text-left">
-      <h1 class="text-balance text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.05] tracking-[-0.05em] mb-5">
-        Learn in-demand tech skills.<br>
-        <span class="gradient-text">Build your future.</span>
-      </h1>
-
-      <p class="max-w-xl mx-auto lg:mx-0 text-base sm:text-lg text-slate-600 leading-relaxed mb-7">
-        Skillspot LMS helps you master practical coding, digital skills, and industry-ready workflows through flexible, instructor-led learning.
-      </p>
-
-      <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-        <a href="#courses" class="bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-6 py-3.5 rounded-xl text-sm md:text-base font-bold transition shadow-lg shadow-brand-600/20 flex items-center justify-center gap-2">
-          <span>Explore Courses & Buy</span> <i class="fa-solid fa-arrow-down text-xs"></i>
-        </a>
-        <a href="/register" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm px-6 py-3.5 rounded-xl text-sm md:text-base font-semibold active:scale-[0.98] transition flex items-center justify-center">
-          Create Free Account
-        </a>
-      </div>
-
-    </div>
-
-    <div class="relative mt-6 lg:mt-0">
-      <div class="absolute -inset-5 bg-gradient-to-r from-brand-500/15 via-accent-500/10 to-brand-500/15 blur-2xl rounded-[2rem]"></div>
-      <div class="relative bg-slate-900 text-white rounded-[28px] p-5 sm:p-6 shadow-[0_30px_80px_rgba(15,23,42,0.25)] ring-1 ring-white/10">
-        <div class="flex items-center justify-between pb-4 border-b border-slate-700/80">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">Student dashboard</p>
-            <h3 class="mt-2 text-xl font-bold">Learning progress</h3>
-          </div>
-          <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Live</span>
-        </div>
-
-        <div class="mt-5 space-y-4">
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <div class="flex items-center justify-between text-sm mb-2">
-              <span class="font-medium text-slate-200">Full Stack Web Dev</span>
-              <span class="text-brand-300 font-bold">72%</span>
-            </div>
-            <div class="h-2.5 bg-slate-700 rounded-full overflow-hidden">
-              <div class="h-full w-[72%] rounded-full bg-gradient-to-r from-brand-400 to-blue-500"></div>
-            </div>
-          </div>
-
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <div class="flex items-center justify-between text-sm mb-2">
-              <span class="font-medium text-slate-200">Python & AI</span>
-              <span class="text-violet-300 font-bold">45%</span>
-            </div>
-            <div class="h-2.5 bg-slate-700 rounded-full overflow-hidden">
-              <div class="h-full w-[45%] rounded-full bg-gradient-to-r from-violet-400 to-accent-500"></div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 mt-4">
-            <div class="bg-gradient-to-br from-brand-500/20 to-blue-500/10 rounded-2xl p-4 border border-brand-400/20">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Courses</p>
-              <p class="mt-2 text-3xl font-black text-white">{{ $stats['courses'] }}</p>
-            </div>
-            <div class="bg-gradient-to-br from-emerald-500/20 to-green-500/10 rounded-2xl p-4 border border-emerald-400/20">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Students</p>
-              <p class="mt-2 text-3xl font-black text-white">{{ $stats['students'] }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="absolute bottom-0 left-0 right-0">
-    <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 60L1440 60L1440 30C1200 60 720 0 0 30Z" fill="#ffffff"/>
-    </svg>
-  </div>
-</section>
-
-<!-- COURSES (FIRST AFTER HERO) -->
-<section id="courses" class="py-14 bg-slate-50/70 border-b border-slate-200/60">
+<!-- ── 1. COURSES & MARKETPLACE CATALOG (FIRST AT THE TOP OF HOMEPAGE) ───────────────────────── -->
+<section id="courses" class="pt-24 pb-14 bg-gradient-to-b from-slate-100/90 via-slate-50 to-white border-b border-slate-200/70">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
+    
+    {{-- Header Banner --}}
+    <div class="flex flex-col md:flex-row md:items-end justify-between mb-7 gap-4">
       <div>
-        <div class="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-bold border border-brand-200/70 px-3.5 py-1 rounded-full mb-2">
+        <div class="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-black border border-brand-200/80 px-3.5 py-1 rounded-full mb-2.5">
           <i class="fa-solid fa-graduation-cap text-brand-600"></i> Instant Access Courses
         </div>
-        <h2 class="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Featured Courses & Programs</h2>
-        <p class="text-slate-500 text-xs sm:text-sm mt-1">Pick a course to start learning immediately with practical projects & certificates.</p>
+        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          Learn In-Demand Tech Skills. <span class="gradient-text">Start Today.</span>
+        </h1>
+        <p class="text-slate-600 text-sm mt-1.5 max-w-2xl">
+          Hands-on developer courses, AI workflows, and verified certificates. Pick a course to start learning or buying immediately.
+        </p>
       </div>
-      <a href="{{ route('marketplace.browse') }}" class="self-start sm:self-auto text-xs bg-white hover:bg-slate-100 text-brand-700 font-bold px-4 py-2 rounded-xl border border-slate-200 shadow-sm transition flex items-center gap-1.5">
-        <span>Browse All Courses</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
-      </a>
+
+      <div class="flex items-center gap-2">
+        <a href="{{ route('marketplace.browse') }}" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition flex items-center gap-2">
+          <span>All Courses ({{ $stats['courses'] }})</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </a>
+      </div>
     </div>
 
-    {{-- Fast Category Filters --}}
-    <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none text-xs" id="courseFilters">
-      <button type="button" onclick="filterCourses('all', this)" class="course-filter-btn px-4 py-2 rounded-xl font-bold bg-brand-600 text-white shadow-sm transition">All Courses</button>
-      <button type="button" onclick="filterCourses('web-development', this)" class="course-filter-btn px-4 py-2 rounded-xl font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition">Web Development</button>
-      <button type="button" onclick="filterCourses('ai-machine-learning', this)" class="course-filter-btn px-4 py-2 rounded-xl font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition">AI & Machine Learning</button>
-      <button type="button" onclick="filterCourses('robotics-iot', this)" class="course-filter-btn px-4 py-2 rounded-xl font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition">Robotics & IoT</button>
-      <button type="button" onclick="filterCourses('computer-science-coding', this)" class="course-filter-btn px-4 py-2 rounded-xl font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition">Coding & CS</button>
+    {{-- Live Search & Category Filters Bar --}}
+    <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-sm mb-7 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      {{-- Fast live search --}}
+      <div class="relative flex-1">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"></i>
+        <input type="text" id="courseSearchInput" oninput="searchCourses(this.value)" placeholder="Quick search courses (e.g. Web Development, Python, Robotics, Coding)..."
+               class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 placeholder-slate-400">
+      </div>
+
+      {{-- Fast Category pills --}}
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs" id="courseFilters">
+        <button type="button" onclick="filterCourses('all', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-brand-600 text-white shadow-sm transition whitespace-nowrap">All</button>
+        <button type="button" onclick="filterCourses('web-development', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Web Dev</button>
+        <button type="button" onclick="filterCourses('ai-machine-learning', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">AI & Python</button>
+        <button type="button" onclick="filterCourses('robotics-iot', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Robotics & IoT</button>
+        <button type="button" onclick="filterCourses('computer-science-coding', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Coding & CS</button>
+      </div>
     </div>
 
     @php
@@ -205,12 +144,12 @@
 
             @if($course->is_free)
             <a href="{{ route('student.course-detail', $course->slug) }}"
-               class="text-xs bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
+               class="text-xs bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
               <span>Enroll Free</span> <i class="fa-solid fa-arrow-right text-[9px]"></i>
             </a>
             @else
             <a href="{{ route('student.course-detail', $course->slug) }}"
-               class="text-xs bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
+               class="text-xs bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
               <span>Buy Course</span> <i class="fa-solid fa-bolt text-[9px]"></i>
             </a>
             @endif
@@ -226,7 +165,74 @@
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
+<!-- ── 2. LEARNING PLATFORM OVERVIEW & STATS ──────────────────────────────────── -->
+<section class="gradient-hero px-4 py-16 relative overflow-hidden">
+  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[300px] bg-gradient-to-tr from-brand-200/40 to-accent-200/40 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] items-center gap-10">
+    <div class="text-center lg:text-left">
+      <div class="inline-flex items-center gap-2 bg-white/80 border border-slate-200/90 px-3.5 py-1 rounded-full text-xs font-semibold text-slate-700 mb-4 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Built for Real Tech Careers
+      </div>
+      <h2 class="text-balance text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.08] tracking-[-0.04em] mb-4">
+        Master Real-World Workflows.<br>
+        <span class="gradient-text">Build Your Future.</span>
+      </h2>
+
+      <p class="max-w-xl mx-auto lg:mx-0 text-sm sm:text-base text-slate-600 leading-relaxed mb-6">
+        Skillspot LMS helps you master practical coding, digital skills, and industry-ready workflows through flexible, instructor-led learning and verified certificates.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+        <a href="/register" class="bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-6 py-3 rounded-xl text-sm font-bold transition shadow-lg shadow-brand-600/20 text-center">
+          Start Learning Free →
+        </a>
+        <a href="#courses" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm px-6 py-3 rounded-xl text-sm font-semibold active:scale-[0.98] transition text-center">
+          Browse Courses Above ↑
+        </a>
+      </div>
+    </div>
+
+    <div class="relative mt-4 lg:mt-0">
+      <div class="absolute -inset-4 bg-gradient-to-r from-brand-500/15 via-accent-500/10 to-brand-500/15 blur-2xl rounded-[2rem]"></div>
+      <div class="relative bg-slate-900 text-white rounded-[24px] p-5 sm:p-6 shadow-[0_25px_60px_rgba(15,23,42,0.2)] ring-1 ring-white/10">
+        <div class="flex items-center justify-between pb-3.5 border-b border-slate-700/80">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">Student Dashboard</p>
+            <h3 class="mt-1 text-lg font-bold">Platform Stats & Progress</h3>
+          </div>
+          <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Live</span>
+        </div>
+
+        <div class="mt-4 space-y-3.5">
+          <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5">
+            <div class="flex items-center justify-between text-xs mb-2">
+              <span class="font-medium text-slate-200">Full Stack Web Dev</span>
+              <span class="text-brand-300 font-bold">72%</span>
+            </div>
+            <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
+              <div class="h-full w-[72%] rounded-full bg-gradient-to-r from-brand-400 to-blue-500"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-3">
+            <div class="bg-gradient-to-br from-brand-500/20 to-blue-500/10 rounded-2xl p-3.5 border border-brand-400/20">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Active Courses</p>
+              <p class="mt-1 text-2xl font-black text-white">{{ $stats['courses'] }}</p>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-500/20 to-green-500/10 rounded-2xl p-3.5 border border-emerald-400/20">
+              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Enrolled Students</p>
+              <p class="mt-1 text-2xl font-black text-white">{{ $stats['students'] }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 3. HOW IT WORKS ────────────────────────────────────────────────────────── -->
 <section id="how-it-works" class="py-14 bg-white">
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-10">
@@ -254,22 +260,34 @@
 </section>
 
 <script>
-function filterCourses(category, btn) {
-  document.querySelectorAll('.course-filter-btn').forEach(function(b) {
-    b.className = 'course-filter-btn px-4 py-2 rounded-xl font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 transition';
-  });
-  btn.className = 'course-filter-btn px-4 py-2 rounded-xl font-bold bg-brand-600 text-white shadow-sm transition';
+window.currentCategory = 'all';
 
+function filterCourses(category, btn) {
+  window.currentCategory = category;
+  document.querySelectorAll('.course-filter-btn').forEach(function(b) {
+    b.className = 'course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap';
+  });
+  btn.className = 'course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-brand-600 text-white shadow-sm transition whitespace-nowrap';
+  var query = document.getElementById('courseSearchInput') ? document.getElementById('courseSearchInput').value : '';
+  searchCourses(query);
+}
+
+function searchCourses(query) {
+  var q = (query || '').toLowerCase().trim();
+  var activeCategory = window.currentCategory || 'all';
   var cards = document.querySelectorAll('.course-card-item');
   cards.forEach(function(card) {
-    if (category === 'all' || card.getAttribute('data-category') === category) {
-      card.style.display = 'flex';
-    } else {
-      card.style.display = 'none';
-    }
+    var title = (card.querySelector('h3')?.innerText || '').toLowerCase();
+    var desc = (card.querySelector('p')?.innerText || '').toLowerCase();
+    var cat = (card.getAttribute('data-category') || '').toLowerCase();
+    var matchesCat = (activeCategory === 'all' || cat === activeCategory);
+    var matchesQuery = (q === '' || title.includes(q) || desc.includes(q));
+    card.style.display = (matchesCat && matchesQuery) ? 'flex' : 'none';
   });
 }
 </script>
+
+
 
 <!-- WHY Skillspot.in -->
 <section id="about" class="py-14 bg-white">
