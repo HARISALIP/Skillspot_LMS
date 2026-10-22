@@ -115,7 +115,7 @@
           <li><a href="/register" class="text-slate-300 hover:text-brand-400 transition">Register Free</a></li>
           <li><a href="/login" class="text-slate-300 hover:text-brand-400 transition">Student Login</a></li>
           <li><a href="/#how-it-works" class="text-slate-300 hover:text-brand-400 transition">How it Works</a></li>
-          <li><a href="/#about" class="text-slate-300 hover:text-brand-400 transition">Why Skillspot</a></li>
+          <li><a href="/#courses" class="text-slate-300 hover:text-brand-400 transition">Browse Courses</a></li>
         </ul>
       </div>
 

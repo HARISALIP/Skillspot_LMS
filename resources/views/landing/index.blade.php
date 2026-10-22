@@ -289,72 +289,7 @@ function searchCourses(query) {
 
 
 
-<!-- WHY Skillspot.in -->
-<section id="about" class="py-14 bg-white">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-      <div>
-        <div class="inline-block bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200/70 px-3.5 py-1 rounded-full mb-4">Why Skillspot.in?</div>
-        <h2 class="text-2xl md:text-3xl font-black text-slate-900 mb-4 leading-tight tracking-tight">Built for<br>Real Tech Careers</h2>
-        <p class="text-slate-500 text-sm mb-6 leading-relaxed">We teach what the industry actually uses. Hands-on projects, real code, live sessions, and career-ready skills.</p>
-        <div class="space-y-3.5">
-          @foreach([
-            ['fa-solid fa-bullseye','Industry-Relevant Curriculum','Courses designed with real-world job requirements in mind.'],
-            ['fa-solid fa-chalkboard-user','Expert Instructors','Learn from practicing developers and IT professionals.'],
-            ['fa-solid fa-certificate','Verified Certificates','Downloadable certificates for every completed course.'],
-            ['fa-solid fa-comments','Community Support','Student forums, doubt-clearing sessions, and peer learning.'],
-            ['fa-solid fa-mobile-screen-button','Learn on Any Device','Fully mobile-responsive. Learn on phone, tablet or desktop.'],
-            ['fa-solid fa-arrows-rotate','Lifetime Access','Enroll once, access forever — including future updates.'],
-          ] as [$icon,$title,$desc])
-          <div class="flex items-start gap-3">
-            <div class="w-8 h-8 bg-brand-50 text-brand-600 rounded-lg flex items-center justify-center text-sm flex-shrink-0 border border-brand-100/80"><i class="{{ $icon }}"></i></div>
-            <div>
-              <div class="font-bold text-slate-900 text-sm">{{ $title }}</div>
-              <div class="text-slate-500 text-xs mt-0.5">{{ $desc }}</div>
-            </div>
-          </div>
-          @endforeach
-        </div>
-      </div>
 
-      <!-- Visual card -->
-      <div class="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 rounded-2xl p-5 text-white shadow-xl border border-slate-800">
-        <div class="text-white text-xs font-bold mb-4 flex items-center gap-2">
-          <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
-          <i class="fa-solid fa-graduation-cap text-brand-400 text-sm"></i>
-          Student Dashboard Preview
-        </div>
-        <!-- Progress cards -->
-        <div class="space-y-2.5">
-          @foreach([
-            ['Full-Stack Web Dev','72%','from-blue-400 to-brand-500'],
-            ['Python & AI','45%','from-purple-400 to-accent-500'],
-            ['Cybersecurity','100%','from-emerald-400 to-green-500'],
-          ] as [$name,$pct,$gradient])
-          <div class="bg-white/10 rounded-xl p-3 border border-white/10">
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-white text-xs font-semibold">{{ $name }}</span>
-              <span class="text-blue-300 text-[11px] font-bold">{{ $pct }}</span>
-            </div>
-            <div class="bg-white/20 rounded-full h-1.5 overflow-hidden">
-              <div class="bg-gradient-to-r {{ $gradient }} h-full rounded-full" style="width:{{ $pct }}"></div>
-            </div>
-          </div>
-          @endforeach
-        </div>
-        <!-- Certificate -->
-        <div class="mt-3.5 bg-gradient-to-r from-amber-400/20 to-yellow-400/20 border border-yellow-400/30 rounded-xl p-3 flex items-center gap-2.5">
-          <i class="fa-solid fa-award text-amber-400 text-xl flex-shrink-0"></i>
-          <div>
-            <div class="text-white text-xs font-bold">Certificate Earned!</div>
-            <div class="text-yellow-200 text-[11px]">Cybersecurity Fundamentals</div>
-          </div>
-        </div>
-        <div class="text-center text-slate-400 text-[11px] mt-3">Sample — your dashboard after enrolling</div>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- CTA -->
 <section class="py-14 bg-gradient-to-br from-brand-600 via-indigo-600 to-accent-700 text-center px-4 relative overflow-hidden">
