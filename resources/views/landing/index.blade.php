@@ -3,19 +3,19 @@
 @section('content')
 
 <!-- ── 1. COURSES & MARKETPLACE CATALOG (FIRST AT THE TOP OF HOMEPAGE) ───────────────────────── -->
-<section id="courses" class="pt-24 pb-14 bg-gradient-to-b from-slate-100/90 via-slate-50 to-white border-b border-slate-200/70">
+<section id="courses" class="pt-32 pb-14 bg-gradient-to-b from-slate-100/90 via-slate-50 to-white border-b border-slate-200/70 scroll-mt-20" style="padding-top: 125px;">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     
     {{-- Header Banner --}}
     <div class="flex flex-col md:flex-row md:items-end justify-between mb-7 gap-4">
       <div>
-        <div class="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-black border border-brand-200/80 px-3.5 py-1 rounded-full mb-2.5">
+        <div class="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-black border border-brand-200/80 px-3.5 py-1 rounded-full mb-3">
           <i class="fa-solid fa-graduation-cap text-brand-600"></i> Instant Access Courses
         </div>
-        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
           Learn In-Demand Tech Skills. <span class="gradient-text">Start Today.</span>
         </h1>
-        <p class="text-slate-600 text-sm mt-1.5 max-w-2xl">
+        <p class="text-slate-600 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
           Hands-on developer courses, AI workflows, and verified certificates. Pick a course to start learning or buying immediately.
         </p>
       </div>
