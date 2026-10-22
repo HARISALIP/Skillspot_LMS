@@ -18,19 +18,21 @@ class LandingController extends Controller
         $featuredCourses = Course::where('is_published', 1)
             ->where('visibility','public')
             ->where('is_featured', 1)
+            ->with(['sections.lessons'])
             ->withCount('enrollments')
             ->latest()
-            ->take(6)
+            ->take(8)
             ->get();
 
-        // If less than 6 featured, fill with other published
-        if ($featuredCourses->count() < 6) {
+        // If less than 8 featured, fill with other published
+        if ($featuredCourses->count() < 8) {
             $more = Course::where('is_published', 1)
                 ->where('visibility','public')
                 ->where('is_featured', 0)
+                ->with(['sections.lessons'])
                 ->withCount('enrollments')
                 ->latest()
-                ->take(6 - $featuredCourses->count())
+                ->take(8 - $featuredCourses->count())
                 ->get();
             $featuredCourses = $featuredCourses->merge($more);
         }

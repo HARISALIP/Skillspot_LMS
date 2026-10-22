@@ -47,10 +47,16 @@
       </div>
 
       <div class="hidden md:flex items-center gap-3">
-        <a href="/login" class="text-sm font-semibold text-slate-700 hover:text-brand-600 transition px-4 py-2">Login</a>
-        <a href="/register" class="text-sm bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-brand-600/20">
-          Join Free
-        </a>
+        @auth
+          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-brand-600/20 flex items-center gap-2">
+            <i class="fa-solid fa-gauge-high text-xs"></i> <span>My Dashboard</span>
+          </a>
+        @else
+          <a href="/login" class="text-sm font-semibold text-slate-700 hover:text-brand-600 transition px-4 py-2">Login</a>
+          <a href="/register" class="text-sm bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-brand-600/20">
+            Join Free
+          </a>
+        @endauth
       </div>
 
       <button id="hamburger" class="md:hidden text-slate-700 hover:text-slate-900 p-2 rounded-xl focus:outline-none" aria-label="Open menu">
@@ -64,8 +70,14 @@
     <div class="px-4 py-4 flex flex-col gap-1 text-sm font-medium">
       <a href="/#courses" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">📚 Courses</a>
       <div class="border-t border-slate-100 mt-2 pt-3 flex flex-col gap-2">
-        <a href="/login" class="text-center text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-semibold transition hover:bg-slate-50">Login</a>
-        <a href="/register" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">Start Learning →</a>
+        @auth
+          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">
+            Go to Dashboard →
+          </a>
+        @else
+          <a href="/login" class="text-center text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-semibold transition hover:bg-slate-50">Login</a>
+          <a href="/register" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">Start Learning →</a>
+        @endauth
       </div>
     </div>
   </div>
