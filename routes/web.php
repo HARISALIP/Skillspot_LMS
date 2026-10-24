@@ -32,8 +32,9 @@ Route::get('/course-media/{course}/{upload:uuid}', [MediaController::class, 'cou
 Route::get('/course/{slug}', [StudentCourse::class,'detail'])->name('student.course-detail');
 
 // ── Secure video streaming (auth required)
-Route::middleware(['auth','portal.access'])->group(function () {
+Route::middleware('auth')->group(function () {
     Route::get('/watch/lesson/{lesson}/stream',   [SecureVideoController::class, 'stream'])->name('video.stream');
+    Route::get('/watch/lesson/{lesson}/file',     [SecureVideoController::class, 'file'])->name('video.file');
     Route::post('/watch/lesson/{lesson}/progress',[SecureVideoController::class, 'progress'])->name('video.progress');
 });
 
@@ -43,6 +44,8 @@ Route::middleware(['auth','portal.access'])->group(function () {
     Route::post('/course/{course}/enroll-free',             [StudentCourse::class,'enrollFree'])->name('student.enroll-free');
     Route::post('/course/{course}/order',                   [StudentCourse::class,'createOrder'])->name('student.create-order');
     Route::post('/course/{course}/verify-payment',          [StudentCourse::class,'verifyPayment'])->name('student.verify-payment');
+});
+Route::middleware('auth')->group(function () {
     Route::get('/learn/{course}',                           [StudentCourse::class,'learn'])->name('student.learn');
     Route::get('/learn/{course}/lesson/{lesson}',           [StudentCourse::class,'getLesson'])->name('student.get-lesson');
     Route::get('/learn/{course}/scorm/{section}/{path}',     [StudentCourse::class,'scormAsset'])->where('path', '.*')->name('student.scorm.asset');
@@ -309,6 +312,7 @@ use App\Http\Controllers\Admin\VendorsController as AdminVendors;
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.only'])->group(function () {
     Route::get('/vendors',                          [AdminVendors::class,'index'])->name('vendors');
+    Route::get('/vendors/access-audit',             [AdminVendors::class,'accessAudit'])->name('vendors.access-audit');
     Route::get('/vendors/create',                   [AdminVendors::class,'create'])->name('vendors.create');
     Route::post('/vendors',                         [AdminVendors::class,'store'])->name('vendors.store');
     Route::get('/vendors/{vendor}/edit',            [AdminVendors::class,'edit'])->name('vendors.edit');
@@ -316,6 +320,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin.only'])->grou
     Route::delete('/vendors/{vendor}',              [AdminVendors::class,'destroy'])->name('vendors.destroy');
     Route::patch('/vendors/{vendor}/toggle-status', [AdminVendors::class,'toggleStatus'])->name('vendors.toggle-status');
     Route::post('/vendors/{vendor}/add-manager',    [AdminVendors::class,'addManager'])->name('vendors.add-manager');
+    Route::post('/vendors/{vendor}/enter',          [AdminVendors::class,'enter'])->name('vendors.enter');
     Route::delete('/vendors/{vendor}/remove-manager/{user}', [AdminVendors::class,'removeManager'])->name('vendors.remove-manager');
 });
 
@@ -326,6 +331,8 @@ use App\Http\Controllers\Vendor\LiveController as VendorLive;
 use App\Http\Controllers\Vendor\LiveClassController as VendorLiveClass;
 use App\Http\Controllers\Vendor\ProfileController as VendorProfile;
 use App\Http\Controllers\Vendor\BatchController as VendorBatch;
+use App\Http\Controllers\Vendor\OrganizationController as VendorOrganization;
+use App\Http\Controllers\Vendor\OrganizationEnrollmentController as VendorEnrollment;
 
 // Vendor picker (outside vendor.only middleware)
 Route::middleware(['auth'])->group(function () {
@@ -333,7 +340,22 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/vendor/pick', [VendorDash::class,'switchVendor'])->name('vendor.switch');
 });
 
+Route::redirect('/vendor/pdfjs/pdf.min.js', '/assets/pdfjs/pdf.min.js', 301);
+Route::redirect('/vendor/pdfjs/pdf.worker.min.js', '/assets/pdfjs/pdf.worker.min.js', 301);
+
 Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->group(function () {
+    Route::get('/organization', [VendorOrganization::class, 'index'])->name('organization.index');
+    Route::get('/media', [VendorOrganization::class, 'media'])->name('media');
+    Route::get('/reports', [VendorOrganization::class, 'reports'])->name('reports');
+    Route::post('/organization/classes', [VendorOrganization::class, 'storeClass'])->name('organization.classes.store');
+    Route::delete('/organization/classes/{class}', [VendorOrganization::class, 'deleteClass'])->name('organization.classes.delete');
+    Route::put('/organization/students/{user}/classes', [VendorOrganization::class, 'updateStudentClasses'])->name('organization.students.classes');
+    Route::post('/organization/staff', [VendorOrganization::class, 'storeStaff'])->name('organization.staff.store');
+    Route::delete('/organization/staff/{user}', [VendorOrganization::class, 'removeStaff'])->name('organization.staff.delete');
+    Route::get('/organization/students/template/{format}', [VendorOrganization::class, 'template'])->name('organization.students.template');
+    Route::post('/organization/students/preview', [VendorOrganization::class, 'preview'])->name('organization.students.preview');
+    Route::post('/organization/students/import', [VendorOrganization::class, 'import'])->name('organization.students.import');
+    Route::post('/organization/invitations/{user}/resend', [VendorOrganization::class, 'resendInvitation'])->name('organization.invitations.resend');
     Route::get('/',                                          [VendorDash::class,'index'])->name('dashboard');
     Route::get('/earnings',                                  [MarketplaceController::class,'organizationDashboard'])->name('earnings');
     // Profile / branding
@@ -345,6 +367,8 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
     // Courses (view — all roles)
     Route::get('/courses',                                   [VendorCourses::class,'index'])->name('courses');
     Route::get('/courses/{course}/students',                 [VendorCourses::class,'students'])->name('courses.students');
+    Route::post('/courses/{course}/teachers',                  [VendorCourses::class,'assignTeacher'])->name('courses.teachers.assign');
+    Route::delete('/courses/{course}/teachers/{user}',        [VendorCourses::class,'removeTeacher'])->name('courses.teachers.remove');
     Route::get('/live-classes',                                [VendorLiveClass::class,'index'])->name('live_classes.index');
     Route::post('/courses/{course}/submit-review',           [MarketplaceController::class,'submitCourse'])->name('courses.submit-review');
     // Live
@@ -422,22 +446,25 @@ Route::prefix('vendor')->name('vendor.')->middleware(['auth','vendor.only'])->gr
 // ── Vendor Portal (branded student-facing) ─────────────────────────────────
 use App\Http\Controllers\Vendor\PortalController as VendorPortal;
 
+Route::get('/dashboard/org/{slug}/{tab?}', [VendorPortal::class, 'dashboard'])
+    ->where('tab', 'courses|catalog|live')
+    ->middleware(['vendor.portal.auth', 'single.device'])
+    ->name('organization.dashboard');
+
 Route::prefix('v/{slug}')->name('vendor.portal.')->group(function () {
     // Public pages
     Route::get('/',                                          [VendorPortal::class,'home'])->name('home');
     // Branded login
     Route::get('/login',                                     [VendorPortal::class,'showLogin'])->name('login');
     Route::post('/login',                                    [VendorPortal::class,'doLogin'])->name('login.submit');
-    // Branded register (general — no course required)
-    Route::get('/register',                                  [VendorPortal::class,'showRegister'])->name('register.general');
-    Route::post('/register',                                 [VendorPortal::class,'doRegisterGeneral'])->name('register.general.submit');
-    // Course-specific register
-    Route::get('/register/{course}',                         [VendorPortal::class,'register'])->name('register');
-    Route::post('/register/{course}',                        [VendorPortal::class,'doRegister'])->name('register.submit');
     // Logout from vendor portal
     Route::post('/logout',                                   [VendorPortal::class,'logout'])->name('logout');
     // Auth-protected
     Route::middleware(['vendor.portal.auth','single.device'])->group(function () {
+        Route::get('/courses/{course}', [VendorEnrollment::class, 'show'])->name('courses.show');
+        Route::post('/courses/{course}/enroll-free', [VendorEnrollment::class, 'enrollFree'])->name('courses.enroll-free');
+        Route::post('/courses/{course}/order', [VendorEnrollment::class, 'order'])->name('courses.order');
+        Route::post('/courses/{course}/verify', [VendorEnrollment::class, 'verify'])->name('courses.verify');
         Route::get('/dashboard',                             [VendorPortal::class,'dashboard'])->name('dashboard');
         Route::get('/live/{lesson}',                         [VendorPortal::class,'liveClass'])->name('live');
         Route::get('/recording/{lesson}',                    [VendorPortal::class,'recording'])->name('recording');

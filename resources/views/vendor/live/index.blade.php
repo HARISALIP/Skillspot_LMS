@@ -1,5 +1,5 @@
 @extends('layouts.vendor')
-@section('title','Live Classes — Vendor Panel')
+@section('title','Live Classes — Organization — Skillspot')
 @section('header','Live Classes')
 @section('content')
 <div class="space-y-6">

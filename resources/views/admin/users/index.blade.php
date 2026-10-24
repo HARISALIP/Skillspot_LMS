@@ -144,7 +144,7 @@
             @endphp
             @if($via === 'vendor_portal')
               <div>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">🏪 Vendor Portal</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">🏪 Organization learning</span>
                 @if($vendorName)<div class="text-xs text-gray-400 mt-0.5 truncate max-w-28">{{ $vendorName }}</div>@endif
               </div>
             @elseif($via === 'admin')

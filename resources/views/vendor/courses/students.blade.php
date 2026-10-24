@@ -1,5 +1,5 @@
 @extends('layouts.vendor')
-@section('title','Students — Vendor Panel')
+@section('title','Students — Organization — Skillspot')
 @section('header','Course Students')
 @section('content')
 <div class="space-y-6">
@@ -15,21 +15,46 @@
     </div>
     <div class="min-w-0 text-left text-sm text-gray-500 sm:text-right">
       Portal Reg. Link:<br>
-      <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" target="_blank" rel="noopener" class="break-all text-brand-600 hover:underline text-xs font-mono">/v/{{ $vendor->slug }}/register/{{ $course->id }}</a>
+      <a href="{{ route('vendor.portal.courses.show', [$vendor->slug, $course->id]) }}" target="_blank" rel="noopener" class="break-all text-brand-600 hover:underline text-xs font-mono">Organization course page</a>
     </div>
   </div>
 
-  @if(!isset($isVendorOnly) || !$isVendorOnly)
+  @if($canManageStudents)
+  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    <h3 class="font-semibold text-gray-900">Course teachers</h3>
+    <p class="mt-1 text-sm text-gray-500">Assigned teachers can edit this course while they remain organization staff. The course publisher also retains access while on staff.</p>
+    <div class="mt-3 flex flex-wrap gap-2">
+      @if($course->primaryInstructor && $availableTeachers->contains('id', $course->primary_instructor_id))
+      <span class="inline-flex items-center rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700">{{ $course->primaryInstructor->name }} · Publisher</span>
+      @endif
+      @foreach($assignedTeachers as $teacher)
+      @continue($teacher->id === $course->primary_instructor_id)
+      <form method="POST" action="{{ route('vendor.courses.teachers.remove', [$course, $teacher]) }}" class="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm">
+        @csrf @method('DELETE')
+        <span>{{ $teacher->name }}</span><button type="submit" aria-label="Remove {{ $teacher->name }} from course" class="font-bold text-red-700">×</button>
+      </form>
+      @endforeach
+    </div>
+    <form method="POST" action="{{ route('vendor.courses.teachers.assign', $course) }}" class="mt-4 flex flex-wrap gap-2">
+      @csrf
+      <label class="sr-only" for="course-teacher">Assign organization teacher</label>
+      <select id="course-teacher" name="user_id" required class="min-h-11 min-w-0 flex-1 rounded-lg border border-gray-200 px-3 text-sm">
+        <option value="">Select a teacher</option>
+        @foreach($availableTeachers as $teacher)<option value="{{ $teacher->id }}">{{ $teacher->name }} ({{ $teacher->email }})</option>@endforeach
+      </select>
+      <button type="submit" class="min-h-11 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white">Assign</button>
+    </form>
+  </div>
   <!-- Allow Student -->
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
     <h3 class="font-semibold text-gray-900 mb-3">Allow a Student</h3>
     @if($errors->any())
       <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-2 mb-3 text-sm text-red-800">{{ $errors->first() }}</div>
     @endif
-    <form method="POST" action="{{ route('vendor.courses.grant-access', $course) }}" class="flex items-center gap-3">
+    <form method="POST" action="{{ route('vendor.courses.grant-access', $course) }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
       @csrf
-      <input type="email" name="email" placeholder="Student email (must be registered)" required class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-      <input type="text" name="note" placeholder="Note (optional)" class="w-48 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <input type="email" name="email" placeholder="Student email (must be registered)" required class="min-w-0 flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+      <input type="text" name="note" placeholder="Note (optional)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 sm:w-48">
       <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition whitespace-nowrap">Add Student</button>
     </form>
   </div>
@@ -48,7 +73,7 @@
           <span>{{ ucfirst($enrollment->status) }}</span>
           <span>Enrolled {{ $enrollment->created_at->format('d M Y') }}</span>
         </div>
-        @if(!isset($isVendorOnly) || !$isVendorOnly)
+        @if($canManageStudents)
         <form method="POST" action="{{ route('vendor.courses.revoke-access', [$course, $enrollment->user_id]) }}">
           @csrf @method('DELETE')
           <button class="min-h-11 text-xs font-semibold text-red-700" onclick="return confirm('Revoke access?')">Revoke access</button>
@@ -87,7 +112,7 @@
           </td>
           <td class="px-4 py-3 text-center text-gray-500 text-xs">{{ $enrollment->created_at->format('d M Y') }}</td>
           <td class="px-4 py-3 text-right">
-            @if(!isset($isVendorOnly) || !$isVendorOnly)
+            @if($canManageStudents)
             <form method="POST" action="{{ route('vendor.courses.revoke-access', [$course, $enrollment->user_id]) }}">
               @csrf @method('DELETE')
               <button class="text-xs text-red-600 hover:text-red-800 font-medium" onclick="return confirm('Revoke access?')">Revoke</button>

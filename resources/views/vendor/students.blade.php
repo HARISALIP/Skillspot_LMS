@@ -1,15 +1,15 @@
 ﻿@extends('layouts.vendor')
-@section('title','Students — Vendor Panel')
+@section('title','Students — Organization — Skillspot')
 @section('header','Students')
 @section('content')
-@php $isTeacher = auth()->user()->hasRole(['teacher','admin','super-admin']); @endphp
+@php $isTeacher = auth()->user()->hasRole(['admin','super-admin']) || $vendor->managers()->where('users.id', auth()->id())->exists(); @endphp
 <div class="space-y-6 max-w-4xl">
 
   {{-- Teacher: Assign Student Form --}}
   @if($isTeacher)
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
     <h2 class="font-semibold text-gray-900 mb-1">➕ Assign Student</h2>
-    <p class="text-xs text-gray-400 mb-4">Enter student's registered email to grant portal access. Optionally enroll them in a course.</p>
+    <p class="text-xs text-gray-400 mb-4">Enter an existing student's email to assign organization membership. You may also grant free course access.</p>
     <form method="POST" action="{{ route('vendor.students.grant') }}" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
       @csrf
       <div class="sm:col-span-1">
@@ -42,7 +42,7 @@
     <span class="text-xl flex-shrink-0">👁️</span>
     <div>
       <div class="font-semibold text-amber-900 text-sm">View Only</div>
-      <div class="text-xs text-amber-700 mt-0.5">Student assignment is handled by your teacher. Contact them to add/remove students.</div>
+      <div class="text-xs text-amber-700 mt-0.5">Student assignment is handled by your organization admin.</div>
     </div>
   </div>
   @endif
@@ -93,7 +93,7 @@
             <td class="px-4 py-3 text-center">
               <span class="text-xs px-2 py-0.5 rounded-full font-semibold
                 {{ $pa === 'vendor_only' ? 'bg-purple-100 text-purple-700' : ($pa === 'both' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700') }}">
-                {{ $pa === 'vendor_only' ? '🏪 Vendor' : ($pa === 'both' ? '🔁 Both' : '🎓 ITForge') }}
+                {{ $pa === 'vendor_only' ? '🏪 Vendor' : ($pa === 'both' ? '🔁 Both' : '🎓 Skillspot') }}
               </span>
             </td>
             <td class="px-4 py-3 text-center text-xs text-gray-400">{{ $s->created_at?->format('d M Y') }}</td>

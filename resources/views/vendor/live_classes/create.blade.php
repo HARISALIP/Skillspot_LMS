@@ -1,5 +1,6 @@
 @extends('layouts.vendor')
 @section('title', 'Create Live Class — ' . $vendor->brand_name)
+@section('header', 'Create Live Class')
 @section('content')
 <div class="max-w-2xl mx-auto px-4 py-8">
   <div class="mb-6">
@@ -13,7 +14,7 @@
     </div>
   @endif
 
-  <form method="POST" action="{{ route('vendor.live_classes.store') }}" x-data="{ type: '{{ old('schedule_type','hours_based') }}' }" class="space-y-5">
+  <form id="liveClassForm" method="POST" action="{{ route('vendor.live_classes.store') }}" class="space-y-5">
     @csrf
 
     {{-- Vendor selector (only shown when teacher/admin has multiple vendors) --}}
@@ -30,7 +31,7 @@
             </option>
           @endforeach
         </select>
-        <p class="text-xs text-gray-400 mt-1">Live class will be created under the selected vendor portal.</p>
+        <p class="text-xs text-gray-400 mt-1">Live class will be created under the selected organization learning.</p>
       </div>
     </div>
     @elseif(($myVendors ?? collect())->count() === 1)
@@ -42,7 +43,7 @@
       <h2 class="font-bold text-gray-800">Schedule Type</h2>
       <div class="grid grid-cols-2 gap-3">
         <label class="cursor-pointer">
-          <input type="radio" name="schedule_type" value="hours_based" x-model="type" class="sr-only peer" {{ old('schedule_type','hours_based') === 'hours_based' ? 'checked' : '' }}>
+          <input type="radio" name="schedule_type" value="hours_based" class="sr-only peer" {{ old('schedule_type','hours_based') === 'hours_based' ? 'checked' : '' }}>
           <div class="peer-checked:border-blue-500 peer-checked:bg-blue-50 border-2 border-gray-200 rounded-xl p-4 text-center transition">
             <div class="text-2xl mb-1">⏱</div>
             <div class="font-bold text-sm text-gray-800">Hours Based</div>
@@ -50,7 +51,7 @@
           </div>
         </label>
         <label class="cursor-pointer">
-          <input type="radio" name="schedule_type" value="date_based" x-model="type" class="sr-only peer" {{ old('schedule_type') === 'date_based' ? 'checked' : '' }}>
+          <input type="radio" name="schedule_type" value="date_based" class="sr-only peer" {{ old('schedule_type') === 'date_based' ? 'checked' : '' }}>
           <div class="peer-checked:border-amber-500 peer-checked:bg-amber-50 border-2 border-gray-200 rounded-xl p-4 text-center transition">
             <div class="text-2xl mb-1">📅</div>
             <div class="font-bold text-sm text-gray-800">Batch / Date Based</div>
@@ -118,7 +119,7 @@
     </div>
 
     {{-- Hours Based fields --}}
-    <div x-show="type === 'hours_based'" class="bg-purple-50 rounded-2xl border border-purple-200 p-5 space-y-4">
+    <div id="hoursBasedSettings" class="bg-purple-50 rounded-2xl border border-purple-200 p-5 space-y-4">
       <h2 class="font-bold text-purple-800">⏱ Hours Based Settings</h2>
       <div>
         <label for="total_hours" class="block text-sm font-semibold text-gray-700 mb-1.5">Total Hours *</label>
@@ -130,7 +131,7 @@
     </div>
 
     {{-- Date Based fields --}}
-    <div x-show="type === 'date_based'" class="bg-amber-50 rounded-2xl border border-amber-200 p-5 space-y-4">
+    <div id="dateBasedSettings" class="bg-amber-50 rounded-2xl border border-amber-200 p-5 space-y-4">
       <h2 class="font-bold text-amber-800">📅 Batch Settings</h2>
       <div>
         <label for="batch_name" class="block text-sm font-semibold text-gray-700 mb-1.5">Batch Name *</label>
@@ -166,3 +167,21 @@
   </form>
 </div>
 @endsection
+@push('scripts')
+<script>
+(() => {
+  const form = document.getElementById('liveClassForm');
+  if (!form) return;
+  const syncSchedule = () => {
+    const dateBased = form.querySelector('[name="schedule_type"]:checked')?.value === 'date_based';
+    for (const [id, active] of [['hoursBasedSettings', !dateBased], ['dateBasedSettings', dateBased]]) {
+      const section = document.getElementById(id);
+      section.hidden = !active;
+      section.querySelectorAll('input').forEach(input => { input.disabled = !active; });
+    }
+  };
+  form.querySelectorAll('[name="schedule_type"]').forEach(radio => radio.addEventListener('change', syncSchedule));
+  syncSchedule();
+})();
+</script>
+@endpush

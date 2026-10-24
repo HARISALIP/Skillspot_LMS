@@ -30,7 +30,7 @@
     </div>
     <div class="flex items-center gap-3">
       @if($canOpenDashboard)
-        <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition">My Dashboard</a>
+        <a href="{{ route('organization.dashboard', $vendor->slug) }}" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition">My Dashboard</a>
         <form method="POST" action="{{ route('vendor.portal.logout', $vendor->slug) }}" class="inline">
           @csrf
           <button class="text-sm text-gray-500 hover:text-red-600 transition ml-1">Sign out</button>
@@ -39,7 +39,6 @@
         <a href="{{ route('student.dashboard') }}" class="text-sm font-semibold text-gray-600 hover:text-gray-900">Skillspot Dashboard</a>
       @else
         <a href="{{ route('vendor.portal.login', $vendor->slug) }}" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition">Login</a>
-        <a href="{{ route('vendor.portal.register.general', $vendor->slug) }}" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-xl transition ml-1">Register</a>
       @endif
     </div>
   </div>
@@ -74,11 +73,10 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     @foreach($courses as $course)
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition">
-      @if($course->thumbnail)
-        <img src="{{ $course->thumbnail }}" class="w-full h-40 object-cover">
-      @else
-        <div class="w-full h-40 hero-bg flex items-center justify-center text-white text-4xl font-black">{{ strtoupper(substr($course->title,0,1)) }}</div>
-      @endif
+      <div class="relative flex h-40 items-center justify-center overflow-hidden hero-bg text-white text-4xl font-black">
+        <span aria-hidden="true">{{ strtoupper(substr($course->title,0,1)) }}</span>
+        @if($course->thumbnail)<img src="{{ $course->thumbnail }}" class="absolute inset-0 h-full w-full object-cover" alt="" onerror="this.remove()">@endif
+      </div>
       <div class="p-5">
         <div class="flex items-center gap-2 mb-2">
           <span class="tag-bg text-xs font-semibold px-2 py-0.5 rounded-full">{{ ucfirst(str_replace('_',' ',$course->course_type)) }}</span>
@@ -94,13 +92,7 @@
           <div class="text-xs text-gray-400 mt-1">📅 {{ $course->batch_start_date->format('d M Y') }} → {{ $course->batch_end_date?->format('d M Y') ?? 'TBD' }}</div>
         @endif
         <div class="mt-4">
-          @if(!$course->is_free && (float) $course->price > 0 && !$course->isMarketplaceLive())
-            <span class="block w-full rounded-xl bg-gray-100 py-2.5 text-center text-sm font-semibold text-gray-500">Enrollment unavailable</span>
-          @else
-            <a href="{{ route('vendor.portal.register', [$vendor->slug, $course->id]) }}" class="block w-full text-center btn-primary text-white py-2.5 rounded-xl font-semibold text-sm transition">
-              {{ !$course->is_free && (float) $course->price > 0 ? 'View & purchase' : 'Register Now' }}
-            </a>
-          @endif
+          <a href="{{ route('vendor.portal.courses.show', [$vendor->slug, $course->id]) }}" class="block w-full text-center btn-primary text-white py-2.5 rounded-xl font-semibold text-sm transition">View course</a>
         </div>
       </div>
     </div>

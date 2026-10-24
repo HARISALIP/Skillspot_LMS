@@ -23,3 +23,5 @@ yarn-error.log
 /storage/app/route-audit.json
 /storage/logs/*.log
 /.playwright-cli/
+/.serena/
+/output/

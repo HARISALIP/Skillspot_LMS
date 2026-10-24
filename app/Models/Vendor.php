@@ -12,6 +12,7 @@ class Vendor extends Model
         'email','phone','website','status','license_key','plan',
         'license_expires_at','settings','social_links',
         'payout_account_name','payout_account_number','payout_ifsc','marketplace_verified_at',
+        'organization_fee_percent',
     ];
 
     protected $casts = [
@@ -67,6 +68,7 @@ class Vendor extends Model
     // Primary owner (legacy)
     public function user()        { return $this->belongsTo(User::class); }
     public function courses()     { return $this->hasMany(Course::class); }
+    public function organizationClasses() { return $this->hasMany(OrganizationClass::class); }
     public function enrollments() { return $this->hasMany(Enrollment::class); }
 
     // Students with direct access to this vendor portal

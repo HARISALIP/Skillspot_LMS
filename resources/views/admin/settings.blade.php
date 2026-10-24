@@ -515,7 +515,7 @@ $tabs = [
               <div class="flex items-center justify-between gap-4 p-4 bg-white rounded-xl border border-blue-100">
                 <div>
                   <div class="text-sm font-semibold text-gray-800">Login CAPTCHA</div>
-                  <div class="text-xs text-gray-400 mt-0.5">Show math question on all login forms (including vendor portals)</div>
+                  <div class="text-xs text-gray-400 mt-0.5">Show math question on all login forms (including organizations)</div>
                   @if($hvLogin)
                     <span class="inline-flex items-center gap-1 mt-1 text-xs font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">✅ Enabled</span>
                   @else

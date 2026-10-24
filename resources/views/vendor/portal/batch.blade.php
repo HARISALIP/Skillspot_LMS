@@ -3,12 +3,12 @@
 @section('content')
 <div class="max-w-4xl mx-auto py-8 px-4 space-y-6">
 
-  <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900">← Back to dashboard</a>
+  <a href="{{ route('organization.dashboard', $vendor->slug) }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900">← Back to dashboard</a>
 
   {{-- Batch header --}}
   <div class="rounded-2xl overflow-hidden shadow-sm" style="background: linear-gradient(135deg, {{ $vendor->primary_color ?? '#2563eb' }}, {{ $vendor->accent_color ?? '#7c3aed' }});">
     <div class="p-6 text-white">
-      <div class="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1">Your Batch</div>
+      <div class="text-xs font-semibold uppercase tracking-widest opacity-70 mb-1">Course materials</div>
       <h1 class="text-2xl font-black mb-1">{{ $course->title }}</h1>
       @if($course->batch_name)<div class="opacity-80 text-sm">{{ $course->batch_name }}</div>@endif
       <div class="flex flex-wrap gap-4 mt-4 text-sm">
@@ -18,6 +18,28 @@
         <span class="bg-white/20 px-3 py-1 rounded-full">✅ Enrolled</span>
         <span class="bg-white/20 px-3 py-1 rounded-full">📊 {{ $attendPct }}% attendance</span>
       </div>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div><h2 class="font-bold text-gray-900">Course lessons</h2><p class="text-sm text-gray-500">Read lessons, watch videos, and track your progress.</p></div>
+      <a href="{{ route('student.learn', [$course, 'org' => $vendor->slug]) }}" class="inline-flex min-h-11 items-center rounded-xl bg-blue-700 px-5 py-2 text-sm font-semibold text-white">Continue learning →</a>
+    </div>
+    <div class="mt-4 space-y-3">
+      @forelse($course->sections as $section)
+        <div><h3 class="text-sm font-semibold text-gray-700">{{ $section->title }}</h3>
+          <ul class="mt-2 space-y-1">
+            @foreach($section->lessons as $lesson)
+              @if($lesson->type !== 'live')
+                <li><a href="{{ route('student.learn', [$course, 'org' => $vendor->slug]) }}#lesson-{{ $lesson->id }}" class="block rounded-lg px-3 py-2 text-sm text-blue-700 hover:bg-blue-50">{{ $lesson->title }}</a></li>
+              @endif
+            @endforeach
+          </ul>
+        </div>
+      @empty
+        <p class="text-sm text-gray-500">Lessons will appear here when your teacher adds them.</p>
+      @endforelse
     </div>
   </div>
 

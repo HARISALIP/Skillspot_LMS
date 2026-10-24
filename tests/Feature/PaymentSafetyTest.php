@@ -145,12 +145,11 @@ class PaymentSafetyTest extends TestCase
             'is_free' => false, 'price' => 100, 'is_published' => true,
             'marketplace_status' => 'live', 'marketplace_visible' => true]);
 
-        $this->get(route('vendor.portal.register', [$vendor->slug, $course->id]))
-            ->assertRedirect(route('student.course-detail', $course->slug));
-        $this->post(route('vendor.portal.register.submit', [$vendor->slug, $course->id]), [
+        $this->get("/v/{$vendor->slug}/courses/{$course->id}/register")->assertNotFound();
+        $this->post("/v/{$vendor->slug}/courses/{$course->id}/register", [
             'name' => 'No Payment', 'email' => 'unpaid@example.test', 'password' => 'password123',
             'password_confirmation' => 'password123',
-        ])->assertForbidden();
+        ])->assertNotFound();
         $this->assertDatabaseMissing('users', ['email' => 'unpaid@example.test']);
         $this->assertDatabaseCount('enrollments', 0);
     }

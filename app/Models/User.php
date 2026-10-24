@@ -34,6 +34,11 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function organizationClasses()
+    {
+        return $this->belongsToMany(OrganizationClass::class, 'organization_class_students');
+    }
+
     /** Skillspot Courses assigned to this teacher */
     public function assignedCourses()
     {

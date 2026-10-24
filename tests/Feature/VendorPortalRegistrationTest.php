@@ -3,10 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Course;
-use App\Models\BatchAttendance;
-use App\Models\Lesson;
-use App\Models\Section;
-use App\Models\Setting;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,103 +13,62 @@ class VendorPortalRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_general_registration_uses_the_rendered_challenge_and_enrolls_the_selected_free_course(): void
-    {
-        [$vendor, $course] = $this->portalWithFreeCourse();
-
-        $page = $this->get(route('vendor.portal.register.general', $vendor->slug))
-            ->assertOk()
-            ->assertSee('for="portal-register-course"', false)
-            ->assertSee('name="course_id"', false);
-        [$token, $answer] = $this->challengeFrom($page->getContent());
-
-        $this->post(route('vendor.portal.register.general.submit', $vendor->slug), [
-            'name' => 'Portal Learner',
-            'email' => 'portal-learner@example.test',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            'course_id' => $course->id,
-            '_hv_token' => $token,
-            '_hv_answer' => $answer,
-        ])->assertRedirect(route('vendor.portal.dashboard', $vendor->slug));
-
-        $user = User::where('email', 'portal-learner@example.test')->firstOrFail();
-        $this->assertAuthenticatedAs($user);
-        $this->assertDatabaseHas('student_vendor_access', ['user_id' => $user->id, 'vendor_id' => $vendor->id]);
-        $this->assertDatabaseHas('enrollments', ['user_id' => $user->id, 'course_id' => $course->id, 'status' => 'active']);
-        $this->get(route('vendor.portal.dashboard', $vendor->slug))->assertOk()->assertSeeText('Portal Basics');
-
-        $section = Section::create(['course_id' => $course->id, 'title' => 'Start here']);
-        $liveLesson = Lesson::create(['section_id' => $section->id, 'title' => 'Welcome live class', 'type' => 'live']);
-        Lesson::create(['section_id' => $section->id, 'title' => 'Workbook', 'type' => 'document',
-            'resources' => [['name' => 'Starter PDF', 'url' => 'https://example.test/starter.pdf']]]);
-        BatchAttendance::create(['lesson_id' => $liveLesson->id, 'course_id' => $course->id,
-            'user_id' => $user->id, 'vendor_id' => $vendor->id, 'status' => 'present']);
-        $this->get(route('vendor.portal.batch', [$vendor->slug, $course->id]))
-            ->assertOk()->assertSeeText('Back to dashboard')->assertSeeText('Starter PDF')
-            ->assertSeeText('100% attendance')->assertSeeText('Present');
-    }
-
-    public function test_course_registration_renders_a_matching_challenge_and_enrolls_the_learner(): void
-    {
-        [$vendor, $course] = $this->portalWithFreeCourse();
-
-        $page = $this->get(route('vendor.portal.register', [$vendor->slug, $course->id]))
-            ->assertOk()
-            ->assertSee('Quick Check')
-            ->assertSee('for="portal-course-register-email"', false);
-        [$token, $answer] = $this->challengeFrom($page->getContent());
-
-        $this->post(route('vendor.portal.register.submit', [$vendor->slug, $course->id]), [
-            'name' => 'Course Learner',
-            'email' => 'course-learner@example.test',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
-            '_hv_token' => $token,
-            '_hv_answer' => $answer,
-        ])->assertRedirect(route('vendor.portal.dashboard', $vendor->slug));
-
-        $user = User::where('email', 'course-learner@example.test')->firstOrFail();
-        $this->assertDatabaseHas('student_vendor_access', ['user_id' => $user->id, 'vendor_id' => $vendor->id]);
-        $this->assertDatabaseHas('enrollments', ['user_id' => $user->id, 'course_id' => $course->id, 'status' => 'active']);
-        $this->get(route('vendor.portal.dashboard', $vendor->slug))->assertOk()->assertSeeText('Portal Basics');
-    }
-
-    public function test_an_unrelated_learner_cannot_open_another_vendors_private_portal_dashboard(): void
-    {
-        [$vendor] = $this->portalWithFreeCourse();
-        $learner = User::factory()->create();
-        $learner->assignRole('student');
-
-        $this->actingAs($learner)->get(route('vendor.portal.dashboard', $vendor->slug))->assertForbidden();
-        $this->actingAs($learner)->get(route('vendor.portal.home', $vendor->slug))
-            ->assertOk()->assertSeeText('Skillspot Dashboard')->assertDontSeeText('My Dashboard');
-    }
-
-    private function portalWithFreeCourse(): array
+    private function portal(): array
     {
         Role::findOrCreate('student', 'web');
-        Setting::set('human_verify_register', '1', 'security', 'boolean');
         $owner = User::factory()->create();
         $vendor = Vendor::create(['user_id' => $owner->id, 'brand_name' => 'Portal Academy', 'status' => 'active']);
         $course = Course::create([
-            'title' => 'Portal Basics',
-            'vendor_id' => $vendor->id,
-            'is_free' => true,
-            'price' => 0,
-            'is_published' => true,
-            'registration_open' => true,
+            'title' => 'Portal Basics', 'vendor_id' => $vendor->id, 'is_free' => true,
+            'price' => 0, 'organization_published' => true, 'registration_open' => true,
         ]);
-
         return [$vendor, $course];
     }
 
-    private function challengeFrom(string $html): array
+    public function test_registration_is_by_invitation_only(): void
     {
-        preg_match("/document\.getElementById\('hvToken'\)\.value = '([^']+)'/", $html, $match);
-        $this->assertNotEmpty($match[1] ?? null, 'The page did not render a human-verification token.');
-        [, $answer] = explode(':', base64_decode($match[1], true), 3);
+        [$vendor, $course] = $this->portal();
+        $this->get('/v/'.$vendor->slug.'/register')->assertNotFound();
+        $this->post('/v/'.$vendor->slug.'/register/'.$course->id)->assertNotFound();
+        $this->get(route('vendor.portal.login', $vendor->slug))
+            ->assertOk()->assertSeeText('Ask your organization admin for an invitation.');
+        $this->assertDatabaseCount('student_vendor_access', 0);
+    }
 
-        return [$match[1], $answer];
+    public function test_invited_student_can_enroll_in_free_organization_course(): void
+    {
+        [$vendor, $course] = $this->portal();
+        $learner = User::factory()->create(['portal_access' => 'both']);
+        $learner->assignRole('student');
+        $vendor->studentAccess()->attach($learner->id);
+
+        $this->actingAs($learner)->get(route('vendor.portal.courses.show', [$vendor->slug, $course]))->assertOk();
+        $this->post(route('vendor.portal.courses.enroll-free', [$vendor->slug, $course]))
+            ->assertRedirect(route('vendor.portal.batch', [$vendor->slug, $course->id]));
+        $this->assertDatabaseHas('course_access_grants', [
+            'user_id' => $learner->id, 'course_id' => $course->id, 'channel' => 'organization',
+        ]);
+        $this->get(route('vendor.portal.batch', [$vendor->slug, $course->id]))->assertOk();
+    }
+
+    public function test_unrelated_student_cannot_open_private_portal_or_course(): void
+    {
+        [$vendor, $course] = $this->portal();
+        $learner = User::factory()->create(['portal_access' => 'both']);
+        $learner->assignRole('student');
+
+        $this->actingAs($learner)->get(route('vendor.portal.dashboard', $vendor->slug))->assertForbidden();
+        $this->get(route('vendor.portal.courses.show', [$vendor->slug, $course]))->assertForbidden();
+        $this->get(route('vendor.portal.home', $vendor->slug))->assertOk()->assertDontSeeText('Portal Basics');
+    }
+
+    public function test_staff_from_another_organization_cannot_open_the_portal(): void
+    {
+        [$vendor] = $this->portal();
+        $other = Vendor::create(['user_id' => User::factory()->create()->id, 'brand_name' => 'Other Academy', 'status' => 'active']);
+        $teacher = User::factory()->create();
+        $teacher->assignRole('teacher');
+        $other->teachers()->attach($teacher);
+        $this->actingAs($teacher)->get(route('vendor.portal.dashboard', $vendor->slug))->assertForbidden();
     }
 }

@@ -22,6 +22,9 @@ class BatchController extends Controller
     {
         $vendor  = $this->vendor();
         $batches = Course::where('vendor_id', $vendor->id)
+            ->when($this->isTeacher(), fn ($query) => $query->where(fn ($assigned) => $assigned
+                ->where('primary_instructor_id', auth()->id())
+                ->orWhereHas('teachers', fn ($teachers) => $teachers->whereKey(auth()->id()))))
             ->withCount('enrollments')
             ->with('sections.lessons')
             ->latest()
@@ -37,6 +40,7 @@ class BatchController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($course->canManageContent(auth()->user()), 403);
 
         $enrolled = $course->enrollments()->with('user')->get();
         $lessons  = Lesson::where('type','live')
@@ -69,6 +73,7 @@ class BatchController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($course->canManageContent(auth()->user()), 403);
         abort_if($lesson->section?->course_id !== $course->id, 403);
 
         $enrolled = $course->enrollments()->with('user')->get();
@@ -100,16 +105,17 @@ class BatchController extends Controller
 
     public function revokeStudent(Course $course, User $user)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
-        $course->allowedUsers()->detach($user->id);
-        Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->delete();
+        \App\Services\OrganizationAccess::revokeManual($user, $course);
 
         return back()->with('success', $user->name . ' removed.');
     }
 
     public function preAllow(Request $request, Course $course)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
         $request->validate(['contacts' => 'required|string', 'contact_type' => 'required|in:email,phone']);
@@ -124,11 +130,7 @@ class BatchController extends Controller
                 ? User::where('email', $contact)->first()
                 : User::where('phone', $contact)->first();
             if ($existing) {
-                $course->allowedUsers()->syncWithoutDetaching([$existing->id => ['added_by' => auth()->id()]]);
-                Enrollment::firstOrCreate(
-                    ['user_id' => $existing->id, 'course_id' => $course->id],
-                    ['vendor_id' => $vendor->id, 'amount_paid' => 0, 'payment_method' => 'vendor_access']
-                );
+                \App\Services\OrganizationAccess::grantManual($existing, $course, auth()->id());
                 DB::table('student_vendor_access')->updateOrInsert(
                     ['user_id' => $existing->id, 'vendor_id' => $vendor->id],
                     ['granted_by' => auth()->id(), 'updated_at' => now(), 'created_at' => now()]
@@ -143,6 +145,7 @@ class BatchController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($course->canManageContent(auth()->user()), 403);
 
         $enrolled = $course->enrollments()->with('user')->get();
         $lessons  = Lesson::where('type','live')
@@ -192,6 +195,7 @@ class BatchController extends Controller
 
     public function bulkAllow(Request $request, Course $course)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
         $request->validate(['emails' => 'required|string']);
@@ -202,11 +206,7 @@ class BatchController extends Controller
         foreach ($emails as $email) {
             $user = User::where('email', $email)->first();
             if (!$user) { $notFound[] = $email; continue; }
-            $course->allowedUsers()->syncWithoutDetaching([$user->id => ['added_by' => auth()->id()]]);
-            Enrollment::firstOrCreate(
-                ['user_id' => $user->id, 'course_id' => $course->id],
-                ['vendor_id' => $vendor->id, 'amount_paid' => 0, 'payment_method' => 'vendor_access']
-            );
+            \App\Services\OrganizationAccess::grantManual($user, $course, auth()->id());
             $added++;
         }
 

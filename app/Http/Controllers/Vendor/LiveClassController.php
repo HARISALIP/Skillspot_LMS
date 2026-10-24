@@ -16,6 +16,17 @@ class LiveClassController extends Controller
 {
     use ResolvesVendor;
 
+    private function authorizeLiveClass(LiveClass $liveClass): void
+    {
+        $vendor = $this->vendor();
+        $user = auth()->user();
+        abort_unless($vendor->id === $liveClass->vendor_id && (
+            $user->hasRole(['admin', 'super-admin'])
+            || $vendor->managers()->where('users.id', $user->id)->exists()
+            || ($liveClass->created_by === $user->id && $vendor->teachers()->where('users.id', $user->id)->exists())
+        ), 403);
+    }
+
     /** Vendors current user can manage live classes for */
     protected function myVendors()
     {
@@ -37,6 +48,7 @@ class LiveClassController extends Controller
         $vendor = $this->vendor();
 
         $classes = LiveClass::where('vendor_id', $vendor->id)
+            ->when($this->isTeacher(), fn ($query) => $query->where('created_by', auth()->id()))
             ->whereNotIn('status', ['completed','cancelled'])
             ->withCount('enrollments')
             ->with(['sessions' => fn($q) => $q->where('status','live')])
@@ -127,8 +139,7 @@ class LiveClassController extends Controller
     public function show(LiveClass $liveClass)
     {
         // Allow access if user manages this class's vendor
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
 
         $vendor = $liveClass->vendor;
         $liveClass->load(['sessions.teacher', 'enrollments.user']);
@@ -150,8 +161,7 @@ class LiveClassController extends Controller
     // ── Start session ──────────────────────────────────────────────────
     public function start(Request $request, LiveClass $liveClass)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
 
         if ($liveClass->isLive() || $liveClass->activeSession()) {
             return back()->with('error', 'Class is already live.');
@@ -181,8 +191,7 @@ class LiveClassController extends Controller
     // ── Stop session ───────────────────────────────────────────────────
     public function stop(LiveClass $liveClass)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
 
         $session = $liveClass->activeSession();
         if (!$session) {
@@ -214,8 +223,7 @@ class LiveClassController extends Controller
     // ── Enroll student ─────────────────────────────────────────────────
     public function enroll(Request $request, LiveClass $liveClass)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
 
         $request->validate([
             'user_id' => [
@@ -240,8 +248,7 @@ class LiveClassController extends Controller
     // ── Unenroll student ───────────────────────────────────────────────
     public function unenroll(LiveClass $liveClass, User $user)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
 
         LiveClassEnrollment::where('live_class_id', $liveClass->id)
             ->where('user_id', $user->id)
@@ -252,8 +259,7 @@ class LiveClassController extends Controller
     // ── Delete ─────────────────────────────────────────────────────────
     public function destroy(LiveClass $liveClass)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
 
         if ($liveClass->isLive()) {
             return back()->with('error', 'Cannot delete a live class in progress. Stop it first.');
@@ -265,8 +271,7 @@ class LiveClassController extends Controller
     // ── Upload recording / notes after session ─────────────────────────
     public function uploadFile(Request $request, LiveClass $liveClass, LiveClassSession $session)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
         abort_if($session->live_class_id !== $liveClass->id, 403);
 
         $request->validate([
@@ -307,8 +312,7 @@ class LiveClassController extends Controller
     // ── Toggle file visibility ─────────────────────────────────────────
     public function toggleFile(LiveClass $liveClass, \App\Models\LiveClassSessionFile $file)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
         abort_unless($file->live_class_id === $liveClass->id, 403);
         $file->update(['is_visible' => !$file->is_visible]);
         return back()->with('success', $file->is_visible ? 'File visible to students ✅' : 'File hidden from students.');
@@ -317,8 +321,7 @@ class LiveClassController extends Controller
     // ── Delete file ────────────────────────────────────────────────────
     public function deleteFile(LiveClass $liveClass, \App\Models\LiveClassSessionFile $file)
     {
-        $myVendors = $this->myVendors();
-        abort_unless($myVendors->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
         abort_unless($file->live_class_id === $liveClass->id, 403);
         \Illuminate\Support\Facades\Storage::disk($file->disk)->delete($file->path);
         $file->delete();
@@ -328,7 +331,7 @@ class LiveClassController extends Controller
     // ── Secure view / stream ───────────────────────────────────────────
     public function viewFile(LiveClass $liveClass, \App\Models\LiveClassSessionFile $file)
     {
-        abort_unless($this->myVendors()->contains('id', $liveClass->vendor_id), 403);
+        $this->authorizeLiveClass($liveClass);
         abort_unless($file->live_class_id === $liveClass->id, 403);
 
         $vendor = $liveClass->vendor;
@@ -345,6 +348,7 @@ class LiveClassController extends Controller
         $vendor = $this->vendor();
 
         $completed = LiveClass::where('vendor_id', $vendor->id)
+            ->when($this->isTeacher(), fn ($query) => $query->where('created_by', auth()->id()))
             ->whereIn('status', ['completed', 'cancelled'])
             ->withCount('enrollments')
             ->with(['sessions' => fn($q) => $q->where('status','ended')->orderBy('started_at'), 'sessions.files'])
@@ -352,6 +356,7 @@ class LiveClassController extends Controller
             ->get();
 
         $active = LiveClass::where('vendor_id', $vendor->id)
+            ->when($this->isTeacher(), fn ($query) => $query->where('created_by', auth()->id()))
             ->whereNotIn('status', ['completed', 'cancelled'])
             ->withCount('enrollments')
             ->with(['sessions' => fn($q) => $q->where('status','ended')->orderBy('started_at')])

@@ -6,9 +6,11 @@ use App\Models\Enrollment;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\Lesson;
+use App\Services\OrganizationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class DashboardController extends Controller
 {
@@ -20,7 +22,8 @@ class DashboardController extends Controller
             ->where('user_id', $user->id)
             ->whereIn('status', ['active','completed'])
             ->latest()->get()
-            ->filter(fn($e) => $e->course !== null)
+            ->filter(fn($e) => $e->course !== null && (!$e->course->vendor_id
+                || OrganizationAccess::hasChannel($user, $e->course, 'marketplace')))
             ->filter(fn($e) =>
                 $e->access_type === 'lifetime' ||
                 ($e->expires_at && $e->expires_at->isFuture())
@@ -66,9 +69,13 @@ class DashboardController extends Controller
     public function courses()
     {
         $user        = Auth::user();
-        $enrollments = Enrollment::with(['course.sections.lessons'])
+        $filtered = Enrollment::with(['course.sections.lessons'])
             ->where('user_id', $user->id)
-            ->latest()->paginate(12);
+            ->latest()->get()->filter(fn ($enrollment) => $enrollment->course
+                && (!$enrollment->course->vendor_id || OrganizationAccess::hasChannel($user, $enrollment->course, 'marketplace')))->values();
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $enrollments = new LengthAwarePaginator($filtered->forPage($page, 12), $filtered->count(), 12, $page,
+            ['path' => request()->url()]);
         return view('student.courses', compact('enrollments'));
     }
 
@@ -78,7 +85,8 @@ class DashboardController extends Controller
             ->where('user_id', Auth::id())
             ->whereIn('status', ['active', 'completed'])
             ->latest()->get()
-            ->filter(fn ($enrollment) => $enrollment->course !== null);
+            ->filter(fn ($enrollment) => $enrollment->course !== null
+                && (!$enrollment->course->vendor_id || OrganizationAccess::hasChannel(Auth::user(), $enrollment->course, 'marketplace')));
         $completedLessonIds = DB::table('lesson_progress')
             ->where('user_id', Auth::id())
             ->where('completed', true)
@@ -140,7 +148,12 @@ class DashboardController extends Controller
     public function profile()
     {
         $user = Auth::user();
-        return view('student.profile', compact('user'));
+        $organizationContext = null;
+        if ($slug = request()->query('org')) {
+            $organizationContext = $user->vendorAccess()->where('vendors.slug', $slug)
+                ->where('vendors.status', 'active')->firstOrFail();
+        }
+        return view('student.profile', compact('user', 'organizationContext'));
     }
 
     public function settings()
@@ -183,7 +196,7 @@ class DashboardController extends Controller
             return redirect()->route('student.dashboard');
         }
         if ($vendors->count() === 1) {
-            return redirect()->route('vendor.portal.dashboard', $vendors->first()->slug);
+            return redirect()->route('organization.dashboard', $vendors->first()->slug);
         }
 
         return view('student.vendor-pick', compact('vendors'));
@@ -198,6 +211,6 @@ class DashboardController extends Controller
             ->where('status','active')
             ->firstOrFail();
 
-        return redirect()->route('vendor.portal.dashboard', $vendor->slug);
+        return redirect()->route('organization.dashboard', $vendor->slug);
     }
 }

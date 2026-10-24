@@ -130,12 +130,9 @@
 
         {{-- Thumbnail --}}
         <div class="relative h-36 bg-gradient-to-br from-brand-50 via-slate-50 to-accent-50 flex items-center justify-center overflow-hidden border-b border-slate-100">
+          <i class="{{ $icon }} text-4xl text-brand-600 group-hover:scale-110 transition-transform duration-300" aria-hidden="true"></i>
           @if($course->thumbnail)
-            <img src="{{ $course->thumbnail }}" alt="{{ $course->title }}"
-                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy"
-                 onerror="this.parentElement.innerHTML='<i class=\'{{ $icon }} text-4xl text-brand-600\'></i>'">
-          @else
-            <i class="{{ $icon }} text-4xl text-brand-600 group-hover:scale-110 transition-transform duration-300"></i>
+            <img src="{{ $course->thumbnail }}" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" onerror="this.remove()">
           @endif
           {{-- Enrollments badge --}}
           @if($course->enrollments_count > 0)

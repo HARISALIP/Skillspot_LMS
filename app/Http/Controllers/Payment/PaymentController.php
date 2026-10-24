@@ -161,10 +161,7 @@ class PaymentController extends Controller
     // ── Enroll free course directly ────────────────────────────────────
     private function enrollFree($user, $course)
     {
-        Enrollment::firstOrCreate(
-            ['user_id' => $user->id, 'course_id' => $course->id],
-            ['vendor_id' => $course->vendor_id, 'amount_paid' => 0, 'status' => 'active', 'progress' => 0]
-        );
+        \App\Services\CourseService::enrollFree($user, $course);
         return response()->json(['success' => true, 'free' => true, 'course_id' => $course->id]);
     }
 }

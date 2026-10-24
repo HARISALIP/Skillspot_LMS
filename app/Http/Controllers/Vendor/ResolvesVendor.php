@@ -13,7 +13,7 @@ trait ResolvesVendor
         if ($user->hasRole('super-admin') || $user->hasRole('admin')) {
             $id = session('active_vendor_id');
             if ($id) return Vendor::findOrFail($id);
-            return Vendor::firstOrFail();
+            abort(404, 'Select an organization first.');
         }
 
         // Teacher: resolve from vendor_teachers pivot
@@ -57,7 +57,13 @@ trait ResolvesVendor
     /** Is current user vendor-only (view only)? */
     protected function isVendorOnly(): bool
     {
+        return false;
+    }
+
+    protected function requireOrganizationManager(): void
+    {
         $user = auth()->user();
-        return $user->hasRole('vendor') && !$user->hasRole(['teacher','admin','super-admin']);
+        abort_unless($user->hasRole(['admin', 'super-admin'])
+            || $this->vendor()->managers()->where('users.id', $user->id)->exists(), 403);
     }
 }

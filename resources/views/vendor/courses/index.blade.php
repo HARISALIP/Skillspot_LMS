@@ -1,5 +1,5 @@
 @extends('layouts.vendor')
-@section('title','Courses — Vendor Panel')
+@section('title','Courses — Organization — Skillspot')
 @section('header','Courses')
 @section('content')
 <div class="space-y-4">
@@ -9,7 +9,7 @@
       <h2 class="font-semibold text-gray-900">Your organization courses</h2>
       <p class="mt-1 text-sm text-gray-500">Create drafts, edit saved content, and preview the learner experience.</p>
     </div>
-    <a href="{{ route('vendor.courses.create') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-bold text-white hover:bg-brand-700">Create course</a>
+    <a href="{{ route('instructor.courses.index', ['vendor_id' => $vendor->id]) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-bold text-white hover:bg-brand-700">Create course</a>
   </div>
   @endunless
   @if(isset($isVendorOnly) && $isVendorOnly)

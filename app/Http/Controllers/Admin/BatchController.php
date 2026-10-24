@@ -65,11 +65,7 @@ class BatchController extends Controller
         foreach ($emails as $email) {
             $user = User::where('email', $email)->first();
             if (!$user) { $notFound[] = $email; continue; }
-            $course->allowedUsers()->syncWithoutDetaching([$user->id => ['added_by' => auth()->id()]]);
-            Enrollment::firstOrCreate(
-                ['user_id' => $user->id, 'course_id' => $course->id],
-                ['vendor_id' => $course->vendor_id, 'amount_paid' => 0, 'payment_method' => 'admin_grant']
-            );
+            \App\Services\OrganizationAccess::grantManual($user, $course, auth()->id());
             // grant vendor access
             if ($course->vendor_id) {
                 DB::table('student_vendor_access')->updateOrInsert(
@@ -86,8 +82,7 @@ class BatchController extends Controller
 
     public function revokeStudent(Course $course, User $user)
     {
-        $course->allowedUsers()->detach($user->id);
-        Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->delete();
+        \App\Services\OrganizationAccess::revokeManual($user, $course);
         return back()->with('success', $user->name . ' removed.');
     }
 
@@ -178,11 +173,7 @@ class BatchController extends Controller
                 ? User::where('email', $contact)->first()
                 : User::where('phone', $contact)->first();
             if ($existing) {
-                $course->allowedUsers()->syncWithoutDetaching([$existing->id => ['added_by' => auth()->id()]]);
-                Enrollment::firstOrCreate(
-                    ['user_id' => $existing->id, 'course_id' => $course->id],
-                    ['vendor_id' => $course->vendor_id, 'amount_paid' => 0, 'payment_method' => 'admin_grant']
-                );
+                \App\Services\OrganizationAccess::grantManual($existing, $course, auth()->id());
             }
             $added++;
         }

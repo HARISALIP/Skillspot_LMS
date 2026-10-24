@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Select Vendor — ITForge LMS</title>
+  <title>Select organization — Skillspot LMS</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   @include('partials.styles')
 </head>
@@ -13,9 +13,9 @@
 
   {{-- Header --}}
   <div class="text-center mb-8">
-    <div class="w-14 h-14 bg-gradient-to-br from-brand-500 to-accent-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-4">V</div>
-    <h1 class="text-2xl font-black text-gray-900">Select Vendor</h1>
-    <p class="text-gray-500 text-sm mt-1">You manage multiple vendors. Choose one to continue.</p>
+    <div class="w-14 h-14 bg-gradient-to-br from-brand-500 to-accent-500 rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-4">S</div>
+    <h1 class="text-2xl font-black text-gray-900">Select organization</h1>
+    <p class="text-gray-500 text-sm mt-1">Choose the organization you want to manage.</p>
   </div>
 
   @if(session('success'))<div class="bg-green-50 text-green-800 border border-green-200 rounded-xl px-4 py-3 text-sm mb-4 text-center">{{ session('success') }}</div>@endif

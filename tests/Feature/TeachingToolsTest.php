@@ -9,6 +9,7 @@ use App\Models\InstructorProfile;
 use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\User;
+use App\Services\OrganizationAccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -27,6 +28,7 @@ class TeachingToolsTest extends TestCase
             'enable_certification' => false, 'marketplace_status' => 'live', 'marketplace_visible' => true]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Chapter']);
         Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id, 'status' => 'active']);
+        OrganizationAccess::grant($student, $course, 'marketplace', 'test');
 
         $this->actingAs($creator)->post(route('courses.teaching.assignments.store', [$course, $section]),
             ['title' => 'Write a summary', 'instructions' => 'Summarise the chapter.', 'pass_score' => 70])->assertRedirect();
@@ -60,6 +62,7 @@ class TeachingToolsTest extends TestCase
         $other = User::factory()->create();
         $course = Course::create(['title' => 'Class', 'primary_instructor_id' => $creator->id]);
         Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id, 'status' => 'active']);
+        OrganizationAccess::grant($student, $course, 'marketplace', 'test');
         $this->actingAs($creator)->post(route('courses.teaching.announcements.store', $course),
             ['title' => 'Schedule', 'body' => 'Class starts tomorrow.'])->assertRedirect();
         $this->actingAs($creator)->get(route('instructor.courses.preview', $course))->assertSee('Class starts tomorrow.');
@@ -76,6 +79,7 @@ class TeachingToolsTest extends TestCase
             'enable_certification' => false, 'marketplace_status' => 'live', 'marketplace_visible' => true]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Chapter']);
         Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id, 'status' => 'active']);
+        OrganizationAccess::grant($student, $course, 'marketplace', 'test');
         $this->actingAs($creator)->post(route('courses.teaching.quizzes.store', [$course,$section]), [
             'quiz_title' => 'Final quiz', 'quiz_pass_score' => 70, 'question' => 'Pick one',
             'question_type' => 'single', 'options' => "A\nB", 'correct_answer' => 2,

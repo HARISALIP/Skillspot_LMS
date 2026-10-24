@@ -8,6 +8,6 @@
   @vite(['resources/css/app.css', 'resources/js/frappe-workspace.js'])
 </head>
 <body class="bg-[#f7f7f7] text-[#1f272e]">
-  <div id="frappe-course-workspace" data-course-id="{{ $course?->id }}"></div>
+  <div id="frappe-course-workspace" data-course-id="{{ $course?->id }}" data-vendor-id="{{ $vendorId ?? '' }}"></div>
 </body>
 </html>

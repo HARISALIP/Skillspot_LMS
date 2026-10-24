@@ -260,13 +260,13 @@
 
 
 @if($isEdit && $user->exists)
-{{-- Vendor Portal Access Management --}}
+{{-- Organization learning Access Management --}}
 <div class="mt-6 space-y-4" id="vendor-access-section">
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
       <div>
-        <h2 class="font-semibold text-gray-900">🏪 Vendor Portal Access</h2>
-        <p class="text-xs text-gray-400 mt-0.5">Manage which vendor portals + Skillspot.in this user can access</p>
+        <h2 class="font-semibold text-gray-900">🏪 Organization learning Access</h2>
+        <p class="text-xs text-gray-400 mt-0.5">Manage which organizations + Skillspot.in this user can access</p>
       </div>
     </div>
     <div class="p-5 space-y-5">
@@ -279,7 +279,7 @@
         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Login Redirect</label>
         <form method="POST" action="{{ route('admin.users.access.portal', $user) }}" class="flex flex-wrap gap-2 items-center">
           @csrf
-          @foreach(['Skillspot_only'=>['🎓','Skillspot.in Only'],'vendor_only'=>['🏪','Vendor Portal Only'],'both'=>['🔁','Both Portals']] as $val=>[$ico,$lbl])
+          @foreach(['Skillspot_only'=>['🎓','Skillspot.in Only'],'vendor_only'=>['🏪','Organization learning Only'],'both'=>['🔁','Both Portals']] as $val=>[$ico,$lbl])
           <label class="flex items-center gap-2 px-3 py-2 rounded-xl border-2 cursor-pointer text-sm transition
             {{ ($user->portal_access ?? 'Skillspot_only') === $val ? 'border-brand-400 bg-brand-50 text-brand-700 font-semibold' : 'border-gray-200 text-gray-600 hover:border-gray-300' }}">
             <input type="radio" name="portal_access" value="{{ $val }}" {{ ($user->portal_access ?? 'Skillspot_only') === $val ? 'checked' : '' }} class="sr-only" onchange="this.form.submit()">
@@ -292,11 +292,11 @@
 
       {{-- Add vendor --}}
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Assign Vendor Portal</label>
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Assign Organization learning</label>
         <form method="POST" action="{{ route('admin.users.access.add', $user) }}" class="flex gap-2 flex-wrap">
           @csrf
           <select name="vendor_id" required class="flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="">— Select vendor portal —</option>
+            <option value="">— Select organization learning —</option>
             @foreach($allVendors ?? [] as $v)
               <option value="{{ $v->id }}" {{ $user->vendorAccess->contains('id',$v->id) ? 'disabled' : '' }}>
                 {{ $v->brand_name }}{{ $user->vendorAccess->contains('id',$v->id) ? ' ✓' : '' }}
@@ -333,7 +333,7 @@
         </div>
       </div>
       @else
-      <p class="text-xs text-gray-400">No vendor portals assigned. Add one above.</p>
+      <p class="text-xs text-gray-400">No organizations assigned. Add one above.</p>
       @endif
 
     </div>
@@ -348,7 +348,7 @@
   {{-- Assigned Vendors --}}
   <div class="bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-indigo-100 bg-indigo-50">
-      <h2 class="font-bold text-indigo-900">🏪 Vendor Portal Assignments</h2>
+      <h2 class="font-bold text-indigo-900">🏪 Organization learning Assignments</h2>
       <p class="text-xs text-indigo-600 mt-0.5">Teacher can manage courses, lessons, live & batches for these vendors</p>
     </div>
     <div class="p-5 space-y-4">
@@ -361,7 +361,7 @@
       <form method="POST" action="{{ route('admin.users.teacher.vendor.add', $user) }}" class="flex gap-2 flex-wrap">
         @csrf
         <select name="vendor_id" required class="flex-1 min-w-48 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-          <option value="">— Select vendor to assign —</option>
+          <option value="">— Select organization to assign —</option>
           @foreach($allVendorsFull ?? [] as $v)
             <option value="{{ $v->id }}" {{ in_array($v->id, $teacherVendors ?? []) ? 'disabled' : '' }}>
               {{ $v->brand_name }}{{ in_array($v->id, $teacherVendors ?? []) ? ' ✓ Assigned' : '' }}
@@ -392,7 +392,7 @@
         @endforeach
       </div>
       @else
-      <p class="text-xs text-gray-400">No vendor portals assigned yet.</p>
+      <p class="text-xs text-gray-400">No organizations assigned yet.</p>
       @endif
     </div>
   </div>

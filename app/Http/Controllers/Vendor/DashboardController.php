@@ -20,7 +20,9 @@ class DashboardController extends Controller
         $user    = auth()->user();
 
         // Teacher: resolve from vendor_teachers
-        if ($user->hasRole('teacher')) {
+        if ($user->hasRole(['admin', 'super-admin'])) {
+            $vendors = Vendor::where('status', 'active')->withCount('courses','enrollments')->get();
+        } elseif ($user->hasRole('teacher')) {
             $vendors = Vendor::whereHas('teachers', fn($q) => $q->where('user_id', $user->id))
                 ->where('status','active')->withCount('courses','enrollments')->get();
         } else {
@@ -30,7 +32,8 @@ class DashboardController extends Controller
 
         if ($vendors->count() === 1) {
             session(['active_vendor_id' => $vendors->first()->id]);
-            return redirect()->route('vendor.dashboard');
+            return redirect()->route($user->hasRole('teacher') ? 'studio.dashboard' : 'vendor.dashboard',
+                $user->hasRole('teacher') ? ['organization' => $vendors->first()->id] : []);
         }
         return view('vendor.pick', compact('vendors'));
     }
@@ -40,7 +43,9 @@ class DashboardController extends Controller
         $request->validate(['vendor_id' => 'required|integer']);
         $user = auth()->user();
 
-        if ($user->hasRole('teacher')) {
+        if ($user->hasRole(['admin', 'super-admin'])) {
+            $vendor = Vendor::whereKey($request->vendor_id)->firstOrFail();
+        } elseif ($user->hasRole('teacher')) {
             $vendor = Vendor::whereHas('teachers', fn($q) => $q->where('user_id', $user->id))
                 ->where('id', $request->vendor_id)->where('status','active')->firstOrFail();
         } else {
@@ -49,7 +54,8 @@ class DashboardController extends Controller
         }
 
         session(['active_vendor_id' => $vendor->id]);
-        return redirect()->route('vendor.dashboard')
+        return redirect()->route($user->hasRole('teacher') ? 'studio.dashboard' : 'vendor.dashboard',
+            $user->hasRole('teacher') ? ['organization' => $vendor->id] : [])
             ->with('success', 'Switched to ' . $vendor->brand_name . ' ✅');
     }
 
@@ -58,54 +64,7 @@ class DashboardController extends Controller
         $isTeacher    = $this->isTeacher();
         $isVendorOnly = $this->isVendorOnly();
 
-        // Teacher: dedicated dashboard showing all assigned vendors
-        if ($isTeacher) {
-            $myVendors = Vendor::whereHas('teachers', fn($q) => $q->where('user_id', auth()->id()))
-                ->where('status','active')
-                ->withCount('courses','enrollments')
-                ->get();
-
-            // All course IDs across all assigned vendors
-            $vendorIds  = $myVendors->pluck('id');
-            $allCourses = Course::whereIn('vendor_id', $vendorIds)->withCount('enrollments')->latest()->get();
-
-            // ITForge courses assigned directly to this teacher
-            $itforgeCourses = auth()->user()->assignedCourses()
-                ->withCount('enrollments')->latest()->get();
-
-            // Upcoming live classes across all vendors
-            $upcomingLive = Lesson::where('type','live')
-                ->whereHas('section.course', fn($q) => $q->whereIn('vendor_id', $vendorIds))
-                ->where('live_scheduled_at','>', now())
-                ->orderBy('live_scheduled_at')->take(8)
-                ->with('section.course')->get();
-
-            // Today's live classes
-            $todayLive = Lesson::where('type','live')
-                ->whereHas('section.course', fn($q) => $q->whereIn('vendor_id', $vendorIds))
-                ->whereDate('live_scheduled_at', today())
-                ->orderBy('live_scheduled_at')
-                ->with('section.course')->get();
-
-            // Attendance stats across all vendors
-            $allLessonIds = Lesson::where('type','live')
-                ->whereHas('section.course', fn($q) => $q->whereIn('vendor_id', $vendorIds))
-                ->where('live_scheduled_at','<', now())->pluck('id');
-            $totalPresent = BatchAttendance::whereIn('lesson_id', $allLessonIds)->where('status','present')->count();
-            $totalAbsent  = BatchAttendance::whereIn('lesson_id', $allLessonIds)->where('status','absent')->count();
-            $totalMarked  = $totalPresent + $totalAbsent;
-            $attendanceStats = [
-                'present' => $totalPresent, 'absent' => $totalAbsent,
-                'rate'    => $totalMarked > 0 ? round(($totalPresent / $totalMarked) * 100) : 0,
-            ];
-
-            $totalStudents = Enrollment::whereIn('vendor_id', $vendorIds)->distinct('user_id')->count('user_id');
-
-            return view('vendor.teacher-dashboard', compact(
-                'myVendors','allCourses','itforgeCourses','upcomingLive','todayLive',
-                'attendanceStats','totalStudents','isTeacher'
-            ));
-        }
+        if ($isTeacher) return redirect()->route('studio.dashboard', ['organization' => $this->vendor()->id]);
 
         // Vendor/Admin: existing dashboard
         $vendor  = $this->vendor();
@@ -153,6 +112,7 @@ class DashboardController extends Controller
 
     public function addTeacher(Request $request)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         $request->validate(['user_id' => 'required|exists:users,id']);
         $user = User::findOrFail($request->user_id);
@@ -166,6 +126,7 @@ class DashboardController extends Controller
 
     public function removeTeacher(Request $request, User $user)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         DB::table('vendor_teachers')
             ->where('vendor_id', $vendor->id)->where('user_id', $user->id)->delete();
@@ -177,12 +138,13 @@ class DashboardController extends Controller
     {
         $vendor   = $this->vendor();
         $students = $vendor->studentAccess()->get();
-        $courses  = Course::where('vendor_id', $vendor->id)->where('is_published', true)->orderBy('title')->get(['id','title']);
+        $courses  = Course::where('vendor_id', $vendor->id)->where('organization_published', true)->orderBy('title')->get(['id','title']);
         return view('vendor.students', compact('vendor','students','courses'));
     }
 
     public function grantStudentAccess(\Illuminate\Http\Request $request)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         $request->validate([
             'email'     => 'required|email|exists:users,email',
@@ -206,10 +168,7 @@ class DashboardController extends Controller
         if ($request->course_id) {
             $course = Course::where('id', $request->course_id)->where('vendor_id', $vendor->id)->first();
             if ($course) {
-                \App\Models\Enrollment::firstOrCreate(
-                    ['user_id' => $user->id, 'course_id' => $course->id],
-                    ['vendor_id' => $vendor->id, 'amount_paid' => 0, 'payment_method' => 'vendor_access', 'granted_by' => auth()->id()]
-                );
+                \App\Services\OrganizationAccess::grantManual($user, $course, auth()->id());
             }
         }
 
@@ -218,6 +177,7 @@ class DashboardController extends Controller
 
     public function revokeStudentAccess(\App\Models\User $user)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         \Illuminate\Support\Facades\DB::table('student_vendor_access')
             ->where('user_id', $user->id)->where('vendor_id', $vendor->id)->delete();
@@ -226,6 +186,7 @@ class DashboardController extends Controller
 
     public function preAllow(\Illuminate\Http\Request $request)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         $request->validate([
             'contacts'      => 'required|string',

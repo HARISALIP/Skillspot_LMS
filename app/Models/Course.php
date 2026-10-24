@@ -15,6 +15,7 @@ class Course extends Model
         'is_published','is_featured','upcoming','enforce_lesson_completion','enable_certification','visibility','requirements','outcomes','resources','related_course_ids',
         'max_students','course_type','batch_name','batch_start_date','batch_end_date','registration_open',
         'marketplace_status','marketplace_visible','submitted_at','reviewed_at','reviewed_by','review_feedback',
+        'organization_audience','organization_published',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class Course extends Model
         'batch_start_date'   => 'date',
         'batch_end_date'     => 'date',
         'marketplace_visible'=> 'boolean',
+        'organization_published' => 'boolean',
         'submitted_at'       => 'datetime',
         'reviewed_at'        => 'datetime',
     ];
@@ -65,6 +67,7 @@ class Course extends Model
     }
 
     public function vendor()       { return $this->belongsTo(Vendor::class); }
+    public function organizationClasses() { return $this->belongsToMany(OrganizationClass::class, 'organization_class_courses'); }
     public function primaryInstructor() { return $this->belongsTo(User::class, 'primary_instructor_id'); }
     public function reviewer() { return $this->belongsTo(User::class, 'reviewed_by'); }
     public function marketplaceReviews() { return $this->hasMany(CourseReview::class); }
@@ -93,11 +96,13 @@ class Course extends Model
         if ($user->hasRole(['admin', 'super-admin'])) return true;
         if ($user->instructorProfile()->where('status', 'suspended')->exists()) return false;
 
-        return $this->primary_instructor_id === $user->id
-            || ($this->vendor_id && $this->teachers()->where('users.id', $user->id)->exists())
-            || ($this->vendor_id && ($this->vendor?->managers()->where('users.id', $user->id)->exists() ?? false))
-            || ($this->vendor_id && $user->hasRole('teacher')
-                && ($this->vendor?->teachers()->where('users.id', $user->id)->exists() ?? false));
+        if (!$this->vendor_id) return $this->primary_instructor_id === $user->id;
+        if ($this->vendor?->status !== 'active') return false;
+        if ($this->vendor->managers()->where('users.id', $user->id)->exists()) return true;
+
+        return $this->vendor->teachers()->where('users.id', $user->id)->exists()
+            && ($this->primary_instructor_id === $user->id
+                || $this->teachers()->where('users.id', $user->id)->exists());
     }
 
     /** Is course full? */
@@ -152,7 +157,8 @@ class Course extends Model
 
     public function isMarketplaceLive(): bool
     {
-        return $this->marketplace_status === 'live' && (bool) $this->marketplace_visible && !$this->upcoming;
+        return $this->marketplace_status === 'live' && (bool) $this->marketplace_visible
+            && (bool) $this->is_published && $this->visibility === 'public' && !$this->upcoming;
     }
 
     public function getLessonsCountAttribute(): int

@@ -137,11 +137,9 @@
 
     {{-- Thumbnail --}}
     <div class="h-40 bg-gradient-to-br from-brand-100 to-accent-100 flex items-center justify-center relative overflow-hidden">
+      <span class="text-5xl" aria-hidden="true">📚</span>
       @if($course->thumbnail)
-        <img src="{{ $course->thumbnail }}" alt="{{ $course->title }}"
-             class="w-full h-full object-cover" loading="lazy">
-      @else
-        <span class="text-5xl">📚</span>
+        <img src="{{ $course->thumbnail }}" alt="" class="absolute inset-0 h-full w-full object-cover" loading="lazy" onerror="this.remove()">
       @endif
 
       {{-- Badges --}}

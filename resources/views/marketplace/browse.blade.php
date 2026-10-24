@@ -24,8 +24,9 @@
     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       @foreach($courses as $course)
       <a href="{{ route('student.course-detail', $course->slug) }}" class="card-hover overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div class="h-44 bg-gradient-to-br from-brand-100 to-accent-100">
-          @if($course->thumbnail)<img src="{{ $course->thumbnail }}" alt="{{ $course->title }}" class="h-full w-full object-cover">@endif
+        <div class="relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br from-brand-100 to-accent-100">
+          <i class="fa-solid fa-book-open text-4xl text-brand-500" aria-hidden="true"></i>
+          @if($course->thumbnail)<img src="{{ $course->thumbnail }}" alt="" class="absolute inset-0 h-full w-full object-cover" onerror="this.remove()">@endif
         </div>
         <div class="p-5">
           <p class="text-xs font-bold uppercase tracking-wide text-brand-600">{{ $course->category ?: 'Course' }}</p>

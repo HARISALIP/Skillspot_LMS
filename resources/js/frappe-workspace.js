@@ -24,12 +24,23 @@ const courseId = root?.dataset.courseId;
 const api = '/instructor/workspace/courses';
 
 async function request(path, options = {}) {
-  const response = await fetch(api + path, {
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, ...(options.headers || {}) },
-    credentials: 'same-origin',
-    ...options,
-  });
-  if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || 'The workspace could not save your change.');
+  let response;
+  try {
+    response = await fetch(api + path, {
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, ...(options.headers || {}) },
+      credentials: 'same-origin',
+      ...options,
+    });
+  } catch {
+    throw new Error('Connection lost. Your change was not saved. Reconnect and retry.');
+  }
+  if (!response.ok) {
+    const details = await response.json().catch(() => ({}));
+    if (response.status === 403) throw new Error('Your editing access has changed. Reload the page or ask an administrator for access.');
+    if (response.status === 419) throw new Error('Your session expired. Reload the page, then try again.');
+    if (response.status === 422) throw new Error(Object.values(details.errors || {})[0]?.[0] || 'Check the entered values and try again.');
+    throw new Error('The change could not be saved. Check your connection and try again.');
+  }
   return response.status === 204 ? null : response.json();
 }
 
@@ -159,7 +170,7 @@ const BlockEditor = {
   setup(props, { emit }) {
     const holderId = 'editor-' + props.lesson.id;
     let editor; let timer;
-    const save = async () => emit('save', await editor.save());
+    const save = async () => { const current = editor; const lessonId = props.lesson.id; emit('save', lessonId, await current.save()); };
     const mount = async () => {
       await nextTick(); editor?.destroy();
       editor = new EditorJS({
@@ -285,44 +296,85 @@ const LessonEditor = {
 };
 
 const App = {
-  components: { BlockEditor, ArrowLeft, BookOpen, Check, Plus, Users },
+  components: { BlockEditor, ArrowLeft, BookOpen, Check, Eye, Plus, Users },
   template: `
     <div class="frappe-workspace">
-      <template v-if="!course">
+      <main v-if="loading" class="course-list" role="status" aria-live="polite"><div class="workspace-loading-line"></div><div class="workspace-loading-line"></div><span class="sr-only">Loading course workspace</span></main>
+      <main v-else-if="loadError" class="course-list"><div class="workspace-feedback error" role="alert"><span>{{ loadError }}</span><button type="button" class="secondary" @click="load">Retry</button></div></main>
+      <template v-else-if="!course">
         <header class="workspace-top"><a href="/studio" class="brand"><BookOpen :size="20"/> Skillspot Studio</a><button class="primary" @click="createOpen = true"><Plus :size="16"/> New Course</button></header>
         <main class="course-list"><div class="list-heading"><div><h1>Courses</h1><p>Create and manage your learning content.</p></div><input v-model="search" placeholder="Search courses"></div>
           <div class="course-grid"><button class="new-course-card" @click="createOpen = true"><Plus :size="22"/><strong>Create a new course</strong><span>Start with Skillspot's guided course form.</span></button>
-            <a v-for="item in filteredCourses" :key="item.id" :href="'/instructor/courses/'+item.id" class="course-card"><div class="course-image" :style="item.thumbnail ? {backgroundImage: 'url('+item.thumbnail+')'} : {}"><span v-if="!item.thumbnail">{{ item.category || 'Course' }}</span></div><div><small>{{ item.category || 'General' }}</small><h2>{{ item.title }}</h2><p>{{ item.short_introduction || 'No introduction yet.' }}</p><footer>{{ item.enrollments_count }} learners · {{ item.marketplace_status || 'Draft' }}</footer></div></a>
-          </div></main><div v-if="createOpen" class="course-modal"><form @submit.prevent="createCourse"><header><h2>New Course</h2><button type="button" @click="createOpen=false">×</button></header><label>Course title<input v-model="createDraft.title" required autofocus></label><label>Category<input v-model="createDraft.category" placeholder="General"></label><label>Short introduction<textarea v-model="createDraft.short_introduction" placeholder="What will students learn?"></textarea></label><footer><button type="button" class="secondary" @click="createOpen=false">Cancel</button><button class="primary">Create Course</button></footer></form></div>
+            <a v-for="item in filteredCourses" :key="item.id" :href="'/instructor/courses/'+item.id" class="course-card"><div class="course-image"><span>{{ item.category || 'Course' }}</span><img v-if="item.thumbnail" :src="item.thumbnail" alt="" @error="$event.target.remove()"></div><div><small>{{ item.category || 'General' }}</small><h2>{{ item.title }}</h2><p>{{ item.short_introduction || 'No introduction yet.' }}</p><footer>{{ item.enrollments_count }} learners · {{ item.marketplace_status || 'Draft' }}</footer></div></a>
+          </div><p v-if="search && !filteredCourses.length" class="workspace-empty" role="status">No courses match “{{ search }}”. <button type="button" @click="search = ''">Clear search</button></p></main><dialog v-if="createOpen" ref="createModal" class="course-modal" aria-label="New course" @close="createOpen=false"><form @submit.prevent="createCourse"><header><h2>New Course</h2><button type="button" aria-label="Close new course" @click="createOpen=false">×</button></header><p v-if="createError" class="workspace-feedback error" role="alert">{{ createError }}</p><label>Course title <span aria-hidden="true">*</span><input v-model="createDraft.title" required autofocus></label><label>Category<input v-model="createDraft.category" placeholder="General"></label><label>Short introduction<textarea v-model="createDraft.short_introduction" placeholder="What will students learn?"></textarea></label><footer><button type="button" class="secondary" @click="createOpen=false">Cancel</button><button class="primary" :disabled="creating">{{ creating ? 'Creating…' : 'Create Course' }}</button></footer></form></dialog>
       </template>
       <template v-else>
-        <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button" aria-label="Back to course list"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><span class="saved" v-if="saved"><Check :size="15"/> Saved</span><button class="outline-mobile secondary" aria-label="Show chapters" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/><span class="action-label">Chapters</span></button><a :href="'/instructor/courses/'+course.id+'/preview?from=instructor'" target="_blank" rel="noopener" class="secondary" aria-label="Preview as learner"><Eye :size="16"/><span class="action-label">Preview as learner</span></a></div></header>
-        <nav class="course-tabs"><button v-for="item in ['Overview','Dashboard','Editor','Settings']" :class="{active: tab === item.toLowerCase()}" @click="tab = item.toLowerCase()">{{ item }}</button></nav>
+        <header class="workspace-top editor-top"><a href="/instructor/courses" class="icon-button" aria-label="Back to course list"><ArrowLeft :size="18"/></a><div class="course-title"><small>Course editor</small><strong>{{ course.title }}</strong></div><div class="top-actions"><button v-if="tab === 'editor'" ref="outlineButton" class="outline-mobile secondary" aria-label="Show chapters" :aria-expanded="mobileOutline" @click="mobileOutline = !mobileOutline"><BookOpen :size="16"/><span class="action-label">Chapters</span></button><a :href="'/instructor/courses/'+course.id+'/preview?from=instructor'" target="_blank" rel="noopener" class="secondary" aria-label="Preview as learner"><Eye :size="16"/><span class="action-label">Preview as learner</span></a></div></header>
+        <nav class="course-tabs" aria-label="Course editor sections"><button v-for="item in ['Overview','Dashboard','Editor','Settings']" :class="{active: tab === item.toLowerCase()}" :aria-current="tab === item.toLowerCase() ? 'page' : null" @click="tab = item.toLowerCase(); mobileOutline = false">{{ item }}</button></nav>
+        <div class="workspace-feedback" :class="{error: saveError}" :role="saveError ? 'alert' : 'status'" aria-live="polite"><span>{{ saveError || saveStatus }}</span><button v-if="saveError" type="button" class="secondary" @click="retrySave">Retry save</button></div>
         <main v-if="tab === 'overview'" class="tab-panel overview"><section><label>Course title<input v-model="draft.title" @change="saveCourse"></label><label>Category<input v-model="draft.category" @change="saveCourse"></label><label>Short introduction<textarea v-model="draft.short_introduction" @change="saveCourse"></textarea></label><label>Description<textarea v-model="draft.description" @change="saveCourse"></textarea></label></section><aside><h2>Instructors</h2><p v-for="teacher in course.teachers" :key="teacher.id">{{ teacher.name }}<small>{{ teacher.email }}</small></p><h2>Course image</h2><p>Set the course image URL in Settings.</p></aside></main>
         <main v-else-if="tab === 'dashboard'" class="tab-panel dashboard"><div><Users :size="21"/><strong>{{ course.enrollments_count }}</strong><span>Learners</span></div><div><BookOpen :size="21"/><strong>{{ lessonCount }}</strong><span>Lessons</span></div><div><Check :size="21"/><strong>{{ course.marketplace_status || 'Draft' }}</strong><span>Marketplace status</span></div></main>
-        <main v-else-if="tab === 'settings'" class="tab-panel settings"><h1>Course settings</h1><p>Choose a price, then save. Only approved creators can submit a saved course for its first publication review.</p><label>Free course <input type="checkbox" v-model="draft.is_free" @change="saveCourse"></label><label v-if="!draft.is_free">Price in INR <input type="number" min="1" step="0.01" v-model.number="draft.price" @change="saveCourse"></label><label>Course image URL <input type="url" v-model="draft.thumbnail" @change="saveCourse"></label><p>Current status: {{ course.marketplace_status || 'Draft' }}. Return to Creator Studio to request review.</p><a class="primary" :href="'/courses/'+course.id+'/teaching'">Assignments and announcements</a></main>
-        <main v-else class="editor-layout"><section class="lesson-pane"><template v-if="selectedLesson"><input class="lesson-name" v-model="selectedLesson.title" @change="saveLesson" placeholder="Lesson title"><label class="preview-toggle"><input type="checkbox" v-model="selectedLesson.is_preview" @change="saveLesson"> Preview lesson</label><div class="grid gap-2 p-3"><label>Lesson type <select v-model="selectedLesson.type" @change="saveLessonMeta"><option value="text">Reading</option><option value="video">Video</option><option value="pdf">Document</option></select></label><label v-if="selectedLesson.type === 'video'">Video URL <input v-model="selectedLesson.video_url" @change="saveLessonMeta" placeholder="https://… or upload a video below"></label><label>Duration in minutes <input type="number" min="0" max="1440" v-model.number="selectedLesson.duration" @change="saveLessonMeta"></label><label>Upload a private course file <input type="file" @change="uploadLessonFile"></label><p role="status" v-if="uploadState">{{ uploadState }}</p><ul v-if="selectedLesson.resources?.length"><li v-for="file in selectedLesson.resources" :key="file.upload_id">{{ file.title }}</li></ul></div><BlockEditor :key="selectedLesson.id" :lesson="selectedLesson" @save="saveBlocks"/></template><div v-else class="empty-editor"><BookOpen :size="28"/><h2>Choose a lesson</h2><p>Add a chapter, then a lesson, to begin authoring.</p></div></section>
-          <aside class="outline" :class="{open: mobileOutline}"><div class="outline-head"><strong>Chapters</strong><button @click="newSectionOpen=true"><Plus :size="16"/> Add Chapter</button></div><form v-if="newSectionOpen" class="outline-create" @submit.prevent="addSection"><input v-model="newSectionTitle" placeholder="Chapter title" autofocus><button class="primary">Add</button></form><div v-for="section in course.sections" :key="section.id" class="chapter" @dragover.prevent @drop="dropLesson(section, section.lessons.length)"><div class="chapter-title"><input :value="section.title" @change="renameSection(section, $event.target.value)"><button @click="newLessonSection=section.id" title="Add lesson"><Plus :size="15"/></button></div><form v-if="newLessonSection===section.id" class="outline-create" @submit.prevent="addLesson(section)"><input v-model="newLessonTitle" placeholder="Lesson title" autofocus><button class="primary">Add</button></form><button v-for="(lesson, index) in section.lessons" :key="lesson.id" draggable="true" @dragstart="dragging = lesson" @dragover.prevent @drop.stop="dropLesson(section, index)" class="lesson-row" :class="{selected: selectedLesson?.id === lesson.id}" @click="selectLesson(lesson)"><span class="lesson-dot"></span>{{ lesson.title }}<small v-if="lesson.is_preview">Preview</small></button></div></aside>
+        <main v-else-if="tab === 'settings'" class="tab-panel settings"><h1>Course settings</h1><p>Marketplace publication requires separate review. Organization publication is controlled below.</p><label>Free course <input type="checkbox" v-model="draft.is_free" @change="saveCourse"></label><label v-if="!draft.is_free">Price in INR <input type="number" min="1" step="0.01" v-model.number="draft.price" @change="saveCourse"></label><label>Course image URL <input type="url" v-model="draft.thumbnail" @change="saveCourse"></label><section v-if="course.vendor_id"><h2>Organization access</h2><label>Publish in organization <input type="checkbox" v-model="draft.organization_published" @change="saveCourse"></label><label>Allow enrollment <input type="checkbox" v-model="draft.registration_open" @change="saveCourse"></label><label>Audience <select v-model="draft.organization_audience" @change="saveCourse"><option value="all">All organization students</option><option value="classes">Selected classes</option></select></label><div v-if="draft.organization_audience === 'classes'"><p>Select one or more classes:</p><label v-for="item in course.organization_classes" :key="item.id"><input type="checkbox" :value="item.id" v-model="draft.class_ids" @change="saveCourse"> {{ item.name }}</label><a v-if="!course.organization_classes?.length" href="/vendor/organization">Create a class first</a></div></section><p>Marketplace status: {{ course.marketplace_status || 'Draft' }}.</p><a class="primary" :href="'/courses/'+course.id+'/teaching'">Assignments and announcements</a></main>
+        <main v-else class="editor-layout"><section class="lesson-pane"><template v-if="selectedLesson"><input class="lesson-name" v-model="selectedLesson.title" @change="saveLesson" placeholder="Lesson title"><label class="preview-toggle"><input type="checkbox" v-model="selectedLesson.is_preview" @change="saveLesson"> Preview lesson</label><div v-if="!['text','video','pdf'].includes(selectedLesson.type)" class="p-4"><p>This lesson uses specialist tools.</p><a :href="selectedLesson.specialist_url || '/courses/'+course.id+'/teaching'">Open specialist editor →</a></div><template v-else><div class="grid gap-2 p-3"><label>Lesson type <select v-model="selectedLesson.type" @change="saveLessonMeta"><option value="text">Reading</option><option value="video">Video</option><option value="pdf">Document</option></select></label><label v-if="selectedLesson.type === 'video'">Video URL <input v-model="selectedLesson.video_url" @change="saveLessonMeta" placeholder="https://… or upload a video below"></label><label>Duration in minutes <input type="number" min="0" max="1440" v-model.number="selectedLesson.duration" @change="saveLessonMeta"></label><label>Upload a private course file <input type="file" @change="uploadLessonFile"></label><p role="status" v-if="uploadState">{{ uploadState }}</p><ul v-if="selectedLesson.resources?.length"><li v-for="file in selectedLesson.resources" :key="file.upload_id">{{ file.title }}</li></ul></div><BlockEditor :key="selectedLesson.id" :lesson="selectedLesson" @save="saveBlocks"/></template></template><div v-else class="empty-editor"><BookOpen :size="28"/><h2>Choose a lesson</h2><p>Add a chapter, then a lesson, to begin authoring.</p></div></section>
+          <aside class="outline" :class="{open: mobileOutline}" aria-label="Chapters" @keydown.esc="mobileOutline=false"><div class="outline-head"><strong>Chapters</strong><button type="button" ref="outlineClose" class="outline-close" aria-label="Close chapters" @click="mobileOutline=false">×</button><button @click="newSectionOpen=true"><Plus :size="16"/> Add Chapter</button></div><form v-if="newSectionOpen" class="outline-create" @submit.prevent="addSection"><input v-model="newSectionTitle" placeholder="Chapter title" aria-label="Chapter title" :disabled="addingSection" autofocus><button class="primary" :disabled="addingSection">{{ addingSection ? 'Adding…' : 'Add' }}</button></form><div v-for="section in course.sections" :key="section.id" class="chapter" @dragover.prevent @drop="dropLesson(section, section.lessons.length)"><div class="chapter-title"><input :value="section.title" @change="renameSection(section, $event.target.value)"><button @click="newLessonSection=section.id" title="Add lesson"><Plus :size="15"/></button></div><a v-if="section.specialist_create_url" :href="section.specialist_create_url" class="text-sm">Add live or graded lesson →</a><form v-if="newLessonSection===section.id" class="outline-create" @submit.prevent="addLesson(section)"><input v-model="newLessonTitle" placeholder="Lesson title" aria-label="Lesson title" :disabled="addingLesson" autofocus><button class="primary" :disabled="addingLesson">{{ addingLesson ? 'Adding…' : 'Add' }}</button></form><button v-for="(lesson, index) in section.lessons" :key="lesson.id" draggable="true" @dragstart="dragging = lesson" @dragover.prevent @drop.stop="dropLesson(section, index)" class="lesson-row" :class="{selected: selectedLesson?.id === lesson.id}" @click="selectLesson(lesson)"><span class="lesson-dot"></span>{{ lesson.title }}<small v-if="lesson.is_preview">Preview</small></button></div></aside>
         </main>
       </template>
     </div>`,
   setup() {
     const courses = ref([]); const course = ref(null); const draft = ref({}); const selectedLesson = ref(null);
-    const tab = ref('overview'); const saved = ref(false); const uploadState = ref(''); const search = ref(''); const mobileOutline = ref(false); const dragging = ref(null); const createOpen = ref(false); const createDraft = ref({ title: '', category: '', short_introduction: '' }); const newSectionOpen = ref(false); const newSectionTitle = ref(''); const newLessonSection = ref(null); const newLessonTitle = ref(''); let saveNotice;
-    const markSaved = () => { saved.value = true; clearTimeout(saveNotice); saveNotice = setTimeout(() => saved.value = false, 1800); };
-    const load = async () => {
-      if (courseId) { course.value = await request('/' + courseId); draft.value = { ...course.value }; selectedLesson.value = course.value.sections.flatMap(section => section.lessons)[0] || null; }
-      else courses.value = await request('');
+    const tab = ref('overview'); const loading = ref(true); const loadError = ref(''); const saveStatus = ref('Changes save automatically'); const saveError = ref(''); const uploadState = ref(''); const search = ref(''); const mobileOutline = ref(false); const outlineButton = ref(null); const outlineClose = ref(null); const dragging = ref(null); const createOpen = ref(false); const createModal = ref(null); const creating = ref(false); const createError = ref(''); const createDraft = ref({ title: '', category: '', short_introduction: '', vendor_id: root?.dataset.vendorId || null }); const newSectionOpen = ref(false); const newSectionTitle = ref(''); const addingSection = ref(false); const newLessonSection = ref(null); const newLessonTitle = ref(''); const addingLesson = ref(false);
+    watch(createOpen, async open => { if (open) { await nextTick(); createModal.value?.showModal(); } });
+    watch(mobileOutline, async open => { await nextTick(); (open ? outlineClose.value : outlineButton.value)?.focus(); });
+    let courseSaving = false; let courseSaveRequested = false; let lastFailedSave = null;
+    const blockSaving = new Set(); const blockSaveRequested = new Set();
+    const markSaved = () => { saveStatus.value = 'Saved'; saveError.value = ''; };
+    const saveAction = async (work, retry) => {
+      saveStatus.value = 'Saving…'; saveError.value = '';
+      try { const result = await work(); markSaved(); lastFailedSave = null; return result; }
+      catch (error) { saveStatus.value = ''; saveError.value = error.message || 'Your change was not saved.'; lastFailedSave = retry; return null; }
     };
-    const createCourse = async () => { if (!createDraft.value.title.trim()) return; const item = await request('', { method: 'POST', body: JSON.stringify(createDraft.value) }); window.location.assign('/instructor/courses/' + item.id); };
+    const retrySave = () => lastFailedSave?.();
+    const load = async () => {
+      loading.value = true; loadError.value = '';
+      try {
+        if (courseId) { course.value = await request('/' + courseId); draft.value = { ...course.value }; selectedLesson.value = course.value.sections.flatMap(section => section.lessons)[0] || null; }
+        else courses.value = await request('');
+      } catch (error) { loadError.value = error.message; }
+      finally { loading.value = false; }
+    };
+    const createCourse = async () => {
+      if (creating.value) return;
+      if (!createDraft.value.title.trim()) { createError.value = 'Enter a course title.'; return; }
+      creating.value = true; createError.value = '';
+      try { const item = await request('', { method: 'POST', body: JSON.stringify(createDraft.value) }); window.location.assign('/instructor/courses/' + item.id); }
+      catch (error) { createError.value = error.message; creating.value = false; }
+    };
     const filteredCourses = computed(() => courses.value.filter(item => (item.title + ' ' + (item.category || '')).toLowerCase().includes(search.value.toLowerCase())));
     const lessonCount = computed(() => course.value?.sections?.reduce((count, section) => count + section.lessons.length, 0) || 0);
-    const saveCourse = async () => { Object.assign(course.value, await request('/' + course.value.id, { method: 'PATCH', body: JSON.stringify(draft.value) })); markSaved(); };
+    const saveCourse = async () => {
+      courseSaveRequested = true;
+      if (courseSaving) return;
+      courseSaving = true;
+      try {
+        while (courseSaveRequested) {
+          courseSaveRequested = false;
+          const fields = ['title','category','short_introduction','description','thumbnail','price','is_free'];
+          if (course.value.vendor_id) fields.push('organization_published','organization_audience','registration_open','class_ids');
+          const data = Object.fromEntries(fields.map(key => [key, draft.value[key]]));
+          if (data.organization_audience === 'classes' && !data.class_ids?.length) {
+            saveStatus.value = ''; saveError.value = 'Select at least one class before saving.'; lastFailedSave = saveCourse; break;
+          }
+          const updated = await saveAction(() => request('/' + course.value.id, { method: 'PATCH', body: JSON.stringify(data) }), saveCourse);
+          if (!updated) break;
+          Object.assign(course.value, updated);
+        }
+      } finally { courseSaving = false; }
+    };
     const sectionFor = lesson => course.value.sections.find(section => section.lessons.some(item => item.id === lesson.id));
     const selectLesson = lesson => { selectedLesson.value = lesson; mobileOutline.value = false; };
     const lessonPath = () => '/' + course.value.id + '/sections/' + sectionFor(selectedLesson.value).id + '/lessons/' + selectedLesson.value.id;
-    const saveLesson = async () => { Object.assign(selectedLesson.value, await request(lessonPath(), { method: 'PATCH', body: JSON.stringify({ title: selectedLesson.value.title, is_preview: selectedLesson.value.is_preview }) })); markSaved(); };
-    const saveLessonMeta = async () => { Object.assign(selectedLesson.value, await request(lessonPath(), { method: 'PATCH', body: JSON.stringify({ type: selectedLesson.value.type, video_url: selectedLesson.value.video_url, duration: selectedLesson.value.duration || 0 }) })); markSaved(); };
+    const saveLesson = async () => { const lesson = selectedLesson.value; const path = lessonPath(); const save = async () => { const updated = await saveAction(() => request(path, { method: 'PATCH', body: JSON.stringify({ title: lesson.title, is_preview: lesson.is_preview }) }), save); if (updated) Object.assign(lesson, updated); }; await save(); };
+    const saveLessonMeta = async () => { const lesson = selectedLesson.value; const path = lessonPath(); const save = async () => { const updated = await saveAction(() => request(path, { method: 'PATCH', body: JSON.stringify({ type: lesson.type, video_url: lesson.video_url, duration: lesson.duration || 0 }) }), save); if (updated) Object.assign(lesson, updated); }; await save(); };
     const uploadLessonFile = event => {
       const file = event.target.files?.[0]; if (!file || !selectedLesson.value) return;
       const lesson = selectedLesson.value; const path = lessonPath(); const body = new FormData(); body.append('file', file);
@@ -335,25 +387,69 @@ const App = {
           if (xhr.status !== 201) throw new Error(uploaded.message || 'Upload failed.');
           if (uploaded.type === 'video') { lesson.type = 'video'; lesson.video_url = uploaded.url; }
           else lesson.resources = [...(lesson.resources || []), { title: uploaded.name, kind: 'study_material', upload_id: uploaded.id }];
-          Object.assign(lesson, await request(path, { method: 'PATCH', body: JSON.stringify({ type: lesson.type, video_url: lesson.video_url, resources: lesson.resources }) }));
-          uploadState.value = 'Uploaded and saved'; markSaved();
+          const saveUpload = async () => {
+            const saved = await saveAction(() => request(path, { method: 'PATCH', body: JSON.stringify({ type: lesson.type, video_url: lesson.video_url, resources: lesson.resources }) }), saveUpload);
+            if (saved) { Object.assign(lesson, saved); uploadState.value = 'Uploaded and saved'; }
+            else uploadState.value = 'File uploaded, but it could not be attached to this lesson. Use Retry save above.';
+          };
+          await saveUpload();
         } catch (error) { uploadState.value = error.message; }
       };
       xhr.onerror = () => { uploadState.value = 'Upload failed. Check your connection and try again.'; };
       uploadState.value = 'Uploading…'; xhr.send(body); event.target.value = '';
     };
-    const saveBlocks = async blocks => { selectedLesson.value.blocks = blocks; await request(lessonPath(), { method: 'PATCH', body: JSON.stringify({ block_document: blocks }) }); markSaved(); };
-    const addSection = async () => { if (!newSectionTitle.value.trim()) return; course.value.sections.push(await request('/' + course.value.id + '/sections', { method: 'POST', body: JSON.stringify({ title: newSectionTitle.value }) })); newSectionTitle.value = ''; newSectionOpen.value = false; };
-    const addLesson = async section => { if (!newLessonTitle.value.trim()) return; const lesson = await request('/' + course.value.id + '/sections/' + section.id + '/lessons', { method: 'POST', body: JSON.stringify({ title: newLessonTitle.value }) }); section.lessons.push(lesson); newLessonTitle.value = ''; newLessonSection.value = null; selectLesson(lesson); };
-    const renameSection = async (section, title) => { if (!title.trim() || title === section.title) return; Object.assign(section, await request('/' + course.value.id + '/sections/' + section.id, { method: 'PATCH', body: JSON.stringify({ title }) })); markSaved(); };
+    const saveBlocks = async (lessonId, blocks) => {
+      const lesson = course.value.sections.flatMap(section => section.lessons).find(item => item.id === lessonId);
+      if (!lesson) return;
+      lesson.blocks = blocks; blockSaveRequested.add(lessonId);
+      if (blockSaving.has(lessonId)) return;
+      blockSaving.add(lessonId);
+      try {
+        while (blockSaveRequested.delete(lessonId)) {
+          const section = sectionFor(lesson);
+          const path = '/' + course.value.id + '/sections/' + section.id + '/lessons/' + lessonId;
+          const saved = await saveAction(() => request(path, { method: 'PATCH', body: JSON.stringify({ block_document: lesson.blocks }) }), () => saveBlocks(lessonId, lesson.blocks));
+          if (!saved) break;
+        }
+      } finally { blockSaving.delete(lessonId); }
+    };
+    const addSection = async () => {
+      if (addingSection.value) return;
+      const title = newSectionTitle.value.trim();
+      if (!title) { saveError.value = 'Enter a chapter title.'; return; }
+      addingSection.value = true;
+      try {
+        const section = await saveAction(() => request('/' + course.value.id + '/sections', { method: 'POST', body: JSON.stringify({ title }) }), addSection);
+        if (section) { course.value.sections.push(section); newSectionTitle.value = ''; newSectionOpen.value = false; }
+      } finally { addingSection.value = false; }
+    };
+    const addLesson = async section => {
+      if (addingLesson.value) return;
+      const title = newLessonTitle.value.trim();
+      if (!title) { saveError.value = 'Enter a lesson title.'; return; }
+      addingLesson.value = true;
+      try {
+        const lesson = await saveAction(() => request('/' + course.value.id + '/sections/' + section.id + '/lessons', { method: 'POST', body: JSON.stringify({ title }) }), () => addLesson(section));
+        if (lesson) { section.lessons.push(lesson); newLessonTitle.value = ''; newLessonSection.value = null; selectLesson(lesson); }
+      } finally { addingLesson.value = false; }
+    };
+    const renameSection = async (section, title) => { if (!title.trim() || title === section.title) return; const updated = await saveAction(() => request('/' + course.value.id + '/sections/' + section.id, { method: 'PATCH', body: JSON.stringify({ title }) }), () => renameSection(section, title)); if (updated) Object.assign(section, updated); };
+    const saveOutline = () => saveAction(() => request('/' + course.value.id + '/outline', { method: 'POST', body: JSON.stringify({ sections: course.value.sections.map(section => ({ id: section.id, lessons: section.lessons.map(lesson => lesson.id) })) }) }), saveOutline);
     const dropLesson = async (target, index) => {
       if (!dragging.value) return;
       const source = sectionFor(dragging.value); const oldIndex = source.lessons.indexOf(dragging.value);
       source.lessons.splice(oldIndex, 1); target.lessons.splice(index, 0, dragging.value); dragging.value = null;
-      await request('/' + course.value.id + '/outline', { method: 'POST', body: JSON.stringify({ sections: course.value.sections.map(section => ({ id: section.id, lessons: section.lessons.map(lesson => lesson.id) })) }) }); markSaved();
+      await saveOutline();
     };
-    load().catch(error => window.alert(error.message));
-    return { courses, course, draft, selectedLesson, tab, saved, uploadState, search, mobileOutline, dragging, createOpen, createDraft, newSectionOpen, newSectionTitle, newLessonSection, newLessonTitle, filteredCourses, lessonCount, createCourse, saveCourse, selectLesson, saveLesson, saveLessonMeta, uploadLessonFile, saveBlocks, addSection, addLesson, renameSection, dropLesson };
+    const warnOnLeave = event => {
+      if (saveError.value || saveStatus.value === 'Saving…' || creating.value || (createOpen.value && createDraft.value.title.trim())) {
+        event.preventDefault(); event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warnOnLeave);
+    onBeforeUnmount(() => window.removeEventListener('beforeunload', warnOnLeave));
+    load();
+    return { courses, course, draft, selectedLesson, tab, loading, loadError, load, saveStatus, saveError, retrySave, uploadState, search, mobileOutline, outlineButton, outlineClose, dragging, createOpen, createModal, creating, createError, createDraft, newSectionOpen, newSectionTitle, addingSection, newLessonSection, newLessonTitle, addingLesson, filteredCourses, lessonCount, createCourse, saveCourse, selectLesson, saveLesson, saveLessonMeta, uploadLessonFile, saveBlocks, addSection, addLesson, renameSection, dropLesson };
   },
 };
 if (root) createApp(App).mount(root);

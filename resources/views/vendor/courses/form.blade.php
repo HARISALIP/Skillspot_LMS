@@ -103,6 +103,23 @@
           </div>
         </div>
 
+        <div class="rounded-2xl border border-brand-200 bg-brand-50 p-4 space-y-3">
+          <h4 class="font-semibold text-gray-900">Organization access</h4>
+          <label class="flex gap-2 text-sm"><input type="checkbox" name="organization_published" value="1" {{ old('organization_published', $course->organization_published) ? 'checked' : '' }}> Publish inside this organization</label>
+          <label class="block text-sm font-medium" for="organization_audience">Who can see this course?</label>
+          <select id="organization_audience" name="organization_audience" class="w-full rounded-xl border border-gray-200 p-3">
+            <option value="all" {{ old('organization_audience', $course->organization_audience ?? 'all') === 'all' ? 'selected' : '' }}>All organization students</option>
+            <option value="classes" {{ old('organization_audience', $course->organization_audience) === 'classes' ? 'selected' : '' }}>Selected classes only</option>
+          </select>
+          <div class="grid grid-cols-2 gap-2">
+            @foreach($organizationClasses as $class)
+              <label class="flex gap-2 text-sm"><input type="checkbox" name="class_ids[]" value="{{ $class->id }}" {{ in_array($class->id, old('class_ids', $course->exists ? $course->organizationClasses->pluck('id')->all() : [])) ? 'checked' : '' }}> {{ $class->name }}</label>
+            @endforeach
+          </div>
+          @if($organizationClasses->isEmpty())<a class="text-sm text-brand-700 underline" href="{{ route('vendor.organization.index') }}">Create a class first</a>@endif
+          <p class="text-xs text-gray-600">Marketplace publication is separate and still requires Skillspot review.</p>
+        </div>
+
         {{-- Category + Level + Language --}}
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>

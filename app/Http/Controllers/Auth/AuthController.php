@@ -466,7 +466,7 @@ class AuthController extends Controller
         if ($access === 'vendor_only') {
             // No Skillspot access — must go to a vendor portal
             if ($vendorAccess->count() === 1) {
-                return redirect()->route('vendor.portal.dashboard', $vendorAccess->first()->slug)
+                return redirect()->route('organization.dashboard', $vendorAccess->first()->slug)
                     ->with('success', 'Welcome back, ' . $user->name . '! 👋');
             }
             if ($vendorAccess->count() > 1) {

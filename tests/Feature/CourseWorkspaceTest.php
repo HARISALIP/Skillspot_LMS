@@ -312,7 +312,7 @@ class CourseWorkspaceTest extends TestCase
             ->assertOk()->assertSee('for="batch-vendor"', false)->assertSee('for="batch-search"', false);
         $this->get(route('admin.batches.attendance', [$course, $lesson]))
             ->assertOk()->assertSeeText('Mark Attendance')
-            ->assertSee('aria-label="Present for '.$student->name.'"', false);
+            ->assertSee('aria-label="Present for '.e($student->name).'"', false);
         $this->actingAs($admin)->post(route('admin.batches.attendance.save', [$course, $lesson]), [
             'attendance' => [$outsider->id => 'present'],
         ])->assertUnprocessable();

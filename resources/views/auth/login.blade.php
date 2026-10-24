@@ -179,6 +179,7 @@
 
 @push('scripts')
 <script>
+(() => {
   // Toggle password visibility
   const toggleBtn = document.getElementById('togglePwd');
   if (toggleBtn) {
@@ -202,5 +203,6 @@
       document.getElementById('loginBtn').disabled = true;
     });
   }
+})();
 </script>
 @endpush
