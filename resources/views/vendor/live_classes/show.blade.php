@@ -1,5 +1,6 @@
 @extends('layouts.vendor')
 @section('title', $liveClass->title . ' — Manage')
+@section('header', 'Live Class')
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-6 space-y-5">
 
@@ -38,15 +39,12 @@
           </button>
         </form>
       @else
-        <div x-data="{open:false}">
-          <button @click="open=true" class="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl transition text-sm">
+        <div>
+          <button type="button" onclick="document.getElementById('startSessionDialog').showModal()" class="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-3 rounded-xl transition text-sm">
             ▶ Start Session
           </button>
-          {{-- Start modal --}}
-          <div x-show="open" x-transition
-               class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-               @keydown.escape.window="open=false">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4" @click.stop>
+          <dialog id="startSessionDialog" aria-label="Start Live Session" class="w-[calc(100%-2rem)] max-w-md rounded-2xl border-0 bg-white p-6 shadow-2xl backdrop:bg-black/50">
+            <div class="space-y-4">
               <h3 class="font-black text-gray-900 text-lg">▶ Start Live Session</h3>
               <form method="POST" action="{{ route('vendor.live_classes.start', $liveClass->id) }}" class="space-y-4">
                 @csrf
@@ -65,13 +63,13 @@
                   <button type="submit" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition">
                     Go Live
                   </button>
-                  <button type="button" @click="open=false" class="px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">
+                  <button type="button" onclick="this.closest('dialog').close()" class="px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">
                     Cancel
                   </button>
                 </div>
               </form>
             </div>
-          </div>
+          </dialog>
         </div>
       @endif
     @endif
@@ -134,7 +132,7 @@
   @if(!in_array($liveClass->status, ["completed","cancelled"]))
   @php
     $shareUrl  = route('vendor.portal.live_class.detail', [$vendor->slug, $liveClass->slug]);
-    $portalUrl = route('vendor.portal.home', $vendor->slug);
+    $portalUrl = route('organization.dashboard', $vendor->slug);
     $waText    = urlencode('Join my live class: ' . $liveClass->title . ' — ' . $shareUrl);
   @endphp
   <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5">
@@ -147,7 +145,7 @@
                 class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">Copy</button>
       </div>
       <div class="flex items-center gap-2">
-        <input type="text" id="sharePortalUrl" aria-label="Vendor portal link" value="{{ $portalUrl }}" readonly
+        <input type="text" id="sharePortalUrl" aria-label="Organization learner link" value="{{ $portalUrl }}" readonly
                class="flex-1 bg-white border border-blue-200 rounded-xl px-3 py-2 text-xs text-gray-600 font-mono focus:outline-none">
         <button onclick="copyLink('sharePortalUrl',this)"
                 class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition">Copy</button>
@@ -303,12 +301,9 @@
             $autoTitle = trim(($session->module_name ? $session->module_name . ' - ' : '') . ($session->session_name ?: ''));
             $maxMb = (int) App\Models\Setting::get('max_upload_mb', 2048);
           @endphp
-          <div x-data="{open:false}">
-            <button @click="open=!open"
-                    class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
-              <span x-text="open ? '▲ Hide upload' : '+ Upload Recording / Notes'">+ Upload Recording / Notes</span>
-            </button>
-            <div x-show="open" x-transition class="mt-2 bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+          <details>
+            <summary class="cursor-pointer text-xs font-semibold text-blue-700">Upload recording / notes</summary>
+            <div class="mt-2 space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-gray-600 mb-1">Type *</label>
@@ -362,7 +357,7 @@
                 Upload to Cloud
               </button>
             </div>
-          </div>
+          </details>
           @endif
 
         </div>
@@ -449,7 +444,7 @@ function copyAllDetails() {
   const title     = {{ Illuminate\Support\Js::from($liveClass->title) }};
   const mid       = {{ Illuminate\Support\Js::from($liveClass->meeting_id ?? '') }};
   const mpw       = {{ Illuminate\Support\Js::from($liveClass->meeting_password ?? '') }};
-  let text = `📡 Live Class: ${title}\n\n🔗 Join Link: ${liveUrl}\n🌐 Portal: ${portalUrl}`;
+  let text = `📡 Live Class: ${title}\n\n🔗 Join Link: ${liveUrl}\n🌐 Organization learning: ${portalUrl}`;
   if (mid)  text += `\n📋 Meeting ID: ${mid}`;
   if (mpw)  text += `\n🔑 Password: ${mpw}`;
   navigator.clipboard.writeText(text).then(() => alert('Details copied to clipboard ✓'));
@@ -459,7 +454,7 @@ function copyAllDetails() {
 @push('scripts')
 <script>
 // Upload state per session
-const uploadState = {};
+window.skillspotUploadState ||= {};
 
 function startUpload(sid, url, token) {
   const fileInput = document.getElementById('fileInput_' + sid);
@@ -476,7 +471,7 @@ function startUpload(sid, url, token) {
   formData.append('_token', token);
 
   const xhr = new XMLHttpRequest();
-  uploadState[sid] = { xhr, paused: false, startTime: Date.now(), loaded: 0 };
+  window.skillspotUploadState[sid] = { xhr, paused: false, startTime: Date.now(), loaded: 0 };
 
   // Show progress UI
   document.getElementById('progressWrap_' + sid).classList.remove('hidden');
@@ -488,7 +483,7 @@ function startUpload(sid, url, token) {
   xhr.upload.addEventListener('progress', e => {
     if (!e.lengthComputable) return;
     const pct  = Math.round((e.loaded / e.total) * 100);
-    const elapsed = (Date.now() - uploadState[sid].startTime) / 1000;
+    const elapsed = (Date.now() - window.skillspotUploadState[sid].startTime) / 1000;
     const speed = elapsed > 0 ? formatBytes(e.loaded / elapsed) + '/s' : '';
     const remain = speed && e.total > e.loaded
       ? ' · ' + formatSecs(((e.total - e.loaded) / (e.loaded / elapsed))) + ' left'
@@ -515,7 +510,7 @@ function startUpload(sid, url, token) {
       err.classList.remove('hidden');
       resetUploadBtn(sid);
     }
-    delete uploadState[sid];
+    delete window.skillspotUploadState[sid];
   });
 
   xhr.addEventListener('error', () => {
@@ -524,7 +519,7 @@ function startUpload(sid, url, token) {
     err.textContent = 'Network error. Please check connection and try again.';
     err.classList.remove('hidden');
     resetUploadBtn(sid);
-    delete uploadState[sid];
+    delete window.skillspotUploadState[sid];
   });
 
   xhr.open('POST', url);
@@ -534,7 +529,7 @@ function startUpload(sid, url, token) {
 
 function pauseResumeUpload(sid) {
   // XHR doesn't support true pause — abort and show message
-  const state = uploadState[sid];
+  const state = window.skillspotUploadState[sid];
   if (!state) return;
   const btn = document.getElementById('pauseBtn_' + sid);
   state.xhr.abort();
@@ -543,12 +538,12 @@ function pauseResumeUpload(sid) {
   err.textContent = 'Upload paused/stopped. Select the file again to restart.';
   err.classList.remove('hidden');
   resetUploadBtn(sid);
-  delete uploadState[sid];
+  delete window.skillspotUploadState[sid];
 }
 
 function cancelUpload(sid) {
-  const state = uploadState[sid];
-  if (state) { state.xhr.abort(); delete uploadState[sid]; }
+  const state = window.skillspotUploadState[sid];
+  if (state) { state.xhr.abort(); delete window.skillspotUploadState[sid]; }
   document.getElementById('progressWrap_' + sid).classList.add('hidden');
   document.getElementById('uploadError_' + sid).classList.add('hidden');
   document.getElementById('uploadSuccess_' + sid).classList.add('hidden');

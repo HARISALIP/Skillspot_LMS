@@ -18,9 +18,13 @@ class CourseService
         return DB::transaction(function() use ($user, $course) {
             $existing = Enrollment::where('user_id',$user->id)
                 ->where('course_id',$course->id)->first();
-            if ($existing) return $existing;
+            if ($existing) {
+                if (!in_array($existing->status, ['active', 'completed'], true)) $existing->update(['status' => 'active']);
+                OrganizationAccess::grant($user, $course, 'marketplace', 'free');
+                return $existing;
+            }
 
-            return Enrollment::create([
+            $enrollment = Enrollment::create([
                 'user_id'       => $user->id,
                 'course_id'     => $course->id,
                 'vendor_id'     => $course->vendor_id,
@@ -30,6 +34,8 @@ class CourseService
                 'access_type'   => 'lifetime',
                 'progress'      => 0,
             ]);
+            OrganizationAccess::grant($user, $course, 'marketplace', 'free');
+            return $enrollment;
         });
     }
 
@@ -45,10 +51,11 @@ class CourseService
                 ->where('course_id',$course->id)->first();
             if ($existing) {
                 $existing->update(['status'=>'active','transaction_id'=>$paymentId]);
+                OrganizationAccess::grant($user, $course, 'marketplace', 'paid');
                 return $existing;
             }
 
-            return Enrollment::create([
+            $enrollment = Enrollment::create([
                 'user_id'        => $user->id,
                 'course_id'      => $course->id,
                 'vendor_id'      => $course->vendor_id,
@@ -60,6 +67,8 @@ class CourseService
                 'expires_at'     => $expiresAt,
                 'progress'       => 0,
             ]);
+            OrganizationAccess::grant($user, $course, 'marketplace', 'paid');
+            return $enrollment;
         });
     }
 
@@ -173,15 +182,7 @@ class CourseService
     // ── Check if student has valid access ─────────────────────────────
     public static function hasAccess(User $user, Course $course): bool
     {
-        if (in_array($course->marketplace_status, ['suspended', 'archived', 'rejected'], true)) return false;
-        $enrollment = Enrollment::where('user_id',$user->id)
-            ->where('course_id',$course->id)
-            ->whereIn('status',['active','completed'])
-            ->first();
-
-        if (!$enrollment) return false;
-        if ($enrollment->access_type === 'limited' && $enrollment->expires_at?->isPast()) return false;
-
-        return true;
+        return OrganizationAccess::hasChannel($user, $course, 'marketplace')
+            || OrganizationAccess::hasChannel($user, $course, 'organization');
     }
 }

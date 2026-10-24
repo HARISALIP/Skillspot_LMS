@@ -73,8 +73,8 @@ class CourseWorkspaceTest extends TestCase
 
         $course->refresh();
         $this->assertNull($course->thumbnail);
-        $this->assertStringStartsWith('/storage/course-previews/', $course->intro_video);
-        Storage::disk('public')->assertExists(str_replace('/storage/', '', $course->intro_video));
+        $this->assertMatchesRegularExpression('#^/(?:storage/)?course-previews/#', $course->intro_video);
+        Storage::disk('public')->assertExists(ltrim(str_replace('/storage/', '/', $course->intro_video), '/'));
     }
 
     public function test_unpublish_and_self_enrollment_controls_block_direct_requests(): void
@@ -490,7 +490,7 @@ class CourseWorkspaceTest extends TestCase
             ->assertOk()->assertSee('for="batch-vendor"', false)->assertSee('for="batch-search"', false);
         $this->get(route('admin.batches.attendance', [$course, $lesson]))
             ->assertOk()->assertSeeText('Mark Attendance')
-            ->assertSee('aria-label="Present for '.$student->name.'"', false);
+            ->assertSee('aria-label="Present for '.e($student->name).'"', false);
         $this->actingAs($admin)->post(route('admin.batches.attendance.save', [$course, $lesson]), [
             'attendance' => [$outsider->id => 'present'],
         ])->assertUnprocessable();

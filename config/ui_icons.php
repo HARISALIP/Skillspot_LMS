@@ -3,7 +3,7 @@
 return [
     'emoji' => [
         '👩‍🏫' => 'fa-chalkboard-user', '👨‍🏫' => 'fa-chalkboard-user',
-        '✅' => 'fa-circle-check', '❌' => 'fa-circle-xmark', '➕' => 'fa-plus',
+        '✅' => 'fa-circle-check', '❌' => 'fa-circle-xmark', '➕' => 'fa-plus', '💼' => 'fa-briefcase',
         '📅' => 'fa-calendar-days', '✏️' => 'fa-pen', '🎓' => 'fa-graduation-cap',
         '⚠️' => 'fa-triangle-exclamation', '🟢' => 'fa-circle text-green-500',
         '🗑️' => 'fa-trash-can', '👥' => 'fa-users', '📡' => 'fa-tower-broadcast',

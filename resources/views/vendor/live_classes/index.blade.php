@@ -1,5 +1,6 @@
 @extends('layouts.vendor')
 @section('title', 'Live Classes — ' . $vendor->brand_name)
+@section('header', 'Live Classes')
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
 

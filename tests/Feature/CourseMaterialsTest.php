@@ -50,10 +50,10 @@ class CourseMaterialsTest extends TestCase
         CourseService::enrollFree($student, $course);
         $page = $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
             ->assertSee('Sample paper')->assertSee('Circuit diagram')
-            ->assertSee('materialViewer')->assertSee(route('media.download', $paper->uuid))
+            ->assertSee('materialViewer')->assertSee(route('media.course', [$course, $paper->uuid]))
             ->assertSee('id="pdfOpen" type="button"', false)
             ->assertSee('id="slideNext"', false)
-            ->assertSee('data-download-url="'.route('media.download', $image->uuid).'"', false);
+            ->assertSee('data-download-url="'.route('media.course', [$course, $image->uuid]).'"', false);
         $this->assertSame(1, substr_count($page->getContent(), '<h3 class="font-bold text-gray-900 mt-1">Sample paper</h3>'));
 
         $paper->update(['is_public' => false]);
@@ -95,9 +95,9 @@ class CourseMaterialsTest extends TestCase
         CourseService::enrollFree($student, $course);
         $this->actingAs($student)->get(route('student.learn', $course))->assertOk()
             ->assertSee('Intro slides')->assertSee('Narration')->assertSee('Diagram')->assertSee('Practice quiz')
-            ->assertSee('<audio controls', false)->assertSee(route('media.download', $deck->uuid));
-        $this->get(route('student.get-lesson', [$course, $lesson]))->assertOk()->assertJsonPath('materials.0.preview_url', $preview->public_url);
-        $this->get(route('media.download', $deck->uuid))->assertOk()->assertHeader('content-disposition', 'attachment; filename=slides.pptx');
+            ->assertSee('<audio controls', false)->assertSee(route('media.course', [$course, $deck->uuid]));
+        $this->get(route('student.get-lesson', [$course, $lesson]))->assertOk()->assertJsonPath('materials.0.preview_url', route('media.course', [$course, $preview->uuid]));
+        $this->get(route('media.download', $deck->uuid))->assertNotFound();
     }
 
     public function test_slide_preview_is_required_and_private_file_cannot_be_attached(): void

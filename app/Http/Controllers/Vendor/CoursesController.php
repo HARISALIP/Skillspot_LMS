@@ -15,6 +15,7 @@ use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CoursesController extends Controller
 {
@@ -35,11 +36,17 @@ class CoursesController extends Controller
     public function index()
     {
         $vendor  = $this->vendor();
-        $courses = Course::where('vendor_id', $vendor->id)
+        $query = Course::where('vendor_id', $vendor->id)
             ->with(['primaryInstructor', 'vendor'])
             ->withCount(['sections', 'enrollments'])
             ->withAvg('reviews', 'rating')
-            ->latest()->paginate(15);
+            ->latest();
+        if ($this->isTeacher()) {
+            $userId = auth()->id();
+            $query->where(fn ($courses) => $courses->where('primary_instructor_id', $userId)
+                ->orWhereHas('teachers', fn ($teachers) => $teachers->whereKey($userId)));
+        }
+        $courses = $query->paginate(15);
         $isVendorOnly = $this->isVendorOnly();
         $isTeacher    = $this->isTeacher();
         $categoryRecords = CourseCategory::where('is_active', true)->orderBy('order_col')->get(['id', 'name']);
@@ -68,6 +75,7 @@ class CoursesController extends Controller
             'categories' => $this->getCategories(),
             'levels'     => $this->getLevels(),
             'languages'  => $this->getLanguages(),
+            'organizationClasses' => $vendor->organizationClasses()->orderBy('name')->get(),
             'isEdit'     => false,
         ]);
     }
@@ -83,7 +91,11 @@ class CoursesController extends Controller
         $data['marketplace_visible'] = false;
         $data['visibility'] = 'draft';
         $data['is_published'] = false;
-        $course = Course::create($data);
+        $course = DB::transaction(function () use ($data, $request, $vendor) {
+            $course = Course::create($data);
+            $course->organizationClasses()->sync($request->input('class_ids', []));
+            return $course;
+        });
         return redirect()->route('vendor.courses.edit', $course->id)
             ->with('success', "Course \"{$course->title}\" created ✅ Now add sections & lessons.");
     }
@@ -93,15 +105,7 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403, 'Course not in your vendor.');
-        $course->load('sections.lessons','allowedUsers');
-        return view('vendor.courses.form', [
-            'vendor'     => $vendor,
-            'course'     => $course,
-            'categories' => $this->getCategories(),
-            'levels'     => $this->getLevels(),
-            'languages'  => $this->getLanguages(),
-            'isEdit'     => true,
-        ]);
+        return redirect()->route('instructor.courses.show', $course);
     }
 
     // ── Update ───────────────────────────────────────────────────────────
@@ -111,11 +115,12 @@ class CoursesController extends Controller
         abort_if($course->vendor_id !== $vendor->id, 403);
         $data = $this->validateCourse($request, $course->id);
         $data['vendor_id'] = $vendor->id; // keep locked to vendor
-        if (!$course->isMarketplaceLive()) {
-            $data['visibility'] = 'draft';
-            $data['is_published'] = false;
-        }
-        $course->update($data);
+        $data['visibility'] = $course->visibility;
+        $data['is_published'] = $course->is_published;
+        DB::transaction(function () use ($course, $data, $request) {
+            $course->update($data);
+            $course->organizationClasses()->sync($request->input('class_ids', []));
+        });
         return back()->with('success', "Course updated ✅");
     }
 
@@ -146,16 +151,40 @@ class CoursesController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
+        abort_unless($course->canManageContent(auth()->user()), 403);
         $course->loadCount('enrollments');
         $allowed  = $course->allowedUsers()->get();
         $enrolled = $course->enrollments()->with('user')->get();
         $isVendorOnly = $this->isVendorOnly();
         $isTeacher    = $this->isTeacher();
-        return view('vendor.courses.students', compact('vendor','course','allowed','enrolled','isVendorOnly','isTeacher'));
+        $canManageStudents = auth()->user()->hasRole(['admin', 'super-admin'])
+            || $vendor->managers()->where('users.id', auth()->id())->exists();
+        $assignedTeachers = $course->teachers()->get(['users.id', 'users.name', 'users.email']);
+        $availableTeachers = $vendor->teachers()->orderBy('name')->get(['users.id', 'users.name', 'users.email']);
+        return view('vendor.courses.students', compact('vendor','course','allowed','enrolled','isVendorOnly','isTeacher','canManageStudents','assignedTeachers','availableTeachers'));
+    }
+
+    public function assignTeacher(Request $request, Course $course)
+    {
+        $this->requireOrganizationManager();
+        $vendor = $this->vendor();
+        abort_unless($course->vendor_id === $vendor->id, 403);
+        $data = $request->validate(['user_id' => ['required', 'integer', Rule::exists('vendor_teachers', 'user_id')->where('vendor_id', $vendor->id)]]);
+        $course->teachers()->syncWithoutDetaching([$data['user_id'] => ['added_by' => auth()->id()]]);
+        return back()->with('success', 'Teacher assigned to this course.');
+    }
+
+    public function removeTeacher(Course $course, User $user)
+    {
+        $this->requireOrganizationManager();
+        abort_unless($course->vendor_id === $this->vendor()->id, 403);
+        $course->teachers()->detach($user->id);
+        return back()->with('success', 'Course assignment removed.');
     }
 
     public function allowStudent(Request $request, Course $course)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
         $request->validate(['email' => 'required|email|exists:users,email']);
@@ -165,17 +194,16 @@ class CoursesController extends Controller
             return back()->with('error', "Max student limit ({$course->max_students}) reached.");
         }
 
-        $course->allowedUsers()->syncWithoutDetaching([
-            $user->id => ['added_by' => auth()->id(), 'note' => $request->note ?? null]
-        ]);
-        return back()->with('success', "{$user->name} allowed ✅");
+        \App\Services\OrganizationAccess::grantManual($user, $course, auth()->id());
+        return back()->with('success', "{$user->name} granted free access.");
     }
 
     public function revokeStudent(Course $course, User $user)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         abort_if($course->vendor_id !== $vendor->id, 403);
-        $course->allowedUsers()->detach($user->id);
+        \App\Services\OrganizationAccess::revokeManual($user, $course);
         return back()->with('success', "Access revoked.");
     }
 
@@ -327,6 +355,10 @@ class CoursesController extends Controller
             'batch_start_date'  => 'nullable|date',
             'batch_end_date'    => 'nullable|date',
             'registration_open' => 'boolean',
+            'organization_audience' => 'required|in:all,classes',
+            'organization_published' => 'boolean',
+            'class_ids' => 'required_if:organization_audience,classes|array',
+            'class_ids.*' => ['integer', Rule::exists('organization_classes', 'id')->where('vendor_id', $this->vendor()->id)],
         ]);
 
         if (isset($data['requirements'])) {
@@ -343,6 +375,8 @@ class CoursesController extends Controller
         $data['course_type']       = $request->input('course_type', 'open');
         $data['visibility']        = $request->input('visibility', 'draft');
         $data['is_published']      = in_array($data['visibility'], ['public', 'restricted']) ? 1 : 0;
+        $data['organization_published'] = $request->boolean('organization_published');
+        unset($data['class_ids']);
 
         if (!$ignoreId) {
             $data['slug'] = Course::uniqueSlug($data['title']);

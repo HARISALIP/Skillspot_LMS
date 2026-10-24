@@ -20,10 +20,9 @@
     {{-- Hero --}}
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       <div class="h-48 md:h-64 bg-gradient-to-br from-brand-100 to-accent-100 relative overflow-hidden">
+        <div class="flex items-center justify-center h-full text-8xl" aria-hidden="true">📚</div>
         @if($course->thumbnail)
-          <img src="{{ $course->thumbnail }}" class="w-full h-full object-cover" alt="{{ $course->title }}">
-        @else
-          <div class="flex items-center justify-center h-full text-8xl">📚</div>
+          <img src="{{ $course->thumbnail }}" class="absolute inset-0 h-full w-full object-cover" alt="" onerror="this.remove()">
         @endif
         @if($hasAccess)
         <div class="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">✅ Enrolled</div>

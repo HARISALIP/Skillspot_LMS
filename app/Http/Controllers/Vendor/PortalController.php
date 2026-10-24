@@ -12,6 +12,7 @@ use App\Models\LiveClassAttendance;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Services\HumanVerifier;
+use App\Services\OrganizationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -32,13 +33,15 @@ class PortalController extends Controller
         $vendor = $this->resolveVendor($slug);
 
         $courses = Course::where('vendor_id', $vendor->id)
-            ->where('is_published', 1)
+            ->where('organization_published', true)
             ->withCount('enrollments')
             ->orderByDesc('created_at')
-            ->get();
+            ->get()->filter(fn ($course) => Auth::user() && OrganizationAccess::eligible(Auth::user(), $course));
 
         $user = Auth::user();
-        $canOpenDashboard = $user && ($user->hasRole(['super-admin', 'admin', 'teacher', 'vendor'])
+        $canOpenDashboard = $user && ($user->hasRole(['super-admin', 'admin'])
+            || $vendor->managers()->where('users.id', $user->id)->exists()
+            || $vendor->teachers()->where('users.id', $user->id)->exists()
             || DB::table('student_vendor_access')->where('user_id', $user->id)->where('vendor_id', $vendor->id)->exists());
 
         return view('vendor.portal.home', compact('vendor', 'courses', 'canOpenDashboard'));
@@ -100,7 +103,9 @@ class PortalController extends Controller
                 ->where('vendor_id', $vendor->id)
                 ->exists();
 
-            if (!$hasAccess && !$user->hasRole(['admin', 'super-admin', 'teacher', 'vendor'])) {
+            $staffAccess = $vendor->managers()->where('users.id', $user->id)->exists()
+                || $vendor->teachers()->where('users.id', $user->id)->exists();
+            if (!$hasAccess && !$staffAccess && !$user->hasRole(['admin', 'super-admin'])) {
                 Auth::logout();
                 $request->session()->invalidate();
                 return back()->withErrors([
@@ -111,7 +116,7 @@ class PortalController extends Controller
             $intended = session()->pull('url.intended');
             return $intended
                 ? redirect()->to($intended)->with('success', 'Welcome back, ' . $user->name . '! 👋')
-                : redirect()->route('vendor.portal.dashboard', $slug)->with('success', 'Welcome back, ' . $user->name . '! 👋');
+                : redirect()->route('organization.dashboard', $slug)->with('success', 'Welcome back, ' . $user->name . '! 👋');
         }
 
         $label = $isPhone ? 'phone number' : 'email';
@@ -214,7 +219,7 @@ class PortalController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->route('vendor.portal.dashboard', $slug)
+        return redirect()->route('organization.dashboard', $slug)
             ->with('success', 'Welcome to ' . $vendor->brand_name . '! 🎉');
     }
 
@@ -301,12 +306,12 @@ class PortalController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->route('vendor.portal.dashboard', $slug)
+        return redirect()->route('organization.dashboard', $slug)
             ->with('success', 'Welcome to ' . $vendor->brand_name . '! You are enrolled in "' . $course->title . '". 🎉');
     }
 
     // ── Dashboard ──────────────────────────────────────────────────────
-    public function dashboard(string $slug)
+    public function dashboard(string $slug, string $tab = 'dashboard')
     {
         $vendor = $this->resolveVendor($slug);
         $user   = Auth::user();
@@ -315,9 +320,9 @@ class PortalController extends Controller
         $enrollments = Enrollment::with(['course.sections.lessons'])
             ->where('user_id', $user->id)
             ->whereHas('course', fn($q) => $q->where('vendor_id', $vendor->id))
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'completed'])
             ->latest()
-            ->get();
+            ->get()->filter(fn ($enrollment) => $enrollment->course && OrganizationAccess::hasChannel($user, $enrollment->course, 'organization'));
 
         // Live class enrollments (hours/batch system)
         $liveClassEnrollments = LiveClassEnrollment::with(['liveClass.sessions'])
@@ -338,8 +343,13 @@ class PortalController extends Controller
             ->take(5)
             ->get();
 
+        $catalog = Course::where('vendor_id', $vendor->id)
+            ->where('organization_published', true)
+            ->latest()->get()
+            ->filter(fn ($course) => OrganizationAccess::eligible($user, $course));
+
         return view('vendor.portal.dashboard', compact(
-            'vendor', 'enrollments', 'liveClassEnrollments', 'upcomingLive'
+            'vendor', 'enrollments', 'liveClassEnrollments', 'upcomingLive', 'catalog', 'tab'
         ));
     }
 
@@ -350,11 +360,9 @@ class PortalController extends Controller
         $user   = Auth::user();
 
         // Verify enrolled
-        $courseId = $lesson->section->course_id ?? null;
-        $enrolled = $courseId && Enrollment::where('user_id', $user->id)
-            ->where('course_id', $courseId)
-            ->where('status', 'active')
-            ->exists();
+        $course = $lesson->section?->course;
+        $enrolled = $course && $course->vendor_id === $vendor->id
+            && OrganizationAccess::hasChannel($user, $course, 'organization');
 
         if (!$enrolled) {
             abort(403, 'You are not enrolled in this course.');
@@ -374,11 +382,9 @@ class PortalController extends Controller
         }
 
         // Verify enrolled
-        $courseId = $lesson->section->course_id ?? null;
-        $enrolled = $courseId && Enrollment::where('user_id', $user->id)
-            ->where('course_id', $courseId)
-            ->where('status', 'active')
-            ->exists();
+        $course = $lesson->section?->course;
+        $enrolled = $course && $course->vendor_id === $vendor->id
+            && OrganizationAccess::hasChannel($user, $course, 'organization');
 
         if (!$enrolled) {
             abort(403, 'You are not enrolled in this course.');
@@ -400,8 +406,9 @@ class PortalController extends Controller
 
         $enrollment = Enrollment::where('user_id', $user->id)
             ->where('course_id', $course->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'completed'])
             ->firstOrFail();
+        abort_unless(OrganizationAccess::hasChannel($user, $course, 'organization'), 403);
 
         $liveLessons = $course->sections->flatMap->lessons
             ->where('type', 'live')

@@ -7,7 +7,7 @@
     <div class="grid gap-5 sm:grid-cols-2">
       <label><span class="cw-label">Title <b class="text-red-600">*</b></span><input class="cw-field" name="title" required value="{{ old('title', $course->title) }}"></label>
       <label><span class="cw-label">Category</span><select class="cw-field" name="category">@foreach($categories as $category)<option @selected(old('category', $course->category) === $category)>{{ $category }}</option>@endforeach</select></label>
-      @if($creatorWorkspace ?? false)
+      @if(($creatorWorkspace ?? false) && !($canManageOrganizationTeachers ?? false))
       <label><span class="cw-label">Instructors</span><div class="cw-field flex items-center" aria-label="Course instructors">{{ $course->teachers->pluck('name')->whenEmpty(fn () => collect([$course->primaryInstructor?->name]))->filter()->join(', ') }}</div></label>
 @else
       <label><span class="cw-label">Instructors <b class="text-red-600">*</b></span><select class="cw-field" name="instructor_ids[]" multiple required>@foreach($instructors as $instructor)<option value="{{ $instructor->id }}" @selected(in_array($instructor->id, $selectedTeachers))>{{ $instructor->name }}</option>@endforeach</select></label>
@@ -61,7 +61,7 @@
   </section>
   <details class="border-t pt-5"><summary class="cursor-pointer text-sm font-semibold">Additional Skillspot settings</summary><div class="mt-5 space-y-5">
     <div class="grid gap-4 sm:grid-cols-2">
-      @unless($creatorWorkspace ?? false)<label><span class="cw-label">Organization</span><select class="cw-field" name="vendor_id"><option value="">Skillspot (No organization)</option>@foreach($vendors as $vendor)<option value="{{ $vendor->id }}" @selected($course->vendor_id == $vendor->id)>{{ $vendor->brand_name }}</option>@endforeach</select></label>@endunless
+    @unless($creatorWorkspace ?? false)<label><span class="cw-label">Organization</span><select class="cw-field" name="vendor_id"><option value="">Skillspot (No organization)</option>@foreach($vendors as $vendor)<option value="{{ $vendor->id }}" @selected($course->vendor_id == $vendor->id)>{{ $vendor->brand_name }}</option>@endforeach</select></label>@endunless
       <label><span class="cw-label">Language</span><select class="cw-field" name="language">@foreach($languages as $code=>$language)<option value="{{ $code }}" @selected($course->language === $code)>{{ $language }}</option>@endforeach</select></label>
       <label><span class="cw-label">Level</span><select class="cw-field" name="level">@foreach($levels as $level)<option value="{{ $level }}" @selected($course->level === $level)>{{ ucfirst($level) }}</option>@endforeach</select></label>
       <label><span class="cw-label">Course type</span><select class="cw-field" name="course_type">@foreach(['open'=>'Open','one_time'=>'One time','batch'=>'Batch'] as $value=>$label)<option value="{{ $value }}" @selected($course->course_type === $value)>{{ $label }}</option>@endforeach</select></label>
@@ -79,6 +79,9 @@
     @unless($creatorWorkspace ?? false)
     <label class="block"><span class="cw-label">Access</span><select class="cw-field" name="visibility">@foreach(['draft'=>'Draft','public'=>'Public','restricted'=>'Restricted'] as $value=>$label)<option value="{{ $value }}" @selected($course->visibility === $value)>{{ $label }}</option>@endforeach</select></label>
 @endunless
+    @if($course->vendor_id)
+    <div class="space-y-3 border-t pt-4"><p class="text-sm font-semibold">Organization access</p><label class="flex items-start gap-3"><span class="flex-1"><b class="block text-sm font-normal">Publish in this organization</b><span class="text-xs text-gray-500">Keep marketplace review separate.</span></span><input class="cw-toggle" type="checkbox" name="organization_published" value="1" @checked(old('organization_published', $course->organization_published))></label><label><span class="cw-label">Audience</span><select class="cw-field" name="organization_audience"><option value="all" @selected(old('organization_audience', $course->organization_audience) === 'all')>All organization students</option><option value="classes" @selected(old('organization_audience', $course->organization_audience) === 'classes')>Selected classes</option></select></label><fieldset><legend class="cw-label">Classes</legend><div class="space-y-2">@forelse($course->vendor->organizationClasses as $class)<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="class_ids[]" value="{{ $class->id }}" @checked(in_array($class->id, old('class_ids', $course->organizationClasses->pluck('id')->all())))> {{ $class->name }}</label>@empty<p class="text-xs text-gray-500">Create a class in Organization before selecting this audience.</p>@endforelse</div></fieldset></div>
+    @endif
   </div></details>
   <details open class="settings-side-section"><summary>Pricing and certification</summary><div class="space-y-5 p-5 pt-3">
     <label class="flex items-start gap-3"><span class="flex-1"><b class="block text-sm font-normal">Paid course</b><span class="text-xs text-gray-500">Charge learners to enroll in this course.</span></span><input id="paidToggle" class="cw-toggle" type="checkbox" @checked(!$course->is_free)></label>

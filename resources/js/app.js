@@ -212,8 +212,8 @@ function initialiseAdminWorkspace() {
   const settingsLoading = document.getElementById('settingsLoading');
   const settingsSurface = document.getElementById('settingsSurface');
   const mobileOverlay = document.getElementById('mobileOverlay');
-  if (!sidebar || !settingsModal || settingsModal.dataset.navigationReady === 'true') return;
-  settingsModal.dataset.navigationReady = 'true';
+  if (!sidebar || sidebar.dataset.navigationReady === 'true') return;
+  sidebar.dataset.navigationReady = 'true';
   window.__skillspotAdminCleanup?.();
   const workspaceTheme = () => document.body.dataset.theme || 'dark';
   const applyWorkspaceTheme = preference => {
@@ -238,6 +238,7 @@ function initialiseAdminWorkspace() {
     settingsFrame.src = url.toString(); settingsFrame.dataset.tab = tab; settingsFrame.dataset.loading = 'true';
   };
   const showSettings = (tab = 'general', addHistory = false) => {
+    if (!settingsModal) return;
     settingsModal.classList.remove('hidden');
     document.documentElement.classList.add('settings-open');
     document.body.classList.add('settings-open');
@@ -246,6 +247,7 @@ function initialiseAdminWorkspace() {
     loadSettingsFrame(tab);
   };
   const closeSettings = () => {
+    if (!settingsModal) return;
     settingsModal.classList.add('hidden'); document.documentElement.classList.remove('settings-open'); document.body.classList.remove('settings-open');
     if (settingTabFromHash()) history.pushState({}, '', `${location.pathname}${location.search}`);
   };
@@ -254,7 +256,7 @@ function initialiseAdminWorkspace() {
     settingsFrame.classList.remove('opacity-0'); settingsLoading?.classList.add('hidden'); settingsSurface?.setAttribute('aria-busy', 'false');
   });
   document.getElementById('settingsModalButton')?.addEventListener('click', () => showSettings(settingTabFromHash() || 'general', !settingTabFromHash()));
-  settingsModal.addEventListener('click', event => { if (event.target === settingsModal) closeSettings(); });
+  settingsModal?.addEventListener('click', event => { if (event.target === settingsModal) closeSettings(); });
   document.getElementById('sidebarToggle')?.addEventListener('click', () => { sidebar.classList.toggle('is-collapsed'); localStorage.setItem('skillspot-sidebar-collapsed', String(sidebar.classList.contains('is-collapsed'))); });
   if (window.innerWidth >= 1024 && localStorage.getItem('skillspot-sidebar-collapsed') === 'true') sidebar.classList.add('is-collapsed');
   document.getElementById('appMenuButton')?.addEventListener('click', () => { appMenu?.classList.toggle('is-open'); document.getElementById('appMenuButton')?.setAttribute('aria-expanded', String(appMenu?.classList.contains('is-open'))); themeMenu?.classList.remove('is-open'); });
@@ -271,11 +273,11 @@ function initialiseAdminWorkspace() {
   const closeMobileSidebar = () => { if (!sidebar.classList.contains('is-mobile-open')) return; sidebar.classList.remove('is-mobile-open'); mobileOverlay?.classList.add('hidden'); mobileMenuButton?.setAttribute('aria-expanded', 'false'); mobileMenuButton?.focus(); };
   document.getElementById('mobileMenuBtn')?.addEventListener('click', openMobileSidebar); mobileOverlay?.addEventListener('click', closeMobileSidebar);
   const onPopState = () => { const tab = settingTabFromHash(); if (tab) showSettings(tab); else closeSettings(); };
-  const onThemeChange = () => { if (!settingsModal.classList.contains('hidden') && settingsFrame?.dataset.initialised === 'true') visitSettingsInFrame(settingsFrame, settingTabFromHash() || 'general', workspaceTheme()); };
+  const onThemeChange = () => { if (settingsModal && !settingsModal.classList.contains('hidden') && settingsFrame?.dataset.initialised === 'true') visitSettingsInFrame(settingsFrame, settingTabFromHash() || 'general', workspaceTheme()); };
   const onMessage = event => {
     if (event.origin !== location.origin) return;
     if (event.data === 'skillspot:close-settings') return closeSettings();
-    if (event.data?.type === 'skillspot:settings-tab' && /^[a-z-]+$/.test(event.data.tab)) { settingsFrame.dataset.tab = event.data.tab; const gateway = event.data.tab === 'payment-gateways' && gatewayNames.includes(event.data.gateway) ? event.data.gateway : null; syncSettingsHash(event.data.tab, event.data.push === true, gateway); }
+    if (settingsFrame && event.data?.type === 'skillspot:settings-tab' && /^[a-z-]+$/.test(event.data.tab)) { settingsFrame.dataset.tab = event.data.tab; const gateway = event.data.tab === 'payment-gateways' && gatewayNames.includes(event.data.gateway) ? event.data.gateway : null; syncSettingsHash(event.data.tab, event.data.push === true, gateway); }
   };
   const onKeydown = event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); openPalette(); } if (event.key === 'Escape') { closePalette(); closeMobileSidebar(); closeSettings(); appMenu?.classList.remove('is-open'); themeMenu?.classList.remove('is-open'); } };
   window.addEventListener('popstate', onPopState);
@@ -289,7 +291,7 @@ function initialiseAdminWorkspace() {
     window.removeEventListener('keydown', onKeydown);
     delete window.__skillspotAdminCleanup;
   };
-  if (settingTabFromHash()) showSettings(settingTabFromHash());
+  if (settingsModal && settingTabFromHash()) showSettings(settingTabFromHash());
 }
 
 function initialiseVendorWorkspace() {
@@ -398,19 +400,56 @@ document.addEventListener('turbo:submit-start', showNavigationLoading);
 document.addEventListener('turbo:submit-end', clearPendingFeedback);
 document.addEventListener('turbo:fetch-request-error', clearPendingFeedback);
 document.addEventListener('submit', event => {
+  const form = event.target;
+  if (form.getAttribute('aria-busy') === 'true') { event.preventDefault(); return; }
   const button = event.submitter;
-  if (!button || event.target.dataset.ajax !== undefined || button.dataset.pending !== undefined) return;
+  if (!button || form.dataset.ajax !== undefined || button.dataset.pending !== undefined) return;
   queueMicrotask(() => {
     if (event.defaultPrevented) return;
-    const form = event.target;
     form.setAttribute('aria-busy', 'true');
     if (button.id !== 'loginBtn') button.dataset.pending = form.querySelector('input[type="file"]') ? 'Uploading…' : form.method.toUpperCase() === 'GET' ? 'Loading…' : 'Saving…';
   });
 }, true);
 window.addEventListener('beforeunload', event => { if (hasDirtyForm()) { event.preventDefault(); event.returnValue = ''; } });
+function scrollToOrganizationSection(hash, focus = false) {
+  const section = document.getElementById(hash.slice(1));
+  const main = section?.closest('main');
+  if (!main) return;
+  window.scrollTo(0, 0);
+  main.scrollTop += section.getBoundingClientRect().top - main.getBoundingClientRect().top - 16;
+  if (focus) section.focus({ preventScroll: true });
+}
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[data-scroll-section]');
+  if (!link) return;
+  event.preventDefault();
+  history.replaceState(null, '', link.hash);
+  scrollToOrganizationSection(link.hash, true);
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const menu = event.target.closest('details[data-context-switcher][open]');
+  if (menu) { menu.open = false; menu.querySelector('summary')?.focus(); }
+});
+document.addEventListener('click', async event => {
+  const button = event.target.closest('[data-copy-target]');
+  if (!button) return;
+  const input = document.getElementById(button.dataset.copyTarget);
+  if (!input) return;
+  const status = button.parentElement.nextElementSibling;
+  try {
+    await navigator.clipboard.writeText(input.value);
+    if (status) status.textContent = 'Link copied.';
+  } catch {
+    input.focus(); input.select();
+    if (status) status.textContent = 'Select and copy the link from the field.';
+  }
+});
 document.addEventListener('turbo:load', () => {
   clearPendingFeedback();
   keepLinksInCurrentTab(); markNonDriveForms(); markNonDriveLinks(); initialiseDirtyForms(); restoreScroll(); initialiseAdminWorkspace(); initialiseVendorWorkspace(); initialiseCourseWorkspace(); initialiseLanding(); initialiseSettingsNavigation();
+  document.querySelector('[aria-invalid="true"]')?.focus();
+  if (document.querySelector('a[data-scroll-section]') && location.hash) scrollToOrganizationSection(location.hash);
   if (window.self !== window.top && location.pathname === '/admin/settings') { const url = new URL(location.href); window.parent.postMessage({ type: 'skillspot:settings-tab', tab: url.searchParams.get('tab') || 'general', gateway: url.searchParams.get('gateway') }, location.origin); }
 });
 document.addEventListener('click', event => { const link = event.target.closest('[data-settings-tab]'); if (link && window.self !== window.top && !event.defaultPrevented) window.parent.postMessage({ type: 'skillspot:settings-tab', tab: link.dataset.settingsTab, gateway: link.dataset.settingsGateway, push: true }, location.origin); });

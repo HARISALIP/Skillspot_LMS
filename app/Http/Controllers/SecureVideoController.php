@@ -6,6 +6,7 @@ use App\Models\Lesson;
 use App\Models\Section;
 use App\Models\Enrollment;
 use App\Services\CourseService;
+use App\Services\LessonVideo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -23,63 +24,30 @@ class SecureVideoController extends Controller
 
         // Admins always have access
         $isAdmin = $user->hasRole('super-admin') || $user->hasRole('admin');
-        if (!$isAdmin && in_array($course->marketplace_status, ['suspended', 'archived', 'rejected'], true)) {
-            return response()->json(['error' => 'This course is currently unavailable.'], 403);
-        }
+        abort_unless($isAdmin || CourseService::hasAccess($user, $course)
+            || ($lesson->is_preview && $course->is_published && $course->visibility === 'public' && $course->isMarketplaceLive()), 403);
 
-        // Check enrollment for students
-        if (!$isAdmin) {
-            $enrollment = Enrollment::where('user_id', $user->id)
-                ->where('course_id', $course->id)
-                ->where('status', 'active')
-                ->first();
+        $url = LessonVideo::url($lesson);
+        if (!$url) return response()->json(['error' => 'Video temporarily unavailable.'], 503);
+        Log::info('Video accessed', ['user_id' => $user->id, 'lesson_id' => $lesson->id,
+            'course_id' => $course->id, 'ip' => $request->ip()]);
+        return response()->json(['url' => $url, 'expires' => now()->addMinutes(5)->timestamp,
+            'type' => $lesson->video_storage === 'r2' ? 'private' : 'external']);
+    }
 
-            // Allow free preview lessons even without enrollment
-            if (!$enrollment && (!$lesson->is_preview || !$course->is_published || $course->visibility !== 'public' || !$course->isMarketplaceLive())) {
-                return response()->json(['error' => 'Access denied. Please enroll to watch this lesson.'], 403);
-            }
+    public function file(Lesson $lesson)
+    {
+        $course = $lesson->section->course;
+        $user = Auth::user();
+        abort_unless($user->hasRole(['admin', 'super-admin']) || CourseService::hasAccess($user, $course)
+            || ($lesson->is_preview && $course->is_published && $course->visibility === 'public' && $course->isMarketplaceLive()), 403);
+        $upload = LessonVideo::upload($lesson);
+        abort_unless($upload && in_array($upload->disk, ['local', 'public'], true)
+            && Storage::disk($upload->disk)->exists($upload->path), 404);
 
-            // Block if limited access expired
-            if ($enrollment && $enrollment->access_type === 'limited' && $enrollment->expires_at?->isPast()) {
-                return response()->json(['error' => 'Your access has expired. Contact support to renew.'], 403);
-            }
-        }
-
-        // R2 stored video — generate short-lived signed URL
-        if ($lesson->video_storage === 'r2' && $lesson->video_r2_path) {
-            try {
-                $signedUrl = Storage::disk('r2')->temporaryUrl(
-                    $lesson->video_r2_path,
-                    now()->addMinutes(120) // 2 hour expiry
-                );
-
-                // Log access for analytics
-                Log::info('Video accessed', [
-                    'user_id'   => $user->id,
-                    'lesson_id' => $lesson->id,
-                    'course_id' => $course->id,
-                    'ip'        => $request->ip(),
-                ]);
-
-                return response()->json([
-                    'url'     => $signedUrl,
-                    'expires' => now()->addMinutes(120)->timestamp,
-                    'type'    => 'r2',
-                ]);
-            } catch (\Exception $e) {
-                return response()->json(['error' => 'Video temporarily unavailable.'], 500);
-            }
-        }
-
-        // External URL (YouTube/Vimeo) — return as-is
-        if ($lesson->video_url) {
-            return response()->json([
-                'url'  => $lesson->video_url,
-                'type' => 'external',
-            ]);
-        }
-
-        return response()->json(['error' => 'No video available for this lesson.'], 404);
+        return response()->file(Storage::disk($upload->disk)->path($upload->path), [
+            'Content-Type' => $upload->mime_type, 'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     // ── Track progress ─────────────────────────────────────────────────

@@ -1,16 +1,16 @@
 @extends('layouts.vendor')
-@section('title','Teachers — Vendor Panel')
+@section('title','Teachers — Organization — Skillspot')
 @section('header','Teachers')
 @section('content')
-@php $canManageTeachers = auth()->user()->hasRole(['teacher','admin','super-admin']); @endphp
+@php $canManageTeachers = auth()->user()->hasRole(['admin','super-admin']) || $vendor->managers()->where('users.id', auth()->id())->exists(); @endphp
 <div class="space-y-6 max-w-3xl">
 
   {{-- Info banner --}}
   <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4 flex items-start gap-3">
     <span class="text-2xl">👩‍🏫</span>
     <div>
-      <div class="font-semibold text-purple-900 text-sm">Teacher Role</div>
-      <div class="text-xs text-purple-700 mt-0.5">Teachers can schedule classes, manage courses, upload recordings and documents. Vendors have view-only access.</div>
+      <div class="font-semibold text-purple-900 text-sm">Organization roles</div>
+      <div class="text-xs text-purple-700 mt-0.5">Organization admins manage staff and student access. Teachers manage course content and classes assigned to them.</div>
     </div>
   </div>
 
@@ -64,43 +64,10 @@
 
   </div>
 
-  {{-- Permissions table --}}
-  <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="px-5 py-4 border-b border-gray-100">
-      <h2 class="font-semibold text-gray-900">🔑 Access Permissions</h2>
-    </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-gray-50 border-b border-gray-100">
-          <tr>
-            <th class="text-left px-5 py-3 font-semibold text-gray-600">Action</th>
-            <th class="text-center px-4 py-3 font-semibold text-gray-600">Vendor</th>
-            <th class="text-center px-4 py-3 font-semibold text-gray-600">Teacher</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-50">
-          @foreach([
-            ['View Dashboard & Reports','✅','✅'],
-            ['View Students & Attendance','✅','✅'],
-            ['View Courses & Batches','✅','✅'],
-            ['View Live Classes','✅','✅'],
-            ['Schedule New Live Class','❌','✅'],
-            ['Create / Edit Courses','❌','✅'],
-            ['Add / Remove Students','❌','✅'],
-            ['Upload Recordings & Docs','❌','✅'],
-            ['Issue Certificates','❌','✅'],
-            ['Mark Attendance','❌','✅'],
-            ['Manage Teachers','❌','✅'],
-          ] as [$action,$vendor,$teacher])
-          <tr class="hover:bg-gray-50">
-            <td class="px-5 py-3 text-gray-700">{{ $action }}</td>
-            <td class="px-4 py-3 text-center text-lg">{{ $vendor }}</td>
-            <td class="px-4 py-3 text-center text-lg">{{ $teacher }}</td>
-          </tr>
-          @endforeach
-        </tbody>
-      </table>
-    </div>
+  <div class="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+    <h2 class="font-semibold text-gray-900">Teacher access</h2>
+    <p class="mt-2 text-sm text-gray-600">Teachers can edit organization courses they publish or are explicitly assigned to while they remain on staff. Organization admins control staff and course assignments.</p>
+    <a href="{{ route('vendor.organization.index') }}#staff" class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-700">Manage staff and classes →</a>
   </div>
 
 </div>

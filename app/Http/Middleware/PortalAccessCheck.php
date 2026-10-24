@@ -19,6 +19,7 @@ class PortalAccessCheck
 
         // vendor_only students cannot access main Skillspot pages
         if ($user->hasRole('student') && $user->portal_access === 'vendor_only') {
+            if ($request->routeIs('student.profile', 'student.profile.update', 'student.profile.password')) return $next($request);
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

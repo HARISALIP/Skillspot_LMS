@@ -38,13 +38,16 @@
           <textarea name="description" rows="3" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">{{ old('description', $vendor->description ?? '') }}</textarea>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Owner User *</label>
-          <select name="user_id" required class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Existing organization admin (optional)</label>
+          <select name="user_id" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="">Invite a new admin below</option>
             @foreach($users as $u)
               <option value="{{ $u->id }}" {{ old('user_id', $vendor->user_id ?? '') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ $u->email }})</option>
             @endforeach
           </select>
         </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">New admin name</label><input name="admin_name" value="{{ old('admin_name') }}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">New admin email</label><input type="email" name="admin_email" value="{{ old('admin_email') }}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
           <select name="status" required class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">

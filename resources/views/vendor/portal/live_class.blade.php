@@ -10,7 +10,7 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-  <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900">← Back to dashboard</a>
+  <a href="{{ route('organization.dashboard', $vendor->slug) }}" class="inline-flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900">← Back to dashboard</a>
 
   @if(session('success'))
     <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-800">{{ session('success') }}</div>

@@ -50,6 +50,7 @@ class MediaUploaderTest extends TestCase
     public function test_browser_voice_recording_is_classified_as_audio(): void
     {
         Setting::set('storage_driver', 'local');
+        Storage::fake('local');
         Storage::fake('public');
         $path = tempnam(sys_get_temp_dir(), 'voice');
         file_put_contents($path, 'webm sample');
@@ -95,11 +96,22 @@ class MediaUploaderTest extends TestCase
         }
     }
 
+    public function test_private_course_upload_uses_non_public_disk_even_when_r2_is_selected(): void
+    {
+        Setting::set('storage_driver', 'r2');
+        Storage::fake('local');
+        $upload = MediaUploader::upload(UploadedFile::fake()->create('notes.pdf', 1, 'application/pdf'), 'course-materials', false);
+        $this->assertSame('local', $upload->disk);
+        $this->assertFalse($upload->is_public);
+        $this->assertTrue(Storage::disk('local')->exists($upload->path));
+    }
+
     public function test_lesson_uploads_are_private_to_course_managers_and_enrolled_students(): void
     {
         Role::findOrCreate('admin', 'web');
         Role::findOrCreate('student', 'web');
         Setting::set('storage_driver', 'local');
+        Storage::fake('local');
         Storage::fake('public');
         $teacher = User::factory()->create();
         $teacher->assignRole('admin');
@@ -108,7 +120,7 @@ class MediaUploaderTest extends TestCase
         $outsider = User::factory()->create();
         $outsider->assignRole('student');
         $course = Course::create(['title' => 'Private files', 'primary_instructor_id' => $teacher->id]);
-        Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id, 'status' => 'active']);
+        \App\Services\CourseService::enrollFree($student, $course);
 
         $response = $this->actingAs($teacher)->postJson(route('admin.media.upload'), [
             'file' => UploadedFile::fake()->image('slide.png'),

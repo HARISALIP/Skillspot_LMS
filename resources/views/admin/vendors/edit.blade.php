@@ -2,6 +2,11 @@
 @section('title', (isset($vendor) ? 'Edit' : 'Add') . ' Organization — Skillspot.in LMS')
 @section('admin-content')
 <div class="p-6 max-w-3xl mx-auto">
+  @if(auth()->user()->hasRole('super-admin'))
+  <form method="POST" action="{{ route('admin.vendors.enter', $vendor) }}" class="mb-4">@csrf<button class="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white">Manage organization</button></form>
+  @endif
+  @if(session('success'))<div class="mb-4 rounded-xl bg-green-50 p-3 text-sm text-green-800">{{ session('success') }}</div>@endif
+  @if(auth()->user()->hasRole('super-admin'))<div class="mb-4 rounded-xl border bg-white p-4"><label class="block text-sm font-semibold" for="organization_fee_percent">Platform fee on organization-only sales (%)</label><input form="organization-edit-form" id="organization_fee_percent" name="organization_fee_percent" type="number" min="0" max="100" step="0.01" value="{{ old('organization_fee_percent', $vendor->organization_fee_percent) }}" class="mt-2 rounded border p-2"></div>@endif
   <div class="mb-6">
     <h1 class="text-2xl font-bold text-gray-900">{{ isset($vendor) ? 'Edit Organization' : 'Add Organization' }}</h1>
   </div>
@@ -10,15 +15,15 @@
     <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4 text-sm text-red-800">
       <ul class="list-disc list-inside space-y-1">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul>
     </div>
+  @endif
 
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
       <h2 class="font-semibold text-gray-900 text-base">Organization payout verification</h2>
       <p class="text-sm text-gray-500">Required before an organization-owned course can be approved for marketplace sale. These details are encrypted.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Payee name</label><input name="payout_account_name" value="{{old('payout_account_name',$vendor->payout_account_name ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Account number</label><input name="payout_account_number" value="{{old('payout_account_number',$vendor->payout_account_number ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">IFSC code</label><input name="payout_ifsc" value="{{old('payout_ifsc',$vendor->payout_ifsc ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div></div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Payee name</label><input form="organization-edit-form" name="payout_account_name" value="{{old('payout_account_name',$vendor->payout_account_name ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Account number</label><input form="organization-edit-form" name="payout_account_number" value="{{old('payout_account_number',$vendor->payout_account_number ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">IFSC code</label><input form="organization-edit-form" name="payout_ifsc" value="{{old('payout_ifsc',$vendor->payout_ifsc ?? '')}}" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm"></div></div>
     </div>
-  @endif
 
-  <form method="POST" action="{{ isset($vendor) ? route('admin.vendors.update',$vendor) : route('admin.vendors.store') }}" enctype="multipart/form-data" class="space-y-6">
+  <form id="organization-edit-form" method="POST" action="{{ isset($vendor) ? route('admin.vendors.update',$vendor) : route('admin.vendors.store') }}" enctype="multipart/form-data" class="space-y-6">
     @csrf
     @if(isset($vendor)) @method('PUT') @endif
 
@@ -136,7 +141,7 @@
       <form method="POST" action="{{ route('admin.vendors.add-manager', $vendor) }}" class="flex gap-2">
         @csrf
         <select name="user_id" class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-          <option value="">— Select vendor-role user —</option>
+          <option value="">— Select organization staff member —</option>
           @foreach($vendorUsers as $u)
             <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->email }})</option>
           @endforeach

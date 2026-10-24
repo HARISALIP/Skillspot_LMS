@@ -1,5 +1,5 @@
 @extends('layouts.vendor')
-@section('title','Course Settings — Vendor Panel')
+@section('title','Course Settings — Organization — Skillspot')
 @section('header','Course Settings')
 @section('content')
 <div class="mb-4 flex justify-end"><a href="{{ route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']) }}" class="inline-flex min-h-11 items-center rounded-lg border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-700 hover:bg-brand-50">Preview as learner</a></div>

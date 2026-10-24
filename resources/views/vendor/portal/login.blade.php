@@ -31,8 +31,7 @@
     @if($vendor->description)<p class="text-white/60 text-center mt-4 text-sm max-w-sm leading-relaxed">{{ $vendor->description }}</p>@endif
 
     <div class="mt-10 text-white/50 text-xs text-center">
-      Don't have an account?<br>
-      <a href="{{ route('vendor.portal.register.general', $vendor->slug) }}" class="text-white font-semibold underline mt-1 inline-block">Register here →</a>
+      Need an account?<br>Ask your organization admin for an invitation.
     </div>
   </div>
 
@@ -103,8 +102,7 @@
       </form>
 
       <p class="text-center text-sm text-gray-500 mt-6">
-        New here?
-        <a href="{{ route('vendor.portal.register.general', $vendor->slug) }}" class="link-primary font-semibold hover:underline">Create an account</a>
+        New here? Ask your organization admin for an invitation.
       </p>
 
       <div class="mt-8 pt-6 border-t border-gray-100 text-center">

@@ -59,6 +59,7 @@ class LiveController extends Controller
 
     public function store(Request $request)
     {
+        $this->requireOrganizationManager();
         $vendor = $this->vendor();
         $isRecurring = $request->session_type === 'recurring';
 
@@ -157,6 +158,7 @@ class LiveController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($lesson->section->course->vendor_id !== $vendor->id, 403);
+        abort_unless($lesson->section->course->canManageContent(auth()->user()), 403);
         $request->validate([
             'recording_url'    => 'required|url|max:500',
             'recording_shared' => 'boolean',
@@ -172,6 +174,7 @@ class LiveController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($lesson->section->course->vendor_id !== $vendor->id, 403);
+        abort_unless($lesson->section->course->canManageContent(auth()->user()), 403);
         $lesson->recording_shared = !$lesson->recording_shared;
         $lesson->save();
         return back()->with('success', $lesson->recording_shared ? 'Recording shared with students ✅' : 'Recording hidden from students.');
@@ -181,6 +184,7 @@ class LiveController extends Controller
     {
         $vendor = $this->vendor();
         abort_if($lesson->section->course->vendor_id !== $vendor->id, 403);
+        abort_unless($lesson->section->course->canManageContent(auth()->user()), 403);
         $course = $lesson->section->course;
         $lesson->delete();
         CourseService::refreshEnrollmentProgress($course);

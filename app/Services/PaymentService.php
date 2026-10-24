@@ -42,11 +42,16 @@ class PaymentService
         return new Api($key, $secret);
     }
 
-    public function createOrder(User $user, Course $course): array
+    public function createOrder(User $user, Course $course, string $channel = 'marketplace'): array
     {
         if (!$course->registration_open) throw new \DomainException('Self enrollment is closed for this course.');
-        if (!$course->isMarketplaceLive() || $course->is_free || (float) $course->price <= 0) throw new \DomainException('This course is not available for paid checkout.');
-        if (Enrollment::where('user_id', $user->id)->where('course_id', $course->id)->where('status', 'active')->exists()) throw new \DomainException('Already enrolled in this course.');
+        if ($channel === 'organization') {
+            if (!OrganizationAccess::eligible($user, $course)) throw new \DomainException('This organization course is not available to you.');
+        } elseif (!$course->isMarketplaceLive()) {
+            throw new \DomainException('This course is not available for paid checkout.');
+        }
+        if ($course->is_free || (float) $course->price <= 0) throw new \DomainException('This course does not require payment.');
+        if (OrganizationAccess::hasChannel($user, $course, $channel)) throw new \DomainException('Already enrolled in this course.');
         if ($reason = $this->checkoutUnavailableReason()) throw new \DomainException($reason);
         $mode = Setting::get('razorpay_mode', 'live');
         [$key] = $this->credentials($mode);
@@ -62,6 +67,7 @@ class PaymentService
             'user_id' => $user->id, 'course_id' => $course->id,
             'razorpay_order_id' => $providerOrder['id'], 'amount' => $amount,
             'currency' => $currency, 'mode' => $mode, 'status' => 'created',
+            'sale_channel' => $channel,
         ]);
         return [
             'order_id' => $providerOrder['id'], 'amount' => (int) round($amount * 100),
@@ -109,7 +115,8 @@ class PaymentService
                     'payment_method' => 'razorpay', 'transaction_id' => $payment['id'],
                     'status' => 'active', 'progress' => 0]
             );
-            if ($enrollment->status === 'refunded') $enrollment->update(['status' => 'active', 'amount_paid' => $locked->amount, 'transaction_id' => $payment['id']]);
+            if (!in_array($enrollment->status, ['active', 'completed'], true)) $enrollment->update(['status' => 'active', 'amount_paid' => $locked->amount, 'transaction_id' => $payment['id']]);
+            OrganizationAccess::grant($enrollment->user, $locked->course, $locked->sale_channel ?? 'marketplace', 'paid', $locked->id);
             MarketplaceService::recordPaidSale($locked);
         });
     }
@@ -178,7 +185,10 @@ class PaymentService
             if ($locked->status !== 'paid') throw new \DomainException('Refund does not match a paid order.');
             $locked->update(['status' => 'refunded', 'razorpay_refund_id' => $refundId]);
             MarketplaceService::reverseSale($locked);
-            Enrollment::where('user_id', $locked->user_id)->where('course_id', $locked->course_id)->update(['status' => 'refunded']);
+            DB::table('course_access_grants')->where('payment_order_id', $locked->id)->delete();
+            if (!DB::table('course_access_grants')->where('user_id', $locked->user_id)->where('course_id', $locked->course_id)->exists()) {
+                Enrollment::where('user_id', $locked->user_id)->where('course_id', $locked->course_id)->update(['status' => 'refunded']);
+            }
         });
     }
 }

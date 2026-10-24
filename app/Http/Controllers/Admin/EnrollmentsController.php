@@ -73,7 +73,11 @@ class EnrollmentsController extends Controller
         foreach ($request->user_ids as $userId) {
             $exists = Enrollment::where('user_id',$userId)
                 ->where('course_id',$request->course_id)->exists();
-            if ($exists) { $skip++; continue; }
+            if ($exists) {
+                \App\Services\OrganizationAccess::grantManual(User::findOrFail($userId), $course, Auth::id());
+                $skip++;
+                continue;
+            }
 
             Enrollment::create([
                 'user_id'     => $userId,
@@ -90,11 +94,12 @@ class EnrollmentsController extends Controller
                 'notes'       => $request->notes,
                 'progress'    => 0,
             ]);
+            \App\Services\OrganizationAccess::grantManual(User::findOrFail($userId), $course, Auth::id());
             $count++;
         }
 
         $msg = "{$count} student(s) enrolled in \"{$course->title}\"";
-        if ($skip) $msg .= " ({$skip} already enrolled, skipped)";
+        if ($skip) $msg .= " ({$skip} existing enrollments also granted access)";
 
         return redirect()->route('admin.enrollments')
             ->with('success', $msg.' ✅');

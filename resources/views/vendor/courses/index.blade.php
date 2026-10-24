@@ -1,5 +1,5 @@
 @extends('layouts.vendor')
-@section('title','Courses — Vendor Panel')
+@section('title','Courses — Organization — Skillspot')
 @section('header','Courses')
 @push('styles')<style>@include('admin.courses.creation-styles')</style>@endpush
 @section('content')

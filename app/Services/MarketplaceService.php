@@ -12,8 +12,13 @@ use Illuminate\Support\Facades\DB;
 
 class MarketplaceService
 {
-    public static function splitFor(Course $course): array
+    public static function splitFor(Course $course, string $channel = 'marketplace'): array
     {
+        if ($channel === 'organization') {
+            $fee = (float) $course->vendor->organization_fee_percent;
+            if ($fee < 0 || $fee > 100) throw new \DomainException('Organization fee must be between 0 and 100.');
+            return ['seller_percent' => round(100 - $fee, 2), 'platform_percent' => round($fee, 2)];
+        }
         $percentage = CommissionOverride::where('course_id', $course->id)->value('instructor_percent');
         if ($percentage === null && !$course->vendor_id && $course->primary_instructor_id) {
             $percentage = CommissionOverride::where('instructor_id', $course->primary_instructor_id)->value('instructor_percent');
@@ -31,7 +36,7 @@ class MarketplaceService
             if ($existing) return $existing;
 
             $course = $order->course()->firstOrFail();
-            $split = self::splitFor($course);
+            $split = self::splitFor($course, $order->sale_channel ?? 'marketplace');
             $basis = round((float) $order->amount, 2); // Orders already store the amount after any course discount and before tax.
             $sellerShare = round($basis * $split['seller_percent'] / 100, 2);
             $platformShare = round($basis - $sellerShare, 2);
@@ -50,6 +55,7 @@ class MarketplaceService
                 'platform_percent' => $split['platform_percent'],
                 'seller_share' => $sellerShare,
                 'platform_share' => $platformShare,
+                'sale_channel' => $order->sale_channel ?? 'marketplace',
                 'status' => 'pending',
                 'hold_until' => now()->addDays(7),
             ]);

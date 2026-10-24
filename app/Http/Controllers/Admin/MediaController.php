@@ -6,6 +6,7 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Upload;
 use App\Services\MediaUploader;
+use App\Services\CourseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,12 +17,7 @@ class MediaController extends Controller
         abort_unless((int) data_get($upload->used_in, 'course_id') === $course->id, 404);
         $user = $request->user();
         $canManage = $course->canManageContent($user);
-        $isEnrolled = Enrollment::where('course_id', $course->id)
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>', now()))
-            ->exists();
-        abort_unless($canManage || ($isEnrolled && !in_array($course->marketplace_status, ['suspended', 'archived', 'rejected'], true)), 403);
+        abort_unless($canManage || CourseService::hasAccess($user, $course), 403);
         abort_unless(Storage::disk($upload->disk)->exists($upload->path), 404);
 
         return Storage::disk($upload->disk)->response($upload->path, $upload->original_name, [], 'inline');
@@ -29,6 +25,7 @@ class MediaController extends Controller
 
     public function publicFile(Upload $upload)
     {
+        abort_if(data_get($upload->used_in, 'course_id'), 404);
         abort_unless($upload->is_public && $upload->disk === 'public', 404);
         abort_unless(Storage::disk('public')->exists($upload->path), 404);
 
@@ -37,6 +34,7 @@ class MediaController extends Controller
 
     public function downloadPublicFile(Upload $upload)
     {
+        abort_if(data_get($upload->used_in, 'course_id'), 404);
         abort_unless($upload->is_public && Storage::disk($upload->disk)->exists($upload->path), 404);
         return Storage::disk($upload->disk)->download($upload->path, $upload->original_name);
     }

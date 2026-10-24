@@ -66,10 +66,9 @@
     <a href="{{ route('student.learn', $course->id) }}"
        class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-brand-200 transition group block">
       <div class="h-28 bg-gradient-to-br from-brand-100 to-accent-100 flex items-center justify-center relative overflow-hidden">
+        <span class="text-4xl" aria-hidden="true">📚</span>
         @if($course->thumbnail)
-          <img src="{{ $course->thumbnail }}" class="w-full h-full object-cover" alt="">
-        @else
-          <span class="text-4xl">📚</span>
+          <img src="{{ $course->thumbnail }}" class="absolute inset-0 h-full w-full object-cover" alt="" onerror="this.remove()">
         @endif
         <div class="absolute top-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-0.5 rounded-lg">
           {{ $en->progress }}%
@@ -121,11 +120,10 @@
     @php $course = $en->course; @endphp
     <a href="{{ route('student.learn', $course->id) }}"
        class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-brand-200 transition group block">
-      <div class="h-24 bg-gradient-to-br from-green-100 to-brand-100 flex items-center justify-center">
+      <div class="relative h-24 overflow-hidden bg-gradient-to-br from-green-100 to-brand-100 flex items-center justify-center">
+        <span class="text-4xl" aria-hidden="true">📚</span>
         @if($course->thumbnail)
-          <img src="{{ $course->thumbnail }}" class="w-full h-full object-cover" alt="">
-        @else
-          <span class="text-4xl">📚</span>
+          <img src="{{ $course->thumbnail }}" class="absolute inset-0 h-full w-full object-cover" alt="" onerror="this.remove()">
         @endif
       </div>
       <div class="p-4">
@@ -139,6 +137,14 @@
     @endforeach
   </div>
 </div>
+@endif
+
+@php $completedEnrollments = $enrollments->where('status', 'completed')->take(3); @endphp
+@if($completedEnrollments->count())
+<section class="mb-5" aria-labelledby="completed-courses-heading">
+  <div class="mb-3 flex items-center justify-between"><h3 id="completed-courses-heading" class="text-sm font-black text-gray-900">Completed courses</h3><a href="{{ route('student.courses') }}" class="text-xs font-semibold text-brand-700">All courses →</a></div>
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">@foreach($completedEnrollments as $enrollment)<x-learner-enrollment-card :enrollment="$enrollment" />@endforeach</div>
+</section>
 @endif
 
 <!-- ── Bottom grid: Certs + Recommended ──────────────────────────── -->

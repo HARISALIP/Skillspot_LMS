@@ -9,6 +9,8 @@ use App\Models\Upload;
 use App\Models\Section;
 use App\Models\Setting;
 use App\Services\CourseService;
+use App\Services\OrganizationAccess;
+use App\Services\LessonVideo;
 use App\Services\MediaUploader;
 use App\Services\ScormPackageService;
 use Illuminate\Http\Request;
@@ -103,10 +105,24 @@ class CourseController extends Controller
     public function learn(Course $course)
     {
         $user = Auth::user();
+        $requestedOrg = request()->query('org');
+        if ($requestedOrg !== null) {
+            abort_unless($course->vendor?->slug === $requestedOrg
+                && OrganizationAccess::hasChannel($user, $course, 'organization'), 403);
+        }
 
         if (!CourseService::hasAccess($user, $course)) {
             return redirect()->route('student.course-detail', $course->slug)
                 ->with('error','Please enroll to access this course.');
+        }
+
+        $organizationContext = null;
+        if ($course->vendor_id) {
+            if ($requestedOrg !== null) {
+                $organizationContext = $course->vendor;
+            } elseif (!OrganizationAccess::hasChannel($user, $course, 'marketplace')) {
+                $organizationContext = $course->vendor;
+            }
         }
 
         $course->load('sections.lessons', 'announcements.author');
@@ -138,7 +154,7 @@ class CourseController extends Controller
 
         return view('student.learn', compact(
             'course','enrollment','lessonProgress','completedIds',
-            'currentLesson','certificate','materialsByLesson','courseMaterials'
+            'currentLesson','certificate','materialsByLesson','courseMaterials','organizationContext'
         ));
     }
 
@@ -207,16 +223,14 @@ class CourseController extends Controller
     private function lessonResponse(Course $course, Lesson $lesson, bool $preview = false)
     {
         $user = Auth::user();
-        // Signed video URL for R2 videos
-        $videoUrl = null;
-        if ($lesson->video_storage === 'r2' && $lesson->video_r2_path) {
-            try {
-                $videoUrl = Storage::disk('r2')->temporaryUrl($lesson->video_r2_path, now()->addMinutes(120));
-            } catch (\Exception $e) {
-                $videoUrl = null;
+        $videoUrl = LessonVideo::url($lesson);
+        $content = $lesson->content;
+        if ($lesson->type === 'pdf' && is_string($content)
+            && preg_match('~^/course-media/'. $course->id .'/([0-9a-f-]{36})$~i', parse_url($content, PHP_URL_PATH) ?: '', $matches)) {
+            $upload = Upload::where('uuid', $matches[1])->first();
+            if ($upload && (int) data_get($upload->used_in, 'course_id') === $course->id) {
+                $content = route('media.course', [$course, $upload->uuid]);
             }
-        } else {
-            $videoUrl = $lesson->video_url;
         }
 
         $progress = $preview ? null : DB::table('lesson_progress')
@@ -269,7 +283,8 @@ class CourseController extends Controller
             'title'        => $lesson->title,
             'type'         => $lesson->type,
             'video_url'    => $videoUrl,
-            'content'      => $lesson->content,
+            'video_unavailable' => $lesson->type === 'video' && filled($lesson->video_r2_path) && !$videoUrl,
+            'content'      => $content,
             // New editor documents are rendered client-side; legacy content remains unchanged.
             'block_document' => $lesson->block_document,
             'notes'        => $lesson->notes,
@@ -296,7 +311,6 @@ class CourseController extends Controller
             ->flatMap(fn($resource) => [$resource['upload_id'] ?? null, $resource['preview_upload_id'] ?? null]))
             ->filter()->unique();
         $query = Upload::whereIn('id', $ids);
-        if (!$previewCourse) $query->where('is_public', true);
         $uploads = $query->get()->keyBy('id');
         $materials = [];
         foreach ($lessons as $lesson) {
@@ -305,13 +319,20 @@ class CourseController extends Controller
                 $file = $uploads->get($resource['upload_id'] ?? null);
                 if (!$file) continue;
                 $preview = $uploads->get($resource['preview_upload_id'] ?? null);
+                $course = $previewCourse ?? ($lesson instanceof Course ? $lesson : $lesson->section?->course);
+                $privateFile = $course && (int) data_get($file->used_in, 'course_id') === $course->id;
+                if (!$file->is_public && !$privateFile) continue;
+                $fileUrl = $privateFile ? route('media.course', [$course, $file->uuid]) : $file->public_url;
+                $previewUrl = $preview && ($preview->is_public || (int) data_get($preview->used_in, 'course_id') === $course?->id)
+                    ? ((int) data_get($preview->used_in, 'course_id') === $course?->id ? route('media.course', [$course, $preview->uuid]) : $preview->public_url)
+                    : null;
                 $materials[$lesson->id][] = [
                     'title' => $resource['title'] ?? $file->original_name,
                     'kind' => $resource['kind'] ?? 'study_material',
                     'type' => $file->type,
-                    'url' => $previewCourse ? route('media.course', [$previewCourse, $file->uuid]) : $file->public_url,
-                    'preview_url' => $preview ? ($previewCourse ? route('media.course', [$previewCourse, $preview->uuid]) : $preview->public_url) : null,
-                    'download_url' => $previewCourse ? route('media.course', [$previewCourse, $file->uuid]) : route('media.download', $file->uuid),
+                    'url' => $fileUrl,
+                    'preview_url' => $previewUrl,
+                    'download_url' => $privateFile ? $fileUrl : route('media.download', $file->uuid),
                 ];
             }
         }

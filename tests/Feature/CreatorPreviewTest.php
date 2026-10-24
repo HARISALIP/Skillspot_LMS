@@ -151,9 +151,11 @@ class CreatorPreviewTest extends TestCase
             'title' => 'Vendor draft', 'vendor_id' => $vendor->id,
             'primary_instructor_id' => $owner->id, 'visibility' => 'draft', 'is_published' => false,
         ]);
+        $course->teachers()->attach($colleague);
 
         $this->actingAs($outsider)->get(route('instructor.courses.preview', $course))->assertForbidden();
-        $this->actingAs($colleague)->get(route('vendor.courses.edit', $course))->assertOk();
+        $this->actingAs($colleague)->get(route('vendor.courses.edit', $course))
+            ->assertRedirect(route('instructor.courses.show', $course));
         $this->get(route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']))
             ->assertOk()->assertSee(route('vendor.courses.edit', $course));
     }

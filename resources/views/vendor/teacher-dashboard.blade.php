@@ -1,7 +1,7 @@
 @extends('layouts.vendor')
-@section('title', 'Teacher Dashboard — ITForge')
+@section('title', 'Teacher Dashboard — Skillspot')
 @section('header', 'Teacher Dashboard')
-@section('page-sub', 'Manage your assigned vendors, courses & live classes')
+@section('page-sub', 'Manage your assigned organizations, courses & live classes')
 
 @section('content')
 <div class="space-y-6">
@@ -217,11 +217,11 @@
     @endif
   </div>
 
-  {{-- ITForge Courses assigned to this teacher --}}
+  {{-- Organization courses assigned to this teacher --}}
   @if(($itforgeCourses ?? collect())->count())
   <div class="bg-white rounded-2xl border border-brand-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-brand-100 bg-brand-50 flex items-center justify-between">
-      <h2 class="font-semibold text-brand-900">🎛️ ITForge Courses</h2>
+      <h2 class="font-semibold text-brand-900">🎛️ Organization Courses</h2>
       <span class="text-xs text-brand-600 font-semibold">{{ $itforgeCourses->count() }} course{{ $itforgeCourses->count()!=1?'s':'' }} assigned</span>
     </div>
     <div class="overflow-x-auto">

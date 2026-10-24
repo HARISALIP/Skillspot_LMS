@@ -1,15 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ $lesson->title }} — {{ $vendor->brand_name }}</title>
-  @if($vendor->favicon)<link rel="icon" href="{{ Storage::disk('public')->url($vendor->favicon) }}">@endif
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
-  @include('partials.styles')
-  <style>:root { --primary: {{ $vendor->primary_color ?? '#2563eb' }}; } .btn-primary { background: var(--primary); }</style>
-</head>
-<body class="font-sans bg-gray-900 text-white antialiased min-h-screen flex flex-col items-center justify-center p-6">
+@extends('vendor.portal.layout')
+@section('title', $lesson->title.' — '.$vendor->brand_name)
+@push('styles')<style>.btn-primary{background:{{ $vendor->primary_color ?? '#2563eb' }}}</style>@endpush
+@section('content')
+<div class="flex min-h-[65vh] items-center justify-center rounded-2xl bg-gray-900 p-6 text-white">
   <div class="text-center max-w-lg w-full">
     <div class="mb-6">
       <div class="text-xs text-gray-400 uppercase tracking-wider mb-2">{{ $vendor->brand_name }}</div>
@@ -56,8 +49,8 @@
     @endif
 
     <div class="mt-8">
-      <a href="{{ route('vendor.portal.dashboard', $vendor->slug) }}" class="text-gray-400 hover:text-white text-sm transition">← Back to Dashboard</a>
+      <a href="{{ route('organization.dashboard', $vendor->slug) }}" class="text-gray-400 hover:text-white text-sm transition">← Back to Dashboard</a>
     </div>
   </div>
-</body>
-</html>
+</div>
+@endsection

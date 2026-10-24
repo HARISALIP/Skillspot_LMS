@@ -68,17 +68,40 @@ class MarketplaceController extends Controller
     public function dashboard()
     {
         $user = auth()->user();
-        MarketplaceService::releaseAvailableEarnings();
         $profile = $user->instructorProfile;
-        $courses = Course::where('primary_instructor_id', $user->id)->latest()->get();
-        $sales = MarketplaceSale::where('seller_user_id', $user->id)->with('course')->latest()->get();
+        $organizations = Vendor::where('status', 'active')
+            ->when(!$user->hasRole(['admin', 'super-admin']), fn ($query) => $query
+                ->where(fn ($staff) => $staff->whereHas('managers', fn ($members) => $members->whereKey($user->id))
+                    ->orWhereHas('teachers', fn ($members) => $members->whereKey($user->id))))
+            ->orderBy('brand_name')->get();
+        $requested = request()->query('organization');
+        $organizationContext = $requested && $requested !== 'public'
+            ? $organizations->firstWhere('id', (int) $requested)
+            : (!$requested && !$profile?->status ? $organizations->firstWhere('id', (int) session('active_vendor_id')) ?? $organizations->first() : null);
+        abort_if($requested && $requested !== 'public' && !$organizationContext && !$user->hasRole(['admin', 'super-admin']), 403);
+        if ($requested && $requested !== 'public' && !$organizationContext) $organizationContext = Vendor::findOrFail((int) $requested);
+        if ($organizationContext) session(['active_vendor_id' => $organizationContext->id]);
+
+        if ($organizationContext) {
+            $courses = Course::where('vendor_id', $organizationContext->id)
+                ->when(!$user->hasRole(['admin', 'super-admin'])
+                    && !$organizationContext->managers()->where('users.id', $user->id)->exists(),
+                    fn ($query) => $query->where(fn ($assigned) => $assigned->where('primary_instructor_id', $user->id)
+                        ->orWhereHas('teachers', fn ($teachers) => $teachers->whereKey($user->id))))
+                ->latest()->get();
+            return view('marketplace.dashboard', compact('profile', 'courses', 'organizations', 'organizationContext'));
+        }
+
+        MarketplaceService::releaseAvailableEarnings();
+        $courses = Course::whereNull('vendor_id')->where('primary_instructor_id', $user->id)->latest()->get();
+        $sales = MarketplaceSale::whereNull('organization_id')->where('seller_user_id', $user->id)->with('course')->latest()->get();
         $balances = [
             'pending' => $sales->where('status', 'pending')->sum('seller_share'),
             'available' => $sales->where('status', 'available')->sum('seller_share'),
             'paid' => $sales->where('status', 'paid')->sum('seller_share'),
             'ledger' => EarningLedgerEntry::where('payee_type', 'instructor')->where('payee_user_id', $user->id)->sum('amount'),
         ];
-        return view('marketplace.dashboard', compact('profile', 'courses', 'sales', 'balances'));
+        return view('marketplace.dashboard', compact('profile', 'courses', 'sales', 'balances', 'organizations', 'organizationContext'));
     }
 
     public function organizationDashboard()
@@ -273,13 +296,7 @@ class MarketplaceController extends Controller
 
     private function authorizeCourseOwner(User $user, Course $course): void
     {
-        if ($user->hasRole(['admin', 'super-admin'])) return;
-        abort_unless(
-            $course->primary_instructor_id === $user->id
-            || ($course->vendor_id && $course->teachers()->where('users.id', $user->id)->exists())
-            || ($course->vendor_id && $course->vendor?->managers()->where('users.id', $user->id)->exists()),
-            403
-        );
+        abort_unless($course->canManageContent($user), 403);
     }
 
     private function courseQualityProblems(Course $course): array

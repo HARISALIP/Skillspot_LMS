@@ -248,9 +248,9 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('vendor/pdfjs/pdf.min.js') }}"></script>
+<script src="{{ asset('assets/pdfjs/pdf.min.js') }}"></script>
 <script>
-if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = '{{ asset('vendor/pdfjs/pdf.worker.min.js') }}';
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = '{{ asset('assets/pdfjs/pdf.worker.min.js') }}';
 const pdfRenderTokens = new WeakMap();
 async function renderPdfPages(url, container) {
   const token = Symbol();
@@ -323,6 +323,7 @@ const CSRF    = '{{ csrf_token() }}';
 const COURSE  = {{ $course->id }};
 const CREATOR_PREVIEW = @json(!empty($isCreatorPreview));
 const API_BASE= CREATOR_PREVIEW ? @json(route('instructor.courses.preview', $course)) : '/learn/{{ $course->id }}';
+let completionShown = @json($enrollment?->status === 'completed');
 let currentLessonId = {{ $currentLesson?->id ?? 'null' }};
 let saveTimer;
 let activeLessonRequest;
@@ -416,7 +417,7 @@ async function loadLesson(lessonId) {
     } else if (data.type === 'video' && data.video_url) {
       renderVideo(data.video_url, data.progress);
     } else if (data.type === 'video') {
-      renderContent('<p class="text-gray-500">No video has been saved for this lesson yet.</p>', data.title);
+      renderContent(data.video_unavailable ? '<p class="text-red-700">Video temporarily unavailable. Please ask your teacher to check the upload.</p>' : '<p class="text-gray-500">No video has been saved for this lesson yet.</p>', data.title);
     } else if (data.type === 'live') {
       renderLive(data);
     } else if (data.quiz) {
@@ -696,7 +697,7 @@ function renderQuiz(quiz, completed) {
           const item = document.querySelector(`.lesson-item[data-lesson-id="${currentLessonId}"]`);
           if (item) { item.classList.add('done'); item.querySelector('.lesson-icon').textContent = '✅'; }
           updateProgressDisplay(data.course_progress);
-          if (data.certificate) { document.getElementById('certNumber').textContent = 'Certificate ID: ' + data.certificate; document.getElementById('certModal').classList.remove('hidden'); }
+          if (data.certificate && !completionShown) { completionShown = true; document.getElementById('certNumber').textContent = 'Certificate ID: ' + data.certificate; document.getElementById('certModal').classList.remove('hidden'); }
         } else if (!data.pending) button.disabled = false;
       } catch (error) { result.textContent = error.message; button.disabled = false; }
     });
@@ -769,7 +770,8 @@ async function saveLessonProgress(percent, seconds, scormData = null) {
     updateProgressDisplay(data.course_progress);
 
     // Certificate earned!
-    if (data.course_completed && data.certificate) {
+    if (data.course_completed && data.certificate && !completionShown) {
+      completionShown = true;
       document.getElementById('certNumber').textContent = 'Certificate ID: '+data.certificate.number;
       document.getElementById('certModal').classList.remove('hidden');
       // Also update banner
@@ -781,10 +783,10 @@ async function saveLessonProgress(percent, seconds, scormData = null) {
   } catch(e) { /* silent */ }
 }
 
-// Auto-load first/current lesson
-window.addEventListener('DOMContentLoaded', () => {
-  if (currentLessonId) loadLesson(currentLessonId);
-});
+// This script also runs after Turbo navigation, when DOMContentLoaded has already fired.
+const requestedLesson = /^#lesson-(\d+)$/.exec(location.hash);
+if (requestedLesson && document.querySelector(`.lesson-item[data-lesson-id="${requestedLesson[1]}"]`)) currentLessonId = Number(requestedLesson[1]);
+if (currentLessonId) loadLesson(currentLessonId);
 
 // Keyboard shortcut blocker (prevent save video)
 document.addEventListener('keydown', e => {

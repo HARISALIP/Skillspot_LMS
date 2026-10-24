@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 
@@ -161,7 +162,12 @@ class CoursesController extends Controller
     // ── Store ──────────────────────────────────────────────────────────
     public function store(Request $request)
     {
-        if ($request->routeIs('instructor.courses.create.store')) $request->merge(['vendor_id' => null]);
+        if ($request->routeIs('instructor.courses.create.store')) {
+            $vendorId = (int) $request->query('vendor_id');
+            $vendor = $vendorId ? Vendor::findOrFail($vendorId) : null;
+            if ($vendor) $this->authorizeVendorCreator($vendor, $request->user());
+            $request->merge(['vendor_id' => $vendor?->id]);
+        }
         if (is_string($request->input('description'))) {
             $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
         }
@@ -186,7 +192,7 @@ class CoursesController extends Controller
         if ($teacherIds->diff($allowed)->isNotEmpty()) {
             throw ValidationException::withMessages(['instructor_ids' => 'Choose valid instructors.']);
         }
-        if ($request->routeIs('vendor.courses.modal.store')) {
+        if ($data['vendor_id']) {
             $vendorTeachers = Vendor::findOrFail($data['vendor_id'])->teachers()->pluck('users.id');
             if ($teacherIds->diff($vendorTeachers)->isNotEmpty()) {
                 throw ValidationException::withMessages(['instructor_ids' => 'Choose instructors assigned to this organization.']);
@@ -198,7 +204,9 @@ class CoursesController extends Controller
         if ($request->hasFile('intro_video_file')) {
             $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
         }
-        $course = DB::transaction(function () use ($data, $request, $teacherIds) {
+        $classIds = $data['class_ids'] ?? [];
+        unset($data['class_ids']);
+        $course = DB::transaction(function () use ($data, $request, $teacherIds, $classIds) {
             if ($newCategory = trim((string) $request->input('new_category'))) {
                 $data['category'] = CourseCategory::firstOrCreate(
                     ['name' => $newCategory],
@@ -214,6 +222,7 @@ class CoursesController extends Controller
             $data['is_published'] = false;
             $course = Course::create($data);
             $course->teachers()->syncWithPivotValues($teacherIds->all(), ['added_by' => auth()->id()]);
+            if ($course->vendor_id) $course->organizationClasses()->sync($course->organization_audience === 'classes' ? $classIds : []);
             $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
             return $course;
         });
@@ -277,13 +286,16 @@ class CoursesController extends Controller
     public function edit(Course $course)
     {
         $this->authorizeCourseOwner($course);
-        $course->load(['sections.lessons','allowedUsers','teachers','primaryInstructor','vendor','enrollments.user','reviews']);
+        $course->load(['sections.lessons','allowedUsers','teachers','primaryInstructor','vendor.organizationClasses','enrollments.user','reviews']);
         $materialUploads = Upload::whereIn('id', collect($course->resources ?? [])
             ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])->filter())
             ->pluck('original_name', 'id');
         $vendors = Vendor::where('status','active')->orderBy('brand_name')->get(['id','brand_name']);
-        $instructors = User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
-            ->orderBy('name')->get(['id', 'name', 'email']);
+        $canManageOrganizationTeachers = $this->canManageOrganizationTeachers($course, auth()->user());
+        $instructors = $canManageOrganizationTeachers
+            ? $course->vendor->teachers()->orderBy('users.name')->get(['users.id', 'users.name', 'users.email'])
+            : User::whereHas('roles', fn ($query) => $query->whereIn('name', ['teacher', 'evaluator']))
+                ->orderBy('name')->get(['id', 'name', 'email']);
         if (auth()->user()->hasRole(['teacher', 'evaluator']) && !$instructors->contains('id', auth()->id())) $instructors->prepend(auth()->user());
         $relatedCourses = Course::whereKeyNot($course->id)
             ->where(function ($query) use ($course) {
@@ -300,6 +312,7 @@ class CoursesController extends Controller
             'materialUploads' => $materialUploads,
             'instructors' => $instructors,
             'relatedCourses' => $relatedCourses,
+            'canManageOrganizationTeachers' => $canManageOrganizationTeachers,
         ]);
     }
 
@@ -308,11 +321,14 @@ class CoursesController extends Controller
     {
         $this->authorizeCourseOwner($course);
         $creatorWorkspaceRequest = $request->routeIs('instructor.courses.update');
-        if ($creatorWorkspaceRequest) {
+        $canManageOrganizationTeachers = $this->canManageOrganizationTeachers($course, $request->user());
+        if ($creatorWorkspaceRequest && !$canManageOrganizationTeachers) {
             $request->merge([
                 'vendor_id' => $course->vendor_id,
                 'instructor_ids' => $course->teachers()->pluck('users.id')->whenEmpty(fn () => collect([$course->primary_instructor_id]))->all(),
             ]);
+        } elseif ($creatorWorkspaceRequest) {
+            $request->merge(['vendor_id' => $course->vendor_id]);
         }
         if (is_string($request->input('description'))) {
             $request->merge(['description' => $this->sanitizeRichText($request->input('description'))]);
@@ -338,11 +354,22 @@ class CoursesController extends Controller
             $data['visibility'] = 'draft';
             $data['is_published'] = false;
         }
-        DB::transaction(function () use ($course, $data, $request) {
+        $classIds = $data['class_ids'] ?? [];
+        unset($data['class_ids']);
+        $teacherIds = $request->has('instructor_ids')
+            ? collect($request->input('instructor_ids', []))->map(fn ($id) => (int) $id)->unique()->values()
+            : null;
+        if ($course->vendor_id && $teacherIds !== null) {
+            $vendorTeacherIds = $course->vendor->teachers()->pluck('users.id');
+            if ($teacherIds->diff($vendorTeacherIds)->isNotEmpty()) {
+                throw ValidationException::withMessages(['instructor_ids' => 'Choose instructors assigned to this organization.']);
+            }
+        }
+        DB::transaction(function () use ($course, $data, $request, $classIds, $teacherIds) {
             $course->update($data);
+            if ($course->vendor_id) $course->organizationClasses()->sync($course->organization_audience === 'classes' ? $classIds : []);
             $this->markMaterialUploadsUsedByCourse($course, $data['resources'] ?? []);
-            if ($request->has('instructor_ids')) {
-                $teacherIds = collect($request->input('instructor_ids', []))->map(fn ($id) => (int) $id)->unique()->values();
+            if ($teacherIds !== null) {
                 $course->teachers()->syncWithPivotValues($teacherIds, ['added_by' => auth()->id()]);
                 if ($teacherIds->isNotEmpty()) $course->update(['primary_instructor_id' => $teacherIds->first()]);
             }
@@ -620,6 +647,10 @@ class CoursesController extends Controller
             'batch_start_date'  => 'nullable|date',
             'batch_end_date'    => 'nullable|date',
             'registration_open' => 'boolean',
+            'organization_published' => 'boolean',
+            'organization_audience' => 'nullable|in:all,classes',
+            'class_ids' => 'nullable|array',
+            'class_ids.*' => ['integer', Rule::exists('organization_classes', 'id')->where('vendor_id', $request->input('vendor_id'))],
             'related_course_ids'=> 'nullable|array|max:12',
             'related_course_ids.*' => ['integer','exists:courses,id', function ($attribute, $value, $fail) use ($ignoreId) { if ($ignoreId && (int) $value === $ignoreId) $fail('A course cannot be related to itself.'); }],
         ], self::MATERIAL_RULES));
@@ -639,9 +670,16 @@ class CoursesController extends Controller
         $data['enforce_lesson_completion'] = $request->boolean('enforce_lesson_completion');
         $data['enable_certification'] = $ignoreId ? $request->boolean('enable_certification') : true;
         $data['registration_open']= $ignoreId ? $request->boolean('registration_open') : $request->boolean('registration_open', true);
+        $data['organization_published'] = $request->boolean('organization_published');
+        $data['organization_audience'] = $request->input('organization_audience', 'all');
         $data['max_students']     = (int)($request->input('max_students', 0));
         $data['course_type']      = $request->input('course_type','open');
         if (empty($data['vendor_id'])) $data['vendor_id'] = null;
+        if (!$data['vendor_id']) {
+            unset($data['organization_published'], $data['organization_audience'], $data['class_ids']);
+        } elseif ($data['organization_audience'] === 'classes' && empty($data['class_ids'])) {
+            throw ValidationException::withMessages(['class_ids' => 'Select at least one organization class.']);
+        }
         $data['visibility']  = $request->input('visibility','draft');
         $data['is_published']= in_array($data['visibility'],['public','restricted']) ? 1 : 0;
 
@@ -657,7 +695,19 @@ class CoursesController extends Controller
     {
         $user = auth()->user();
         if ($user->hasRole(['admin', 'super-admin'])) return;
-        abort_unless($course->primary_instructor_id === $user->id || $course->teachers()->where('users.id', $user->id)->exists(), 403);
+        abort_unless($course->canManageContent($user), 403);
+    }
+
+    private function authorizeVendorCreator(Vendor $vendor, User $user): void
+    {
+        abort_unless($vendor->status === 'active' && ($user->hasRole(['admin', 'super-admin'])
+            || $vendor->managers()->whereKey($user->id)->exists()
+            || $vendor->teachers()->whereKey($user->id)->exists()), 403);
+    }
+
+    private function canManageOrganizationTeachers(Course $course, User $user): bool
+    {
+        return $course->vendor_id && $course->vendor?->managers()->whereKey($user->id)->exists();
     }
 
     private function workspaceEditUrl(Course $course): string

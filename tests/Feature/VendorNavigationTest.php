@@ -48,7 +48,7 @@ class VendorNavigationTest extends TestCase
         $this->assertTrue($course->teachers()->whereKey($teacher->id)->exists());
     }
 
-    public function test_view_only_vendor_navigation_has_working_read_only_destinations(): void
+    public function test_organization_manager_can_use_the_scoped_management_workspace(): void
     {
         Role::findOrCreate('vendor', 'web');
         $owner = User::factory()->create();
@@ -59,38 +59,36 @@ class VendorNavigationTest extends TestCase
         $course = Course::create(['title' => 'Read-only course', 'vendor_id' => $vendor->id]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'Read-only section']);
         $lesson = Lesson::create(['section_id' => $section->id, 'title' => 'Read-only attendance', 'type' => 'live']);
+        $student = User::factory()->create();
+        Enrollment::create(['user_id' => $student->id, 'course_id' => $course->id, 'vendor_id' => $vendor->id, 'status' => 'active']);
 
         $this->actingAs($manager)->get(route('vendor.dashboard'))
             ->assertOk()
             ->assertSee(route('vendor.courses'))
-            ->assertSee(route('vendor.live_classes.index'))
-            ->assertDontSee(route('vendor.live_classes.create'));
+            ->assertSee(route('vendor.live'))
+            ->assertSee(route('vendor.live_classes.create'));
 
         $this->actingAs($manager)->get(route('vendor.courses'))
-            ->assertOk()->assertSeeText('View Only')->assertSeeText('Read-only course')
+            ->assertOk()->assertDontSeeText('View Only')->assertSeeText('Read-only course')
             ->assertSeeText('All Courses')->assertSee('class="course-grid"', false)
-            ->assertDontSee(route('vendor.courses.create'))
-            ->assertDontSee(route('vendor.courses.edit', $course));
+            ->assertSee(route('vendor.courses.create'))
+            ->assertSee(route('vendor.courses.edit', $course));
         $this->actingAs($manager)->get(route('vendor.courses.students', $course))
-            ->assertOk()->assertSee(route('vendor.courses'))->assertSeeText('0 /');
+            ->assertOk()->assertSee(route('vendor.courses'))->assertSeeText('1 /');
         $this->actingAs($manager)->get(route('vendor.live_classes.index'))
-            ->assertOk()->assertDontSee(route('vendor.live_classes.create'));
+            ->assertOk()->assertSee(route('vendor.live_classes.create'));
         $this->actingAs($manager)->get(route('vendor.live_classes.create'))
-            ->assertForbidden()
-            ->assertSee(route('vendor.dashboard'))
-            ->assertSeeText('Go to dashboard');
+            ->assertOk();
 
         $this->actingAs($manager)->get(route('vendor.teachers'))
             ->assertOk()
-            ->assertDontSee(route('vendor.teachers.remove', $owner))
-            ->assertDontSee(route('vendor.teachers.add'));
+            ->assertSee(route('vendor.teachers.add'));
 
         $this->actingAs($manager)->get(route('vendor.batches.show', $course))
-            ->assertOk()->assertSeeText('View Only Mode')->assertSeeText('View Attendance');
+            ->assertOk()->assertDontSeeText('View Only Mode')->assertSeeText('Manage Attendance');
         $this->actingAs($manager)->get(route('vendor.batches.attendance', [$course, $lesson]))
-            ->assertOk()->assertSeeText('View only')->assertSee('action="#"', false)
-            ->assertDontSee(route('vendor.batches.attendance.save', [$course, $lesson]))
-            ->assertDontSeeText('Save Attendance');
+            ->assertOk()->assertSee(route('vendor.batches.attendance.save', [$course, $lesson]))
+            ->assertSeeText('Save Attendance');
     }
 
     public function test_teacher_navigation_only_shows_destinations_the_role_can_open(): void
@@ -101,32 +99,27 @@ class VendorNavigationTest extends TestCase
         $owner = User::factory()->create();
         $vendor = Vendor::create(['user_id' => $owner->id, 'brand_name' => 'Teacher Academy', 'status' => 'active']);
         $vendor->teachers()->attach($teacher->id);
-        $course = Course::create(['title' => 'Editable course', 'vendor_id' => $vendor->id]);
+        $course = Course::create(['title' => 'Editable course', 'vendor_id' => $vendor->id, 'primary_instructor_id' => $teacher->id]);
         $section = Section::create(['course_id' => $course->id, 'title' => 'First section', 'order' => 1]);
 
         $this->actingAs($teacher)->get(route('vendor.dashboard'))
-            ->assertOk()
-            ->assertSee(route('vendor.live_classes.create'))
-            ->assertDontSee(route('vendor.earnings'));
+            ->assertRedirect(route('studio.dashboard', ['organization' => $vendor->id]));
 
         $this->actingAs($teacher)->get(route('vendor.courses'))
             ->assertOk()
             ->assertSeeText('All Courses')->assertSee('class="course-grid"', false)
             ->assertSee(route('vendor.courses.create'))
-            ->assertSee(route('vendor.courses.edit', $course))
-            ->assertSee(route('instructor.courses.preview', ['course' => $course, 'from' => 'vendor']));
+            ->assertSee(route('vendor.courses.edit', $course));
 
         $this->actingAs($teacher)->get(route('vendor.earnings'))
             ->assertForbidden()
             ->assertSee(route('vendor.dashboard'));
 
         $this->actingAs($teacher)->get(route('vendor.courses.edit', $course))
-            ->assertOk()
-            ->assertSeeText('Edit Course')
-            ->assertSeeText('Short Introduction')
-            ->assertSeeText('Preview as learner')
-            ->assertSee(route('vendor.courses.submit-review', $course))
-            ->assertSeeText('Save Changes');
+            ->assertRedirect(route('instructor.courses.show', $course));
+        $this->get(route('instructor.courses.show', $course))
+            ->assertOk()->assertSeeText('Course editor')->assertSeeText('Course details')
+            ->assertSeeText('Preview as learner');
 
         $this->actingAs($teacher)->get(route('vendor.courses.lessons.create', [$course, $section]))
             ->assertOk()
@@ -169,6 +162,7 @@ class VendorNavigationTest extends TestCase
         ])->assertForbidden();
 
         $approved = Course::create(['title' => 'Approved course', 'vendor_id' => $vendor->id,
+            'primary_instructor_id' => $teacher->id,
             'marketplace_status' => 'live', 'marketplace_visible' => true,
             'is_published' => true, 'visibility' => 'public']);
         $this->actingAs($teacher)->patch(route('vendor.courses.toggle-publish', $approved))->assertRedirect();

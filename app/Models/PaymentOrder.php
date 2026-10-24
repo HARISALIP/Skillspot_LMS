@@ -8,7 +8,7 @@ class PaymentOrder extends Model
     protected $fillable = [
         'user_id','course_id','razorpay_order_id','razorpay_payment_id',
         'razorpay_signature','razorpay_refund_id','refund_requested_at','amount','currency','mode','status',
-        'webhook_payload','paid_at',
+        'webhook_payload','paid_at','sale_channel',
     ];
 
     protected $casts = [

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 @section('page-title', 'Portal Access — ' . $user->name)
-@section('page-sub', 'Manage vendor portal access for this student')
+@section('page-sub', 'Manage organization learning access for this student')
 @section('admin-content')
 <div class="space-y-6 max-w-3xl">
 
@@ -28,7 +28,7 @@
     <div class="p-5">
       <form method="POST" action="{{ route('admin.users.access.portal', $user) }}" class="flex items-center gap-3 flex-wrap">
         @csrf
-        @foreach(['Skillspot_only'=>['🎓','Skillspot.in Only'],'vendor_only'=>['🏪','Vendor Portal Only'],'both'=>['🔁','Both Portals']] as $val=>[$ico,$lbl])
+        @foreach(['Skillspot_only'=>['🎓','Skillspot.in Only'],'vendor_only'=>['🏪','Organization learning Only'],'both'=>['🔁','Both Portals']] as $val=>[$ico,$lbl])
         <label class="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 cursor-pointer transition
           {{ $user->portal_access === $val ? 'border-brand-400 bg-brand-50 text-brand-700 font-semibold' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300' }}">
           <input type="radio" name="portal_access" value="{{ $val }}" {{ $user->portal_access === $val ? 'checked' : '' }} class="sr-only">
@@ -43,13 +43,13 @@
   {{-- Add vendor access --}}
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100">
-      <h2 class="font-semibold text-gray-900">➕ Add Vendor Portal Access</h2>
+      <h2 class="font-semibold text-gray-900">➕ Add Organization learning Access</h2>
     </div>
     <div class="p-5">
       <form method="POST" action="{{ route('admin.users.access.add', $user) }}" class="flex gap-2 flex-wrap">
         @csrf
         <select name="vendor_id" required class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
-          <option value="">— Select vendor —</option>
+          <option value="">— Select organization —</option>
           @foreach($allVendors as $v)
             <option value="{{ $v->id }}" {{ $user->vendorAccess->contains('id',$v->id) ? 'disabled' : '' }}>
               {{ $v->brand_name }} ({{ $v->status }}) {{ $user->vendorAccess->contains('id',$v->id) ? '✓ Already added' : '' }}
@@ -65,7 +65,7 @@
   {{-- Current vendor access list --}}
   <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100">
-      <h2 class="font-semibold text-gray-900">🏪 Vendor Portals ({{ $user->vendorAccess->count() }})</h2>
+      <h2 class="font-semibold text-gray-900">🏪 Organizations ({{ $user->vendorAccess->count() }})</h2>
     </div>
     @if($user->vendorAccess->count())
     <div class="divide-y divide-gray-50">
@@ -89,7 +89,7 @@
       @endforeach
     </div>
     @else
-    <div class="px-5 py-8 text-center text-gray-400 text-sm">No vendor portals assigned yet.</div>
+    <div class="px-5 py-8 text-center text-gray-400 text-sm">No organizations assigned yet.</div>
     @endif
   </div>
 

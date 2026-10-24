@@ -12,7 +12,7 @@
 <body class="bg-[#f7f7f7] text-[#1f272e]">
   <div id="frappe-course-workspace" data-course-id="{{ $course?->id }}"></div>
   @if(!$course)
-    @include('admin.courses.creation-modal', ['courseCreateAction' => route('instructor.courses.create.store')])
+    @include('admin.courses.creation-modal', ['courseCreateAction' => route('instructor.courses.create.store', ['vendor_id' => $vendorId ?: null])])
     @include('admin.courses.creation-script')
   @endif
 </body>
