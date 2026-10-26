@@ -341,6 +341,44 @@ class SettingsController extends Controller
         return back()->with('success', 'Cache cleared successfully ✅');
     }
 
+    // ── Run Migrations ──────────────────────────────────────────────────
+    public function runMigrate(\Illuminate\Http\Request $request)
+    {
+        try {
+            Artisan::call('migrate', ['--force' => true]);
+            $output = trim(Artisan::output());
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'output' => $output, 'message' => 'Database migrations ran successfully ✅']);
+            }
+            return back()->with('success', 'Database migrations ran successfully: ' . ($output ?: 'Already up to date.'));
+        } catch (\Throwable $e) {
+            report($e);
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Migration failed: ' . $e->getMessage());
+        }
+    }
+
+    // ── Run Storage Link ────────────────────────────────────────────────
+    public function runStorageLink(\Illuminate\Http\Request $request)
+    {
+        try {
+            Artisan::call('storage:link', ['--force' => true]);
+            $output = trim(Artisan::output());
+            if ($request->wantsJson()) {
+                return response()->json(['success' => true, 'output' => $output, 'message' => 'Storage symlink created successfully ✅']);
+            }
+            return back()->with('success', 'Storage link created: ' . ($output ?: 'Connected.'));
+        } catch (\Throwable $e) {
+            report($e);
+            if ($request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+            return back()->with('error', 'Storage link failed: ' . $e->getMessage());
+        }
+    }
+
     // ── Write a key=value pair to .env ─────────────────────────────────
     private function updateEnvKey(string $key, string $value): void
     {

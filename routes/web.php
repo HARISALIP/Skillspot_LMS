@@ -155,6 +155,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin.only'])->group
     Route::get('/settings',              [SettingsController::class, 'index'])->name('settings');
     Route::post('/settings/mail/test',   [SettingsController::class, 'testMail'])->name('settings.mail.test');
     Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache'])->name('settings.clear-cache');
+    Route::post('/settings/migrate',     [SettingsController::class, 'runMigrate'])->name('settings.migrate');
+    Route::post('/settings/storage-link', [SettingsController::class, 'runStorageLink'])->name('settings.storage-link');
     Route::post('/settings/toggle/{key}',  [SettingsController::class, 'toggle'])->name('settings.toggle');
     Route::post('/settings/categories', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
     Route::put('/settings/categories/{category}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
@@ -520,4 +522,73 @@ Route::get('/storage/{path}', function (string $path) {
         'Cache-Control' => 'public, max-age=31536000, immutable',
     ]);
 })->where('path', '.*')->name('storage.fallback');
+
+// ── Web Artisan Runner (for Hostinger/cPanel environments without SSH) ───────
+// Accessible directly via browser: /system/migrate or /phpartisan-migrate
+Route::match(['GET', 'POST'], '/system/migrate', function (\Illuminate\Http\Request $request) {
+    $authorized = (auth()->check() && auth()->user()->hasRole(['super-admin', 'admin']))
+        || $request->query('secret') === 'skillspot2026';
+
+    if (!$authorized) {
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:550px;margin:60px auto;padding:32px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.05);text-align:center;'>
+                <div style='font-size:40px;margin-bottom:12px;'>🔒</div>
+                <h2 style='margin:0 0 8px;color:#0f172a;font-size:20px;'>Admin Authorization Required</h2>
+                <p style='color:#64748b;font-size:13px;line-height:1.6;margin-bottom:20px;'>
+                    Please <a href='/login' style='color:#2563eb;font-weight:600;'>log in as an Administrator</a> first, or supply the secret token in the URL: <br>
+                    <code style='background:#f1f5f9;padding:4px 8px;border-radius:6px;font-size:12px;color:#0f172a;'>?secret=skillspot2026</code>
+                </p>
+                <a href='/login' style='display:inline-block;background:#2563eb;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;border-radius:10px;text-decoration:none;'>Sign In to LMS</a>
+            </div>
+        ", 403)->header('Content-Type', 'text/html');
+    }
+
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $migrateOut = trim(\Illuminate\Support\Facades\Artisan::output());
+
+        \Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
+        $linkOut = trim(\Illuminate\Support\Facades\Artisan::output());
+
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        $cacheOut = trim(\Illuminate\Support\Facades\Artisan::output());
+
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:680px;margin:50px auto;padding:36px;background:#ffffff;border:2px solid #86efac;border-radius:20px;box-shadow:0 15px 35px rgba(22,101,52,0.08);'>
+                <div style='display:flex;align-items:center;gap:14px;margin-bottom:18px;'>
+                    <div style='width:48px;height:48px;background:#dcfce7;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;'>✅</div>
+                    <div>
+                        <h2 style='margin:0;color:#14532d;font-size:22px;font-weight:800;'>Artisan Commands Executed!</h2>
+                        <p style='margin:4px 0 0;color:#166534;font-size:13px;'>Your database and storage links are now up to date on <strong>lms.skillspot.in</strong>.</p>
+                    </div>
+                </div>
+
+                <div style='margin-bottom:14px;'>
+                    <div style='font-weight:700;color:#334155;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;'>1. Migration Output</div>
+                    <pre style='background:#f8fafc;border:1px solid #e2e8f0;padding:12px 14px;border-radius:10px;font-size:12px;color:#0f172a;overflow-x:auto;margin:0;'>" . htmlspecialchars($migrateOut ?: 'Nothing to migrate. Database is already up to date.') . "</pre>
+                </div>
+
+                <div style='margin-bottom:20px;'>
+                    <div style='font-weight:700;color:#334155;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;'>2. Storage Symlink & Cache Output</div>
+                    <pre style='background:#f8fafc;border:1px solid #e2e8f0;padding:12px 14px;border-radius:10px;font-size:12px;color:#0f172a;overflow-x:auto;margin:0;'>" . htmlspecialchars(($linkOut ? $linkOut . "\n" : '') . $cacheOut) . "</pre>
+                </div>
+
+                <div style='display:flex;gap:10px;align-items:center;'>
+                    <a href='/admin' style='display:inline-block;background:#16a34a;color:#fff;font-weight:700;font-size:13px;padding:11px 22px;border-radius:10px;text-decoration:none;'>Go to Admin Dashboard →</a>
+                    <a href='/admin/courses' style='display:inline-block;background:#f1f5f9;color:#334155;font-weight:700;font-size:13px;padding:11px 22px;border-radius:10px;text-decoration:none;'>View Courses</a>
+                </div>
+            </div>
+        ", 200)->header('Content-Type', 'text/html');
+    } catch (\Throwable $e) {
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:650px;margin:50px auto;padding:32px;background:#fff;border:2px solid #fca5a5;border-radius:16px;'>
+                <h2 style='color:#991b1b;margin-top:0;'>❌ Execution Error</h2>
+                <pre style='background:#fef2f2;padding:14px;border-radius:8px;color:#b91c1c;font-size:13px;white-space:pre-wrap;'>" . htmlspecialchars($e->getMessage()) . "</pre>
+            </div>
+        ", 500)->header('Content-Type', 'text/html');
+    }
+})->name('system.migrate');
+
+Route::match(['GET', 'POST'], '/phpartisan-migrate', fn(\Illuminate\Http\Request $r) => redirect()->route('system.migrate', $r->query()));
+Route::match(['GET', 'POST'], '/artisan/migrate', fn(\Illuminate\Http\Request $r) => redirect()->route('system.migrate', $r->query()));
 

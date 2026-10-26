@@ -708,24 +708,32 @@ $tabs = [
             </div>
           </div>
 
-          {{-- Cache & Config Tools --}}
-          <div class="border-t border-dashed border-red-100 pt-5 mt-2">
+          {{-- Cache & System Maintenance Tools --}}
+          <div class="border-t border-dashed border-gray-200 pt-5 mt-4">
             <div class="flex items-center gap-2 mb-3">
               <span class="text-lg">🛠️</span>
               <div>
-                <div class="font-bold text-red-600 text-sm">Cache & Config Tools</div>
-                <div class="text-xs text-gray-400">Clear cached data and reload platform configuration</div>
+                <div class="font-bold text-gray-900 text-sm">System Maintenance &amp; Database Tools</div>
+                <div class="text-xs text-gray-400">Run artisan migrations, fix storage symlinks, or clear cache</div>
               </div>
             </div>
             <div class="flex flex-wrap gap-3">
+              <button type="button" onclick="runMigrate(this)"
+                      class="flex items-center gap-2 px-5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl text-sm font-bold transition">
+                ▶️ Run Database Migrations (Artisan Migrate)
+              </button>
+              <button type="button" onclick="runStorageLink(this)"
+                      class="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-sm font-bold transition">
+                🔗 Fix Storage Symlink (Thumbnails &amp; Files)
+              </button>
               <button type="button" onclick="clearCache(this)"
                       class="flex items-center gap-2 px-5 py-2.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-200 rounded-xl text-sm font-bold transition">
                 🗑️ Clear All Cache
               </button>
-              <button type="button" onclick="clearCache(this)"
-                      class="flex items-center gap-2 px-5 py-2.5 bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 rounded-xl text-sm font-bold transition">
-                🔄 Reload Config
-              </button>
+              <a href="{{ route('system.migrate', ['secret' => 'skillspot2026']) }}" target="_blank"
+                 class="flex items-center gap-2 px-5 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-xl text-sm font-bold transition">
+                🌐 Web Runner Page ↗
+              </a>
             </div>
           </div>
           @elseif($activeTab === 'course-progress')
@@ -895,8 +903,54 @@ async function clearCache(btn) {
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': _csrfToken, 'Accept': 'application/json' }
     });
-    if (res.ok) { btn.textContent = orig; } else { alert('Clear cache failed.'); btn.textContent = orig; }
-  } catch(e) { alert('Network error.'); btn.textContent = orig; }
+    if (res.ok) { alert('Cache cleared successfully! ✅'); } else { alert('Clear cache failed.'); }
+  } catch(e) { alert('Network error.'); }
+  btn.textContent = orig;
+  btn.disabled = false;
+}
+
+async function runMigrate(btn) {
+  if (!confirm('Run database migrations now?')) return;
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Running migrations...';
+  try {
+    const res = await fetch(`{{ route('admin.settings.migrate') }}`, {
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': _csrfToken, 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert((data.message || 'Migrations completed!') + (data.output ? '\n\n' + data.output : ''));
+    } else {
+      alert('Error: ' + (data.message || 'Migration failed.'));
+    }
+  } catch(e) {
+    alert('Network error while running migrations.');
+  }
+  btn.innerHTML = orig;
+  btn.disabled = false;
+}
+
+async function runStorageLink(btn) {
+  btn.disabled = true;
+  const orig = btn.innerHTML;
+  btn.innerHTML = '⏳ Creating link...';
+  try {
+    const res = await fetch(`{{ route('admin.settings.storage-link') }}`, {
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': _csrfToken, 'Accept': 'application/json' }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert((data.message || 'Storage symlink created!') + (data.output ? '\n\n' + data.output : ''));
+    } else {
+      alert('Error: ' + (data.message || 'Failed to create storage symlink.'));
+    }
+  } catch(e) {
+    alert('Network error while linking storage.');
+  }
+  btn.innerHTML = orig;
   btn.disabled = false;
 }
 </script>
