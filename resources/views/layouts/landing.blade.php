@@ -72,21 +72,21 @@
         </div>
       </a>
 
-      <div class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
-        <a href="/#courses" class="hover:text-slate-900 transition">Courses</a>
-        <a href="https://skillspot.in/internship" target="_blank" class="hover:text-indigo-600 transition flex items-center gap-1.5">
+      <div class="hidden md:flex items-center text-sm font-medium text-slate-600" style="gap: 2rem;">
+        <a href="/#courses" class="hover:text-slate-900 transition py-1">Courses</a>
+        <a href="https://skillspot.in/internship" target="_blank" class="hover:text-indigo-600 transition flex items-center gap-1.5 py-1">
           <i class="fa-solid fa-graduation-cap text-indigo-500 text-xs"></i>
           <span>Web Dev Internships</span>
-          <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200/70 px-1.5 py-0.5 rounded font-bold">100+</span>
+          <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200/70 px-1.5 py-0.5 rounded font-bold" style="margin-left: 4px;">100+</span>
         </a>
-        <a href="https://skillspot.in/business" target="_blank" class="hover:text-emerald-600 transition flex items-center gap-1.5">
+        <a href="https://skillspot.in/business" target="_blank" class="hover:text-emerald-600 transition flex items-center gap-1.5 py-1">
           <i class="fa-solid fa-briefcase text-emerald-500 text-xs"></i>
           <span>WFH Jobs</span>
-          <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-1.5 py-0.5 rounded font-bold">100+</span>
+          <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-1.5 py-0.5 rounded font-bold" style="margin-left: 4px;">100+</span>
         </a>
       </div>
 
-      <div class="hidden md:flex items-center gap-3">
+      <div class="hidden md:flex items-center" style="gap: 0.75rem;">
         @auth
           <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-sm bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-xs flex items-center gap-2">
             <i class="fa-solid fa-gauge-high text-xs"></i> <span>Dashboard</span>
@@ -106,19 +106,56 @@
     </div>
   </div>
 
-  <div id="mobile-menu" class="md:hidden bg-white/98 border-t border-slate-200/80 shadow-xl">
-    <div class="px-4 py-4 flex flex-col gap-1 text-sm font-medium">
-      <a href="/#courses" class="text-slate-700 hover:text-brand-600 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition">📚 Courses</a>
-      <a href="https://skillspot.in/internship" target="_blank" class="text-slate-700 hover:text-indigo-600 px-3 py-2.5 rounded-xl hover:bg-indigo-50 transition flex items-center justify-between"><span>🎓 Web Dev Internships</span> <span class="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">100+</span></a>
-      <a href="https://skillspot.in/business" target="_blank" class="text-slate-700 hover:text-emerald-600 px-3 py-2.5 rounded-xl hover:bg-emerald-50 transition flex items-center justify-between"><span>💼 WFH &amp; Business Jobs</span> <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">100+</span></a>
-      <div class="border-t border-slate-100 mt-2 pt-3 flex flex-col gap-2">
+  {{-- Overhauled Mobile Menu (Clean, Modern & Functional) --}}
+  <div id="mobile-menu" class="md:hidden bg-white/98 backdrop-blur-xl border-b border-slate-200/90 shadow-xl transition-all duration-200">
+    <div class="px-5 py-4 flex flex-col" style="gap: 0.5rem;">
+      <a href="/#courses" onclick="closeMobileMenu()" class="flex items-center gap-3.5 text-slate-800 hover:text-blue-600 px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-200/60">
+        <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm shadow-2xs">
+          <i class="fa-solid fa-book-open"></i>
+        </div>
+        <div class="flex-1">
+          <span class="font-bold text-sm block text-slate-800">Browse Courses</span>
+          <span class="text-[11px] text-slate-500 font-normal">Practical modules &amp; certificates</span>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-300 text-xs"></i>
+      </a>
+
+      <a href="https://skillspot.in/internship" target="_blank" class="flex items-center justify-between text-slate-800 hover:text-indigo-600 px-3.5 py-2.5 rounded-xl hover:bg-indigo-50/40 transition border border-transparent hover:border-indigo-100">
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm shadow-2xs">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <div>
+            <span class="font-bold text-sm block text-slate-800">Web Dev Internships</span>
+            <span class="text-[11px] text-slate-500 font-normal">Hands-on project experience</span>
+          </div>
+        </div>
+        <span class="text-[10px] bg-indigo-100 text-indigo-800 border border-indigo-200/60 px-2.5 py-0.5 rounded-full font-bold">100+</span>
+      </a>
+
+      <a href="https://skillspot.in/business" target="_blank" class="flex items-center justify-between text-slate-800 hover:text-emerald-600 px-3.5 py-2.5 rounded-xl hover:bg-emerald-50/40 transition border border-transparent hover:border-emerald-100">
+        <div class="flex items-center gap-3.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm shadow-2xs">
+            <i class="fa-solid fa-briefcase"></i>
+          </div>
+          <div>
+            <span class="font-bold text-sm block text-slate-800">WFH Jobs</span>
+            <span class="text-[11px] text-slate-500 font-normal">Remote roles &amp; tech listings</span>
+          </div>
+        </div>
+        <span class="text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-200/60 px-2.5 py-0.5 rounded-full font-bold">100+</span>
+      </a>
+
+      <div class="border-t border-slate-200/80 mt-2 pt-3 flex flex-col" style="gap: 0.65rem;">
         @auth
-          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">
+          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-center bg-slate-900 hover:bg-slate-800 text-white px-4 py-3 rounded-xl font-bold transition shadow-xs text-sm">
             Go to Dashboard →
           </a>
         @else
-          <a href="/login" class="text-center text-slate-700 border border-slate-200 px-4 py-3 rounded-xl font-semibold transition hover:bg-slate-50">Login</a>
-          <a href="/register" class="text-center bg-brand-600 hover:bg-brand-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-md shadow-brand-600/20">Start Learning →</a>
+          <div class="grid grid-cols-2" style="gap: 0.75rem;">
+            <a href="/login" class="text-center text-slate-800 border border-slate-300 bg-white hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold transition text-sm">Log in</a>
+            <a href="/register" class="text-center bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl font-bold transition shadow-xs text-sm">Join Free</a>
+          </div>
         @endauth
       </div>
     </div>
@@ -190,6 +227,16 @@
   const mobileMenu = document.getElementById('mobile-menu');
   const iconOpen = document.getElementById('icon-open');
   const iconClose = document.getElementById('icon-close');
+  
+  function closeMobileMenu() {
+    if (mobileMenu && mobileMenu.classList.contains('open')) {
+      mobileMenu.classList.remove('open');
+      iconOpen?.classList.remove('hidden');
+      iconClose?.classList.add('hidden');
+    }
+  }
+  window.closeMobileMenu = closeMobileMenu;
+
   if (hamburger && mobileMenu) {
     hamburger.addEventListener('click', () => {
       const isOpen = mobileMenu.classList.toggle('open');

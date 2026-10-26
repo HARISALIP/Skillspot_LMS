@@ -13,21 +13,21 @@
     </div>
 
     {{-- Hero Headline --}}
-    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.15] text-balance">
+    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight max-w-3xl mx-auto text-balance">
       Learn In-Demand Skills.<br class="hidden sm:inline"> Build Real Confidence.
     </h1>
 
     {{-- Subtitle --}}
-    <p class="mt-5 text-sm sm:text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+    <p class="mt-4 text-sm sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed font-normal">
       Practical, mentor-crafted courses in web development, design, and programming. Self-paced learning with hands-on exercises and verified certificates.
     </p>
 
-    {{-- Hero Action Buttons --}}
-    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-      <a href="#courses" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-xs transition">
+    {{-- Hero Action Buttons (Separated with guaranteed gap & clean sizing) --}}
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5" style="gap: 1.25rem;">
+      <a href="#courses" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-semibold text-sm px-6 py-3 rounded-xl shadow-xs transition">
         <span>Browse Courses</span> <i class="fa-solid fa-arrow-down text-xs text-slate-300"></i>
       </a>
-      <a href="/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 font-semibold text-sm px-7 py-3.5 rounded-xl border border-slate-200 shadow-2xs transition">
+      <a href="/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 font-semibold text-sm px-6 py-3 rounded-xl border border-slate-300 shadow-2xs transition">
         <span>Create Free Account</span> <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
       </a>
     </div>
@@ -345,11 +345,11 @@
       Create your free account today and start mastering skills that open new doors.
     </p>
 
-    <div class="mt-8 flex flex-col sm:flex-row gap-3.5 justify-center">
-      <a href="/register" class="bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-bold px-7 py-3.5 rounded-xl text-sm transition shadow-sm">
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5" style="gap: 1.25rem;">
+      <a href="/register" class="w-full sm:w-auto inline-flex items-center justify-center bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-bold px-7 py-3 rounded-xl text-sm transition shadow-sm">
         Register Free Account →
       </a>
-      <a href="#courses" class="bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white border border-slate-700 px-7 py-3.5 rounded-xl text-sm font-semibold transition">
+      <a href="#courses" class="w-full sm:w-auto inline-flex items-center justify-center bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white border border-slate-700 px-7 py-3 rounded-xl text-sm font-semibold transition">
         Browse Courses Catalog
       </a>
     </div>
