@@ -791,22 +791,36 @@ class CoursesController extends Controller
         $cleanDir = trim($directory, '/');
         $relativeSubpath = $cleanDir . '/' . $filename;
 
-        // 1. Store in standard storage/app/public disk
-        $file->storeAs($cleanDir, $filename, 'public');
+        // Destination directories
+        $publicStorageDir = public_path('storage/' . $cleanDir);
+        $publicImagesDir  = public_path('images/' . $cleanDir);
+        $storageAppDir    = storage_path('app/public/' . $cleanDir);
 
-        // 2. Also write directly into public/storage/{directory} so Apache/LiteSpeed serves it immediately
-        try {
-            $publicFolder = public_path('storage/' . $cleanDir);
-            if (!file_exists($publicFolder)) {
-                @mkdir($publicFolder, 0755, true);
+        foreach ([$publicStorageDir, $publicImagesDir, $storageAppDir] as $dir) {
+            if (!file_exists($dir)) {
+                @mkdir($dir, 0755, true);
             }
-            $src = storage_path('app/public/' . $relativeSubpath);
-            $dst = public_path('storage/' . $relativeSubpath);
-            if (file_exists($src)) {
-                @copy($src, $dst);
+        }
+
+        // Native PHP move directly into public/storage for immediate web serving
+        try {
+            $file->move($publicStorageDir, $filename);
+            $savedFile = $publicStorageDir . '/' . $filename;
+
+            // Create redundant backup copies in storage/app/public and public/images
+            if (file_exists($savedFile)) {
+                @copy($savedFile, $storageAppDir . '/' . $filename);
+                @copy($savedFile, $publicImagesDir . '/' . $filename);
             }
         } catch (\Throwable $e) {
-            // Non-fatal: fallback route handles it if direct copy fails
+            // Fallback to Laravel storeAs if direct move fails
+            try {
+                $file->storeAs($cleanDir, $filename, 'public');
+                $src = storage_path('app/public/' . $relativeSubpath);
+                if (file_exists($src)) {
+                    @copy($src, $publicStorageDir . '/' . $filename);
+                }
+            } catch (\Throwable $sEx) {}
         }
 
         return '/storage/' . $relativeSubpath;

@@ -19,7 +19,7 @@
       <div>
         <span class="cw-label">Course thumbnail</span>
         <div class="flex flex-wrap items-start gap-4">
-          <div id="settingsThumbnailPreview" class="settings-media-preview flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-100" style="background:{{ $course->thumbnail_color ?: '#aeb7bf' }}">@if($course->thumbnail)<img src="{{ $course->thumbnail }}" alt="" class="h-full w-full object-cover">@endif</div>
+          <div id="settingsThumbnailPreview" class="settings-media-preview flex shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-gray-100" style="background:{{ $course->thumbnail_color ?: '#aeb7bf' }}">@if($course->thumbnail)<img src="{{ $course->thumbnail }}" onerror="this.style.display='none'; document.getElementById('settingsThumbnailColors').hidden=false;" alt="" class="h-full w-full object-cover">@endif</div>
           <div class="min-w-0 flex-1 space-y-2">
             <p id="settingsThumbnailName" class="break-all text-xs" @if(!$course->thumbnail) hidden @endif>{{ $course->thumbnail ? basename(parse_url($course->thumbnail, PHP_URL_PATH) ?: '') : '' }}</p>
             <div id="settingsThumbnailColors" @if($course->thumbnail) hidden @endif><span class="cw-label">Color</span><div class="settings-color-swatches">
