@@ -13,12 +13,10 @@
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
   @include('partials.turbo')
   <style>
-    .gradient-hero  { background: linear-gradient(135deg, #f8fafc 0%, #edf4ff 50%, #f5f3ff 100%); }
-    .gradient-text  { background: linear-gradient(90deg, #2563eb, #7c3aed); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .card-hover     { transition: transform .3s ease, box-shadow .3s ease; }
-    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(37,99,235,.08); }
-    .glass          { backdrop-filter: blur(16px); background: rgba(255,255,255,.85); border: 1px solid rgba(226,232,240,.8); }
-    .nav-solid      { background: rgba(255,255,255,.96) !important; border-bottom: 1px solid rgba(226,232,240,.9); box-shadow: 0 4px 20px -2px rgba(0,0,0,.05); }
+    .gradient-hero  { background: radial-gradient(circle at 50% 0%, #f1f5f9 0%, #f8fafc 50%, #ffffff 100%); }
+    .card-hover     { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -8px rgba(15,23,42,.08); }
+    .glass          { backdrop-filter: blur(16px); background: rgba(255,255,255,.92); border-bottom: 1px solid rgba(226,232,240,.9); }
     .text-balance   { text-wrap: balance; }
     #mobile-menu    { display: none; }
     #mobile-menu.open { display: block; }
@@ -26,7 +24,7 @@
   </style>
   @stack('styles')
 </head>
-<body class="font-sans bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+<body class="font-sans bg-slate-50/50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-blue-100 selection:text-blue-900">
 <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
 
 <!-- ── NAVBAR ──────────────────────────────────────────────────────────── -->
@@ -34,28 +32,38 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
 
-      <a href="/" class="flex items-center gap-3 flex-shrink-0">
-        <div class="w-10 h-10 bg-gradient-to-br from-brand-600 to-accent-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg shadow-brand-500/20">S</div>
+      <a href="/" class="flex items-center gap-3 flex-shrink-0 group">
+        <div class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm group-hover:bg-blue-600 transition">
+          S
+        </div>
         <div class="leading-tight">
-          <span class="text-slate-900 font-black text-base block leading-none tracking-tight">Skillspot.in</span>
-          <span class="text-brand-600 text-[10px] font-extrabold tracking-[0.2em] uppercase">LMS</span>
+          <span class="text-slate-900 font-extrabold text-base block leading-none tracking-tight">Skillspot.in</span>
+          <span class="text-slate-500 text-[10px] font-semibold tracking-wider uppercase">Academy LMS</span>
         </div>
       </a>
 
-      <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-        <a href="/#courses" class="hover:text-brand-600 transition">Courses</a>
-        <a href="https://skillspot.in/internship" target="_blank" class="hover:text-indigo-600 transition flex items-center gap-1.5"><i class="fa-solid fa-graduation-cap text-indigo-600"></i> Web Dev Internships <span class="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">100+</span></a>
-        <a href="https://skillspot.in/business" target="_blank" class="hover:text-emerald-600 transition flex items-center gap-1.5"><i class="fa-solid fa-briefcase text-emerald-600"></i> WFH Jobs <span class="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">100+</span></a>
+      <div class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
+        <a href="/#courses" class="hover:text-slate-900 transition">Courses</a>
+        <a href="https://skillspot.in/internship" target="_blank" class="hover:text-indigo-600 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-graduation-cap text-indigo-500 text-xs"></i>
+          <span>Web Dev Internships</span>
+          <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200/70 px-1.5 py-0.5 rounded font-bold">100+</span>
+        </a>
+        <a href="https://skillspot.in/business" target="_blank" class="hover:text-emerald-600 transition flex items-center gap-1.5">
+          <i class="fa-solid fa-briefcase text-emerald-500 text-xs"></i>
+          <span>WFH Jobs</span>
+          <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 px-1.5 py-0.5 rounded font-bold">100+</span>
+        </a>
       </div>
 
       <div class="hidden md:flex items-center gap-3">
         @auth
-          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-sm bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-brand-600/20 flex items-center gap-2">
-            <i class="fa-solid fa-gauge-high text-xs"></i> <span>My Dashboard</span>
+          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="text-sm bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-xs flex items-center gap-2">
+            <i class="fa-solid fa-gauge-high text-xs"></i> <span>Dashboard</span>
           </a>
         @else
-          <a href="/login" class="text-sm font-semibold text-slate-700 hover:text-brand-600 transition px-4 py-2">Login</a>
-          <a href="/register" class="text-sm bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-brand-600/20">
+          <a href="/login" class="text-sm font-semibold text-slate-700 hover:text-slate-900 transition px-3 py-2">Log in</a>
+          <a href="/register" class="text-sm bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl font-bold transition shadow-xs">
             Join Free
           </a>
         @endauth
@@ -147,6 +155,19 @@
 </footer>
 
 @include('partials.ui-icon-normalizer')
+<script>
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const iconOpen = document.getElementById('icon-open');
+  const iconClose = document.getElementById('icon-close');
+  if (hamburger && mobileMenu) {
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileMenu.classList.toggle('open');
+      iconOpen?.classList.toggle('hidden', isOpen);
+      iconClose?.classList.toggle('hidden', !isOpen);
+    });
+  }
+</script>
 @stack('scripts')
 </body>
 </html>

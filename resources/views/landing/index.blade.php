@@ -1,48 +1,99 @@
 @extends('layouts.landing')
-@section('title', 'Skillspot.in — Learn. Build. Grow.')
+@section('title', 'Skillspot.in — Learn In-Demand Tech Skills')
 @section('content')
 
-<!-- ── 1. COURSES & MARKETPLACE CATALOG (FIRST AT THE TOP OF HOMEPAGE) ───────────────────────── -->
-<section id="courses" class="pt-32 pb-14 bg-gradient-to-b from-slate-100/90 via-slate-50 to-white border-b border-slate-200/70 scroll-mt-20" style="padding-top: 125px;">
+<!-- ── 1. HERO SECTION (CLEAN, HUMBLE & PROFESSIONAL) ────────────────────────── -->
+<section class="gradient-hero pt-28 sm:pt-36 pb-16 sm:pb-20 border-b border-slate-200/70">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    
+    {{-- Humble Badge --}}
+    <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-semibold bg-white text-slate-700 border border-slate-200 shadow-2xs mb-6">
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <span>Empowering Practical Skills &amp; Tech Careers</span>
+    </div>
+
+    {{-- Hero Headline --}}
+    <h1 class="text-3xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-[1.15] text-balance">
+      Learn In-Demand Skills.<br class="hidden sm:inline"> Build Real Confidence.
+    </h1>
+
+    {{-- Subtitle --}}
+    <p class="mt-5 text-sm sm:text-base lg:text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">
+      Practical, mentor-crafted courses in web development, design, and programming. Self-paced learning with hands-on exercises and verified certificates.
+    </p>
+
+    {{-- Hero Action Buttons --}}
+    <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
+      <a href="#courses" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white font-bold text-sm px-7 py-3.5 rounded-xl shadow-xs transition">
+        <span>Browse Courses</span> <i class="fa-solid fa-arrow-down text-xs text-slate-300"></i>
+      </a>
+      <a href="/register" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-slate-50 active:scale-[0.98] text-slate-800 font-semibold text-sm px-7 py-3.5 rounded-xl border border-slate-200 shadow-2xs transition">
+        <span>Create Free Account</span> <i class="fa-solid fa-arrow-right text-xs text-slate-400"></i>
+      </a>
+    </div>
+
+    {{-- Key Value Pillars --}}
+    <div class="mt-12 pt-8 border-t border-slate-200/70 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-medium text-slate-600">
+      <div class="flex items-center justify-center gap-2 py-1">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+        <span>Self-Paced Learning</span>
+      </div>
+      <div class="flex items-center justify-center gap-2 py-1">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+        <span>Practical Projects</span>
+      </div>
+      <div class="flex items-center justify-center gap-2 py-1">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+        <span>Verified Certificate</span>
+      </div>
+      <div class="flex items-center justify-center gap-2 py-1">
+        <i class="fa-solid fa-circle-check text-emerald-600 text-sm"></i>
+        <span>Lifetime Access</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── 2. FEATURED COURSES CATALOG ───────────────────────────────────────────── -->
+<section id="courses" class="py-16 sm:py-20 bg-slate-50/50 scroll-mt-16">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     
-    {{-- Header Banner --}}
-    <div class="flex flex-col md:flex-row md:items-end justify-between mb-7 gap-4">
+    {{-- Section Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
       <div>
-        <div class="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-black border border-brand-200/80 px-3.5 py-1 rounded-full mb-3">
-          <i class="fa-solid fa-graduation-cap text-brand-600"></i> Instant Access Courses
-        </div>
-        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
-          Learn In-Demand Tech Skills. <span class="gradient-text">Start Today.</span>
-        </h1>
-        <p class="text-slate-600 text-sm sm:text-base mt-2 max-w-2xl leading-relaxed">
-          Hands-on developer courses, AI workflows, and verified certificates. Pick a course to start learning or buying immediately.
+        <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Course Catalog</span>
+        <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
+          Featured Courses
+        </h2>
+        <p class="text-slate-600 text-sm mt-1 max-w-xl">
+          Explore courses tailored to help you build practical, job-ready capabilities.
         </p>
       </div>
 
       <div class="flex items-center gap-2">
-        <a href="{{ route('marketplace.browse') }}" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm transition flex items-center gap-2">
-          <span>All Courses ({{ $stats['courses'] }})</span> <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        <a href="{{ route('marketplace.browse') }}" class="text-xs bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-xl border border-slate-200 shadow-2xs transition flex items-center gap-2">
+          <span>All Courses ({{ $stats['courses'] }})</span> <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
         </a>
       </div>
     </div>
 
-    {{-- Live Search & Category Filters Bar --}}
-    <div class="bg-white rounded-2xl p-3 border border-slate-200/90 shadow-sm mb-7 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-      {{-- Fast live search --}}
+    {{-- Search & Filter Bar --}}
+    <div class="bg-white rounded-2xl p-2.5 border border-slate-200 shadow-xs mb-8 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+      {{-- Fast search input --}}
       <div class="relative flex-1">
-        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none"></i>
-        <input type="text" id="courseSearchInput" oninput="searchCourses(this.value)" placeholder="Quick search courses (e.g. Web Development, Python, Robotics, Coding)..."
-               class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-800 placeholder-slate-400">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+        <input type="text" id="courseSearchInput" oninput="searchCourses(this.value)" placeholder="Search courses by topic, keyword, or title..."
+               class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-800 placeholder-slate-400 transition">
       </div>
 
       {{-- Fast Category pills --}}
       <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs" id="courseFilters">
-        <button type="button" onclick="filterCourses('all', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-brand-600 text-white shadow-sm transition whitespace-nowrap">All</button>
+        <button type="button" onclick="filterCourses('all', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-slate-900 text-white shadow-xs transition whitespace-nowrap">All</button>
         <button type="button" onclick="filterCourses('web-development', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Web Dev</button>
-        <button type="button" onclick="filterCourses('ai-machine-learning', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">AI & Python</button>
-        <button type="button" onclick="filterCourses('robotics-iot', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Robotics & IoT</button>
-        <button type="button" onclick="filterCourses('computer-science-coding', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Coding & CS</button>
+        <button type="button" onclick="filterCourses('ai-machine-learning', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">AI &amp; Python</button>
+        <button type="button" onclick="filterCourses('robotics-iot', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Robotics &amp; IoT</button>
+        <button type="button" onclick="filterCourses('computer-science-coding', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Coding &amp; CS</button>
       </div>
     </div>
 
@@ -60,205 +111,252 @@
       ];
     @endphp
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" id="coursesGrid">
+    {{-- Courses Grid --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="coursesGrid">
       @forelse($featuredCourses as $course)
       @php
-        $icon     = $catIcons[$course->category] ?? 'fa-solid fa-book-open';
-        $levelColor = match($course->level) {
-          'intermediate' => 'bg-amber-50 text-amber-700 border border-amber-200/60',
-          'advanced'     => 'bg-rose-50 text-rose-700 border border-rose-200/60',
-          default        => 'bg-blue-50 text-blue-700 border border-blue-200/60',
-        };
+        $icon         = $catIcons[$course->category] ?? 'fa-solid fa-book-open';
         $totalLessons = $course->sections->sum(fn($s) => $s->lessons->count());
-        $catSlug = \Illuminate\Support\Str::slug($course->category);
+        $catSlug      = \Illuminate\Support\Str::slug($course->category);
+        $creator      = $course->vendor?->brand_name ?? $course->primaryInstructor?->name ?? 'Skillspot Academy';
+        $cleanDesc    = \Illuminate\Support\Str::limit(strip_tags($course->short_introduction ?: $course->description), 110);
       @endphp
-      <div class="course-card-item bg-white rounded-2xl border border-slate-200/90 shadow-sm card-hover overflow-hidden group hover:border-brand-300 flex flex-col transition-all duration-300"
+      <div class="course-card-item bg-white rounded-2xl border border-slate-200 shadow-xs card-hover overflow-hidden group hover:border-slate-300 flex flex-col transition-all duration-200"
            data-category="{{ $catSlug }}">
-        {{-- Badge --}}
-        @if($course->is_free)
-        <div class="bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[10px] font-bold text-center py-1 tracking-wider uppercase"><i class="fa-solid fa-gift mr-1"></i> Free Course</div>
-        @elseif($course->sale_price)
-        <div class="bg-gradient-to-r from-orange-500 to-rose-600 text-white text-[10px] font-bold text-center py-1 tracking-wider uppercase"><i class="fa-solid fa-bolt mr-1"></i> Special Offer</div>
-        @elseif($course->is_featured)
-        <div class="bg-gradient-to-r from-brand-600 to-indigo-600 text-white text-[10px] font-bold text-center py-1 tracking-wider uppercase"><i class="fa-solid fa-star mr-1"></i> Featured</div>
-        @endif
 
-        {{-- Thumbnail Link --}}
-        <a href="{{ route('student.course-detail', $course->slug) }}" class="relative h-40 bg-gradient-to-br from-brand-50 via-slate-50 to-indigo-50 flex items-center justify-center overflow-hidden border-b border-slate-100 block">
+        {{-- Thumbnail Area --}}
+        <a href="{{ route('student.course-detail', $course->slug) }}" class="relative aspect-video bg-slate-100 flex items-center justify-center overflow-hidden border-b border-slate-100 block">
           @if($course->thumbnail)
             <img src="{{ $course->thumbnail }}" alt="{{ $course->title }}"
                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy"
-                 onerror="this.parentElement.innerHTML='<i class=\'{{ $icon }} text-4xl text-brand-600\'></i>'">
+                 onerror="this.parentElement.innerHTML='<i class=\'{{ $icon }} text-3xl text-slate-400\'></i>'">
           @else
-            <i class="{{ $icon }} text-4xl text-brand-600 group-hover:scale-110 transition-transform duration-300"></i>
+            <i class="{{ $icon }} text-3xl text-slate-400 group-hover:scale-110 transition-transform duration-300"></i>
           @endif
-          {{-- Category pill --}}
-          <span class="absolute top-2 left-2 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-            {{ $course->category }}
+
+          {{-- Subtle Category pill --}}
+          <span class="absolute top-2.5 left-2.5 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-md shadow-2xs">
+            {{ $course->category ?: 'General' }}
           </span>
-          @if($course->enrollments_count > 0)
-          <div class="absolute bottom-2 right-2 bg-slate-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
-            <i class="fa-solid fa-users text-[10px]"></i> {{ $course->enrollments_count }}
-          </div>
+
+          {{-- Subtle status badge --}}
+          @if($course->is_free)
+            <span class="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
+              Free
+            </span>
+          @elseif($course->sale_price && $course->price > $course->sale_price)
+            <span class="absolute top-2.5 right-2.5 bg-amber-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
+              Special Price
+            </span>
           @endif
         </a>
 
+        {{-- Card Content --}}
         <div class="p-4 flex flex-col flex-1">
+          
+          {{-- Creator info --}}
+          <div class="text-[11px] font-medium text-slate-500 mb-1.5 flex items-center gap-1.5">
+            <i class="fa-regular fa-user text-slate-400 text-[10px]"></i>
+            <span class="truncate">{{ $creator }}</span>
+          </div>
+
           {{-- Title --}}
-          <h3 class="text-sm font-bold text-slate-900 mb-1.5 group-hover:text-brand-600 transition leading-snug line-clamp-2">
-            <a href="{{ route('student.course-detail', $course->slug) }}">{{ $course->title }}</a>
+          <h3 class="text-sm font-bold text-slate-900 mb-1.5 group-hover:text-blue-600 transition leading-snug line-clamp-2">
+            <a href="{{ route('student.course-detail', $course->slug) }}">
+              {{ ucwords(strtolower($course->title)) }}
+            </a>
           </h3>
 
-          {{-- Description --}}
-          <p class="text-slate-500 text-[11px] leading-relaxed mb-3 line-clamp-2 flex-1">{{ $course->description }}</p>
+          {{-- Description (Guaranteed clean text, no raw HTML) --}}
+          <p class="text-slate-500 text-xs leading-relaxed mb-3 line-clamp-2 flex-1">
+            {{ $cleanDesc ?: 'Comprehensive self-paced lessons designed to build practical mastery.' }}
+          </p>
 
           {{-- Meta tags --}}
           <div class="flex items-center gap-1.5 flex-wrap mb-4">
-            <span class="text-[10px] {{ $levelColor }} font-semibold px-2 py-0.5 rounded-md capitalize">{{ $course->level }}</span>
+            <span class="text-[10px] bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-md border border-slate-200/60 capitalize">
+              {{ $course->level ?: 'All levels' }}
+            </span>
             @if($totalLessons > 0)
-            <span class="text-[10px] bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-md border border-slate-200/60 flex items-center gap-1">
-              <i class="fa-solid fa-play-circle text-slate-400"></i> {{ $totalLessons }} lessons
+            <span class="text-[10px] bg-slate-100 text-slate-700 font-medium px-2 py-0.5 rounded-md border border-slate-200/60 flex items-center gap-1">
+              <i class="fa-solid fa-play-circle text-slate-400"></i> {{ $totalLessons }} {{ $totalLessons === 1 ? 'lesson' : 'lessons' }}
             </span>
             @endif
             @if($course->enable_certification)
-            <span class="text-[10px] bg-amber-50 text-amber-700 font-semibold px-2 py-0.5 rounded-md border border-amber-200/60 flex items-center gap-1">
-              <i class="fa-solid fa-award"></i> Certificate
+            <span class="text-[10px] bg-amber-50 text-amber-800 font-semibold px-2 py-0.5 rounded-md border border-amber-200/60 flex items-center gap-1">
+              <i class="fa-solid fa-award text-amber-600"></i> Certificate
             </span>
             @endif
           </div>
 
-          {{-- Price + Quick Buy/Enroll Button --}}
+          {{-- Price & CTA --}}
           <div class="flex items-center justify-between pt-3 border-t border-slate-100 mt-auto">
             <div>
               @if($course->is_free)
-                <span class="text-base font-black text-emerald-600">Free</span>
+                <span class="text-base font-extrabold text-emerald-600">Free</span>
               @else
-                <div class="flex items-baseline gap-1">
+                <div class="flex items-baseline gap-1.5">
                   <span class="text-base font-black text-slate-900">₹{{ number_format($course->sale_price ?? $course->price) }}</span>
                   @if($course->sale_price && $course->price > $course->sale_price)
-                  <span class="text-[11px] text-slate-400 line-through">₹{{ number_format($course->price) }}</span>
+                  <span class="text-xs text-slate-400 line-through">₹{{ number_format($course->price) }}</span>
                   @endif
                 </div>
               @endif
             </div>
 
-            @if($course->is_free)
             <a href="{{ route('student.course-detail', $course->slug) }}"
-               class="text-xs bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
-              <span>Enroll Free</span> <i class="fa-solid fa-arrow-right text-[9px]"></i>
+               class="text-xs bg-slate-900 hover:bg-blue-600 group-hover:bg-blue-600 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1.5">
+              <span>View Course</span> <i class="fa-solid fa-arrow-right text-[9px]"></i>
             </a>
-            @else
-            <a href="{{ route('student.course-detail', $course->slug) }}"
-               class="text-xs bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1">
-              <span>Buy Course</span> <i class="fa-solid fa-bolt text-[9px]"></i>
-            </a>
-            @endif
           </div>
+
         </div>
       </div>
       @empty
-      <div class="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200/80 text-slate-500 text-sm">
-        <p>Courses coming soon. <a href="/register" class="text-brand-600 font-bold hover:underline">Register to be notified →</a></p>
+      <div class="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200 text-slate-500 text-sm">
+        <p>No published courses found matching your criteria.</p>
+        <a href="{{ route('marketplace.browse') }}" class="mt-2 inline-block text-blue-600 font-bold hover:underline">Browse all courses →</a>
       </div>
       @endforelse
     </div>
+
   </div>
 </section>
 
-<!-- ── 2. LEARNING PLATFORM OVERVIEW & STATS ──────────────────────────────────── -->
-<section class="gradient-hero px-4 py-16 relative overflow-hidden">
-  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[560px] h-[300px] bg-gradient-to-tr from-brand-200/40 to-accent-200/40 rounded-full blur-3xl pointer-events-none"></div>
-
-  <div class="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] items-center gap-10">
-    <div class="text-center lg:text-left">
-      <div class="inline-flex items-center gap-2 bg-white/80 border border-slate-200/90 px-3.5 py-1 rounded-full text-xs font-semibold text-slate-700 mb-4 shadow-sm">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        Built for Real Tech Careers
-      </div>
-      <h2 class="text-balance text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-[1.08] tracking-[-0.04em] mb-4">
-        Master Real-World Workflows.<br>
-        <span class="gradient-text">Build Your Future.</span>
+<!-- ── 3. THE SKILLSPOT LEARNING ADVANTAGE (HUMBLE & INSPIRING) ──────────────── -->
+<section class="py-16 sm:py-20 bg-white border-y border-slate-200/70">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    
+    <div class="text-center max-w-2xl mx-auto mb-14">
+      <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Why Skillspot</span>
+      <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1 text-balance">
+        A Practical, Career-Oriented Approach to Learning
       </h2>
-
-      <p class="max-w-xl mx-auto lg:mx-0 text-sm sm:text-base text-slate-600 leading-relaxed mb-6">
-        Skillspot LMS helps you master practical coding, digital skills, and industry-ready workflows through flexible, instructor-led learning and verified certificates.
+      <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+        We prioritize hands-on capabilities over endless lectures. Here is how our learning experience helps you succeed.
       </p>
-
-      <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-        <a href="/register" class="bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white px-6 py-3 rounded-xl text-sm font-bold transition shadow-lg shadow-brand-600/20 text-center">
-          Start Learning Free →
-        </a>
-        <a href="#courses" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 shadow-sm px-6 py-3 rounded-xl text-sm font-semibold active:scale-[0.98] transition text-center">
-          Browse Courses Above ↑
-        </a>
-      </div>
     </div>
 
-    <div class="relative mt-4 lg:mt-0">
-      <div class="absolute -inset-4 bg-gradient-to-r from-brand-500/15 via-accent-500/10 to-brand-500/15 blur-2xl rounded-[2rem]"></div>
-      <div class="relative bg-slate-900 text-white rounded-[24px] p-5 sm:p-6 shadow-[0_25px_60px_rgba(15,23,42,0.2)] ring-1 ring-white/10">
-        <div class="flex items-center justify-between pb-3.5 border-b border-slate-700/80">
-          <div>
-            <p class="text-[11px] uppercase tracking-[0.25em] text-slate-400">Student Dashboard</p>
-            <h3 class="mt-1 text-lg font-bold">Platform Stats & Progress</h3>
-          </div>
-          <span class="bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">Live</span>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      
+      <div class="p-6 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 card-hover transition duration-200 flex flex-col">
+        <div class="w-11 h-11 bg-blue-100 text-blue-700 rounded-xl flex items-center justify-center text-lg mb-4">
+          <i class="fa-solid fa-laptop-code"></i>
         </div>
-
-        <div class="mt-4 space-y-3.5">
-          <div class="bg-white/5 border border-white/10 rounded-2xl p-3.5">
-            <div class="flex items-center justify-between text-xs mb-2">
-              <span class="font-medium text-slate-200">Full Stack Web Dev</span>
-              <span class="text-brand-300 font-bold">72%</span>
-            </div>
-            <div class="h-2 bg-slate-700 rounded-full overflow-hidden">
-              <div class="h-full w-[72%] rounded-full bg-gradient-to-r from-brand-400 to-blue-500"></div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 mt-3">
-            <div class="bg-gradient-to-br from-brand-500/20 to-blue-500/10 rounded-2xl p-3.5 border border-brand-400/20">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Active Courses</p>
-              <p class="mt-1 text-2xl font-black text-white">{{ $stats['courses'] }}</p>
-            </div>
-            <div class="bg-gradient-to-br from-emerald-500/20 to-green-500/10 rounded-2xl p-3.5 border border-emerald-400/20">
-              <p class="text-[10px] uppercase tracking-[0.2em] text-slate-400">Enrolled Students</p>
-              <p class="mt-1 text-2xl font-black text-white">{{ $stats['students'] }}</p>
-            </div>
-          </div>
-        </div>
+        <h3 class="font-bold text-slate-900 text-base mb-2">Curated Industry Topics</h3>
+        <p class="text-slate-600 text-xs leading-relaxed">
+          Courses are focused on modern tools, frameworks, and workflows actively utilized in contemporary tech jobs.
+        </p>
       </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 card-hover transition duration-200 flex flex-col">
+        <div class="w-11 h-11 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-lg mb-4">
+          <i class="fa-solid fa-code"></i>
+        </div>
+        <h3 class="font-bold text-slate-900 text-base mb-2">Learn by Building</h3>
+        <p class="text-slate-600 text-xs leading-relaxed">
+          Reinforce key concepts with step-by-step assignments, practical exercises, and portfolio-ready demo projects.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 card-hover transition duration-200 flex flex-col">
+        <div class="w-11 h-11 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center text-lg mb-4">
+          <i class="fa-solid fa-award"></i>
+        </div>
+        <h3 class="font-bold text-slate-900 text-base mb-2">Verified Certificates</h3>
+        <p class="text-slate-600 text-xs leading-relaxed">
+          Earn an authentic digital certificate upon completing all lessons and quizzes to validate your achievement.
+        </p>
+      </div>
+
+      <div class="p-6 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:border-slate-300 card-hover transition duration-200 flex flex-col">
+        <div class="w-11 h-11 bg-purple-100 text-purple-700 rounded-xl flex items-center justify-center text-lg mb-4">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <h3 class="font-bold text-slate-900 text-base mb-2">Lifetime Self-Paced Access</h3>
+        <p class="text-slate-600 text-xs leading-relaxed">
+          Learn whenever your schedule allows. Revisit lesson materials, notes, and resources anytime you need a refresher.
+        </p>
+      </div>
+
     </div>
+
   </div>
 </section>
 
-<!-- ── 3. HOW IT WORKS ────────────────────────────────────────────────────────── -->
-<section id="how-it-works" class="py-14 bg-white">
+<!-- ── 4. HOW IT WORKS (3 SIMPLE STEPS) ──────────────────────────────────────── -->
+<section id="how-it-works" class="py-16 sm:py-20 bg-slate-50/50">
   <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-10">
-      <div class="inline-block bg-brand-50 text-brand-700 text-xs font-semibold border border-brand-100 px-3.5 py-1 rounded-full mb-3">Simple & Fast</div>
-      <h2 class="text-2xl md:text-3xl font-black text-slate-900 mb-2 tracking-tight">Start in 3 Steps</h2>
-      <p class="text-slate-500 text-sm">No experience needed. Pick a course and learn at your own pace.</p>
+    
+    <div class="text-center max-w-xl mx-auto mb-12">
+      <span class="text-xs font-bold uppercase tracking-wider text-blue-600">Simple Process</span>
+      <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
+        Start in 3 Steps
+      </h2>
+      <p class="text-slate-600 text-sm mt-1">
+        No prior experience required. Choose your path and start learning today.
+      </p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-      @php $steps = [
-        ['n'=>'01','icon'=>'fa-solid fa-user-plus','title'=>'Create Account','desc'=>'Register free in under 60 seconds. Just your name and email — no credit card required.','color'=>'from-blue-500 to-brand-600'],
-        ['n'=>'02','icon'=>'fa-solid fa-book-open-reader','title'=>'Pick a Course','desc'=>'Browse our catalog of tech courses. Filter by topic, level, or duration. Enroll or buy instantly.','color'=>'from-purple-500 to-accent-600'],
-        ['n'=>'03','icon'=>'fa-solid fa-graduation-cap','title'=>'Learn & Earn Certificate','desc'=>'Watch video lessons, complete quizzes, finish the course — get a verified certificate.','color'=>'from-emerald-500 to-green-600'],
-      ]; @endphp
-      @foreach($steps as $s)
-      <div class="bg-slate-50/80 rounded-2xl p-5 text-center border border-slate-200/70 card-hover hover:bg-white transition-all duration-300">
-        <div class="w-11 h-11 bg-gradient-to-br {{ $s['color'] }} rounded-xl flex items-center justify-center text-white font-black text-base mx-auto mb-3 shadow-md">{{ $s['n'] }}</div>
-        <div class="text-2xl text-brand-600 mb-2"><i class="{{ $s['icon'] }}"></i></div>
-        <h3 class="text-base font-bold text-slate-900 mb-1.5">{{ $s['title'] }}</h3>
-        <p class="text-slate-500 text-xs leading-relaxed">{{ $s['desc'] }}</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs card-hover text-center">
+        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-800 font-extrabold text-sm flex items-center justify-center mx-auto mb-4 border border-slate-200">
+          01
+        </div>
+        <h3 class="text-base font-bold text-slate-900 mb-2">Pick a Course</h3>
+        <p class="text-slate-500 text-xs leading-relaxed">
+          Browse through our focused catalog across web development, design, and programming to find the right topic.
+        </p>
       </div>
-      @endforeach
+
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs card-hover text-center">
+        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-800 font-extrabold text-sm flex items-center justify-center mx-auto mb-4 border border-slate-200">
+          02
+        </div>
+        <h3 class="text-base font-bold text-slate-900 mb-2">Learn &amp; Build</h3>
+        <p class="text-slate-500 text-xs leading-relaxed">
+          Watch structured video lessons, review study notes, and complete practical quizzes at your own rhythm.
+        </p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-2xs card-hover text-center">
+        <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-800 font-extrabold text-sm flex items-center justify-center mx-auto mb-4 border border-slate-200">
+          03
+        </div>
+        <h3 class="text-base font-bold text-slate-900 mb-2">Get Certified</h3>
+        <p class="text-slate-500 text-xs leading-relaxed">
+          Finish course requirements to receive your verifiable certificate to enhance your resume and professional profiles.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<!-- ── 5. CLEAN, SOPHISTICATED CALL TO ACTION ────────────────────────────────── -->
+<section class="py-16 bg-slate-900 text-white text-center px-4">
+  <div class="max-w-2xl mx-auto">
+    <h2 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+      Ready to start your learning journey?
+    </h2>
+    <p class="text-slate-300 text-sm sm:text-base mt-3 max-w-xl mx-auto leading-relaxed">
+      Create your free account today and start mastering skills that open new doors.
+    </p>
+
+    <div class="mt-8 flex flex-col sm:flex-row gap-3.5 justify-center">
+      <a href="/register" class="bg-white hover:bg-slate-100 active:scale-[0.98] text-slate-900 font-bold px-7 py-3.5 rounded-xl text-sm transition shadow-sm">
+        Register Free Account →
+      </a>
+      <a href="#courses" class="bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white border border-slate-700 px-7 py-3.5 rounded-xl text-sm font-semibold transition">
+        Browse Courses Catalog
+      </a>
     </div>
   </div>
 </section>
 
+<!-- ── JAVASCRIPT: FILTER & SEARCH ───────────────────────────────────────────── -->
 <script>
 window.currentCategory = 'all';
 
@@ -267,7 +365,7 @@ function filterCourses(category, btn) {
   document.querySelectorAll('.course-filter-btn').forEach(function(b) {
     b.className = 'course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap';
   });
-  btn.className = 'course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-brand-600 text-white shadow-sm transition whitespace-nowrap';
+  btn.className = 'course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-slate-900 text-white shadow-xs transition whitespace-nowrap';
   var query = document.getElementById('courseSearchInput') ? document.getElementById('courseSearchInput').value : '';
   searchCourses(query);
 }
@@ -276,36 +374,23 @@ function searchCourses(query) {
   var q = (query || '').toLowerCase().trim();
   var activeCategory = window.currentCategory || 'all';
   var cards = document.querySelectorAll('.course-card-item');
+  var visibleCount = 0;
+
   cards.forEach(function(card) {
     var title = (card.querySelector('h3')?.innerText || '').toLowerCase();
     var desc = (card.querySelector('p')?.innerText || '').toLowerCase();
     var cat = (card.getAttribute('data-category') || '').toLowerCase();
     var matchesCat = (activeCategory === 'all' || cat === activeCategory);
     var matchesQuery = (q === '' || title.includes(q) || desc.includes(q));
-    card.style.display = (matchesCat && matchesQuery) ? 'flex' : 'none';
+
+    if (matchesCat && matchesQuery) {
+      card.style.display = 'flex';
+      visibleCount++;
+    } else {
+      card.style.display = 'none';
+    }
   });
 }
 </script>
 
-
-
-
-
-<!-- CTA -->
-<section class="py-14 bg-gradient-to-br from-brand-600 via-indigo-600 to-accent-700 text-center px-4 relative overflow-hidden">
-  <div class="max-w-2xl mx-auto relative z-10">
-    <h2 class="text-2xl md:text-4xl font-black text-white mb-3 tracking-tight">Ready to start your<br>tech journey?</h2>
-    <p class="text-blue-100 text-sm mb-6">Explore courses and start learning at your pace.</p>
-    <div class="flex flex-col sm:flex-row gap-3 justify-center">
-      <a href="/register" class="bg-white text-brand-700 hover:bg-slate-50 px-7 py-3 rounded-xl text-sm md:text-base font-bold transition shadow-lg active:scale-[0.98]">
-        Register Free →
-      </a>
-      <a href="/login" class="bg-white/10 hover:bg-white/20 text-white border border-white/25 px-7 py-3 rounded-xl text-sm md:text-base font-semibold backdrop-blur-sm transition">
-        Already a Student? Login
-      </a>
-    </div>
-  </div>
-</section>
-
 @endsection
-
