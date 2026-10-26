@@ -609,3 +609,149 @@ Route::match(['GET', 'POST'], '/system/migrate', function (\Illuminate\Http\Requ
 Route::match(['GET', 'POST'], '/phpartisan-migrate', fn(\Illuminate\Http\Request $r) => redirect()->route('system.migrate', $r->query()));
 Route::match(['GET', 'POST'], '/artisan/migrate', fn(\Illuminate\Http\Request $r) => redirect()->route('system.migrate', $r->query()));
 
+// ── Web Runner: Delete All Courses ──────────────────────────────────────────
+Route::match(['GET', 'POST'], '/system/delete-all-courses', function (\Illuminate\Http\Request $request) {
+    $authorized = (auth()->check() && auth()->user()->hasRole(['super-admin', 'admin']))
+        || $request->query('secret') === 'skillspot2026';
+
+    if (!$authorized) {
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:550px;margin:60px auto;padding:32px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;text-align:center;'>
+                <div style='font-size:40px;margin-bottom:12px;'>🔒</div>
+                <h2 style='margin:0 0 8px;color:#0f172a;'>Admin Authorization Required</h2>
+                <p style='color:#64748b;font-size:13px;'>Please log in as an Admin, or use <code>?secret=skillspot2026</code> in the URL.</p>
+                <a href='/login' style='display:inline-block;margin-top:14px;background:#2563eb;color:#fff;font-weight:700;font-size:13px;padding:10px 20px;border-radius:10px;text-decoration:none;'>Log In to LMS</a>
+            </div>
+        ", 403)->header('Content-Type', 'text/html');
+    }
+
+    $confirmed = $request->query('confirm') === 'yes' || $request->input('confirm') === 'yes';
+
+    if (!$confirmed) {
+        $count = \App\Models\Course::count();
+        $courses = \App\Models\Course::select('id', 'title')->limit(20)->get();
+        $courseListHtml = '';
+        foreach ($courses as $c) {
+            $courseListHtml .= "<li style='padding:4px 0;'>" . htmlspecialchars($c->title) . " (ID: {$c->id})</li>";
+        }
+        if ($count > 20) {
+            $courseListHtml .= "<li style='padding:4px 0;color:#94a3b8;'>...and " . ($count - 20) . " more courses</li>";
+        }
+
+        $secretParam = $request->query('secret') ? '&secret=' . urlencode($request->query('secret')) : '';
+
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:620px;margin:50px auto;padding:36px;background:#fff;border:2px solid #f87171;border-radius:20px;box-shadow:0 15px 35px rgba(239,68,68,0.1);'>
+                <div style='display:flex;align-items:center;gap:14px;margin-bottom:16px;'>
+                    <div style='width:52px;height:52px;background:#fee2e2;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;'>⚠️</div>
+                    <div>
+                        <h2 style='margin:0;color:#991b1b;font-size:22px;font-weight:800;'>Delete All Courses?</h2>
+                        <p style='margin:4px 0 0;color:#7f1d1d;font-size:13px;'>This action is <strong>irreversible</strong> and will permanently wipe course data.</p>
+                    </div>
+                </div>
+
+                <div style='background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;margin-bottom:20px;'>
+                    <div style='font-weight:700;color:#991b1b;font-size:14px;margin-bottom:6px;'>Courses to be deleted: <span style='background:#fee2e2;padding:2px 8px;border-radius:6px;'>{$count}</span></div>
+                    <ul style='margin:8px 0 0;padding-left:20px;color:#7f1d1d;font-size:13px;max-height:180px;overflow-y:auto;'>
+                        {$courseListHtml}
+                    </ul>
+                </div>
+
+                <p style='color:#64748b;font-size:13px;line-height:1.6;margin-bottom:24px;'>
+                    This will delete all <strong>courses, chapters/sections, lessons, quizzes, assignments, and course enrollments</strong>.
+                    <br><strong style='color:#0f172a;'>Note:</strong> Your users, admins, teachers, and system settings will remain safe and untouched.
+                </p>
+
+                <div style='display:flex;gap:12px;align-items:center;'>
+                    <a href='/system/delete-all-courses?confirm=yes{$secretParam}' 
+                       onclick='return confirm(\"Are you 100% sure you want to delete ALL {$count} courses?\");'
+                       style='display:inline-block;background:#dc2626;color:#fff;font-weight:700;font-size:13px;padding:12px 24px;border-radius:10px;text-decoration:none;'>
+                        🗑️ Yes, Permanently Delete All Courses
+                    </a>
+                    <a href='/admin/courses' style='display:inline-block;background:#f1f5f9;color:#334155;font-weight:700;font-size:13px;padding:12px 20px;border-radius:10px;text-decoration:none;'>
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        ", 200)->header('Content-Type', 'text/html');
+    }
+
+    try {
+        $count = \App\Models\Course::count();
+        $driver = \Illuminate\Support\Facades\DB::getDriverName();
+        if ($driver === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        } elseif ($driver === 'sqlite') {
+            \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = OFF;');
+        }
+
+        $tables = [
+            'batch_attendance',
+            'batches',
+            'certificates',
+            'certificate_audits',
+            'course_allowed_users',
+            'course_announcements',
+            'course_change_audits',
+            'course_reviews',
+            'course_teachers',
+            'enrollments',
+            'lesson_progress',
+            'quiz_attempts',
+            'quiz_questions',
+            'quizzes',
+            'assignment_submissions',
+            'assignments',
+            'lessons',
+            'sections',
+            'payment_orders',
+            'marketplace_sales',
+            'reviews',
+            'courses',
+        ];
+
+        foreach ($tables as $tbl) {
+            if (\Illuminate\Support\Facades\Schema::hasTable($tbl)) {
+                \Illuminate\Support\Facades\DB::table($tbl)->truncate();
+            }
+        }
+
+        if ($driver === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        } elseif ($driver === 'sqlite') {
+            \Illuminate\Support\Facades\DB::statement('PRAGMA foreign_keys = ON;');
+        }
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        } catch (\Throwable $cEx) {}
+
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:620px;margin:50px auto;padding:36px;background:#fff;border:2px solid #86efac;border-radius:20px;box-shadow:0 15px 35px rgba(22,101,52,0.08);text-align:center;'>
+                <div style='font-size:48px;margin-bottom:12px;'>✅</div>
+                <h2 style='margin:0 0 8px;color:#14532d;font-size:22px;font-weight:800;'>All Courses Deleted Successfully!</h2>
+                <p style='color:#166534;font-size:14px;line-height:1.6;margin-bottom:24px;'>
+                    Permanently deleted <strong>{$count} courses</strong> and all associated sections, lessons, quizzes, and enrollments.<br>
+                    Your LMS course catalog is now fresh and empty.
+                </p>
+                <div style='display:flex;gap:12px;justify-content:center;'>
+                    <a href='/admin/courses' style='display:inline-block;background:#16a34a;color:#fff;font-weight:700;font-size:13px;padding:12px 24px;border-radius:10px;text-decoration:none;'>
+                        View Courses (0) →
+                    </a>
+                    <a href='/admin' style='display:inline-block;background:#f1f5f9;color:#334155;font-weight:700;font-size:13px;padding:12px 20px;border-radius:10px;text-decoration:none;'>
+                        Admin Dashboard
+                    </a>
+                </div>
+            </div>
+        ", 200)->header('Content-Type', 'text/html');
+    } catch (\Throwable $e) {
+        return response("
+            <div style='font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:650px;margin:50px auto;padding:32px;background:#fff;border:2px solid #fca5a5;border-radius:16px;'>
+                <h2 style='color:#991b1b;margin-top:0;'>❌ Deletion Error</h2>
+                <pre style='background:#fef2f2;padding:14px;border-radius:8px;color:#b91c1c;font-size:13px;white-space:pre-wrap;'>" . htmlspecialchars($e->getMessage()) . "</pre>
+            </div>
+        ", 500)->header('Content-Type', 'text/html');
+    }
+})->name('system.delete-all-courses');
+
+

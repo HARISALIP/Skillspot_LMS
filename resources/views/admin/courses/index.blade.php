@@ -17,6 +17,10 @@
     <a href="{{ route('admin.courses.import') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 transition hover:bg-gray-50" role="menuitem">
       <i class="fa-solid fa-folder-plus w-4 text-gray-500"></i> Import via ZIP
     </a>
+    <div class="border-t border-gray-100 my-1"></div>
+    <a href="{{ route('system.delete-all-courses') }}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition hover:bg-red-50" role="menuitem">
+      <i class="fa-solid fa-trash w-4 text-red-500"></i> Delete All Courses
+    </a>
   </div>
 </div>
 @endsection
