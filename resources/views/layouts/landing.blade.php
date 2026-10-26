@@ -53,6 +53,10 @@
     html { scroll-behavior: smooth; }
   </style>
   @stack('styles')
+
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2475473169135807"
+       crossorigin="anonymous"></script>
 </head>
 <body class="font-sans bg-slate-50/50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-blue-100 selection:text-blue-900">
 <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2">Skip to main content</a>
