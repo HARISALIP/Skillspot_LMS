@@ -193,10 +193,10 @@ class CoursesController extends Controller
             }
         }
         if ($request->hasFile('thumbnail_file')) {
-            $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+            $data['thumbnail'] = $this->saveUploadedFile($request->file('thumbnail_file'), 'course-thumbnails');
         }
         if ($request->hasFile('intro_video_file')) {
-            $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
+            $data['intro_video'] = $this->saveUploadedFile($request->file('intro_video_file'), 'course-previews');
         }
         $course = DB::transaction(function () use ($data, $request, $teacherIds) {
             if ($newCategory = trim((string) $request->input('new_category'))) {
@@ -327,12 +327,12 @@ class CoursesController extends Controller
             $data['related_course_ids'] = $request->input('related_course_ids', []);
         }
         if ($request->hasFile('thumbnail_file')) {
-            $data['thumbnail'] = Storage::url($request->file('thumbnail_file')->store('course-thumbnails', 'public'));
+            $data['thumbnail'] = $this->saveUploadedFile($request->file('thumbnail_file'), 'course-thumbnails');
         } elseif ($request->boolean('remove_thumbnail')) {
             $data['thumbnail'] = null;
         }
         if ($request->hasFile('intro_video_file')) {
-            $data['intro_video'] = Storage::url($request->file('intro_video_file')->store('course-previews', 'public'));
+            $data['intro_video'] = $this->saveUploadedFile($request->file('intro_video_file'), 'course-previews');
         }
         if ($course->marketplace_status !== 'live' || !$course->marketplace_visible) {
             $data['visibility'] = 'draft';
@@ -783,5 +783,32 @@ class CoursesController extends Controller
         return \App\Models\Quiz::query()->whereNull('lesson_id')
             ->when(!auth()->user()->hasRole(['admin', 'super-admin']), fn ($query) => $query->where('owner_id', auth()->id()))
             ->withCount('questions')->orderBy('title')->get();
+    }
+
+    private function saveUploadedFile($file, string $directory): string
+    {
+        $filename = $file->hashName();
+        $cleanDir = trim($directory, '/');
+        $relativeSubpath = $cleanDir . '/' . $filename;
+
+        // 1. Store in standard storage/app/public disk
+        $file->storeAs($cleanDir, $filename, 'public');
+
+        // 2. Also write directly into public/storage/{directory} so Apache/LiteSpeed serves it immediately
+        try {
+            $publicFolder = public_path('storage/' . $cleanDir);
+            if (!file_exists($publicFolder)) {
+                @mkdir($publicFolder, 0755, true);
+            }
+            $src = storage_path('app/public/' . $relativeSubpath);
+            $dst = public_path('storage/' . $relativeSubpath);
+            if (file_exists($src)) {
+                @copy($src, $dst);
+            }
+        } catch (\Throwable $e) {
+            // Non-fatal: fallback route handles it if direct copy fails
+        }
+
+        return '/storage/' . $relativeSubpath;
     }
 }

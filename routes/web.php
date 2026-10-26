@@ -489,13 +489,14 @@ Route::prefix('v/{slug}')->name('vendor.portal.')->group(function () {
 // Ensures uploaded files (course thumbnails, previews, uploads) are served
 // seamlessly even if the storage symlink (public/storage) is missing on Hostinger/cPanel.
 Route::get('/storage/{path}', function (string $path) {
-    $cleanPath = str_replace(['..', "\0"], '', $path);
+    $cleanPath = ltrim(str_replace(['..', "\0"], '', $path), '/');
     
     $candidates = [
-        storage_path('app/public/' . $cleanPath),
         public_path('storage/' . $cleanPath),
+        storage_path('app/public/' . $cleanPath),
         base_path('storage/app/public/' . $cleanPath),
         base_path('../storage/app/public/' . $cleanPath),
+        public_path('uploads/' . $cleanPath),
     ];
 
     $fullPath = null;
@@ -510,11 +511,16 @@ Route::get('/storage/{path}', function (string $path) {
         abort(404);
     }
 
-    // Try creating the symlink in the background if it's missing
-    $linkTarget = public_path('storage');
-    if (!file_exists($linkTarget) && !is_link($linkTarget)) {
-        @symlink(storage_path('app/public'), $linkTarget);
-    }
+    // Auto-copy to public_path('storage/' . $cleanPath) so future requests are served as static files by Apache/LiteSpeed
+    try {
+        $publicDest = public_path('storage/' . $cleanPath);
+        if ($fullPath !== $publicDest && !file_exists($publicDest)) {
+            if (!file_exists(dirname($publicDest))) {
+                @mkdir(dirname($publicDest), 0755, true);
+            }
+            @copy($fullPath, $publicDest);
+        }
+    } catch (\Throwable $e) {}
 
     $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
     return response()->file($fullPath, [
@@ -548,18 +554,32 @@ Route::match(['GET', 'POST'], '/system/migrate', function (\Illuminate\Http\Requ
         $migrateOut = trim(\Illuminate\Support\Facades\Artisan::output());
 
         $linkOut = '';
+        $copiedCount = 0;
         try {
-            $target = storage_path('app/public');
-            $link = public_path('storage');
-            if (file_exists($link) || is_link($link)) {
-                $linkOut = 'public/storage symlink is already connected.';
-            } elseif (function_exists('symlink') && @symlink($target, $link)) {
-                $linkOut = 'Created symlink: public/storage -> storage/app/public.';
-            } else {
-                $linkOut = 'Server disabled symlink/exec. The platform\'s built-in /storage/{path} streaming route is actively serving thumbnails and media.';
-            }
+            // Recursive sync from storage/app/public to public/storage
+            $srcBase = storage_path('app/public');
+            $dstBase = public_path('storage');
+            $syncStorage = function ($src, $dst) use (&$syncStorage, &$copiedCount) {
+                if (!is_dir($src)) return;
+                if (!file_exists($dst)) @mkdir($dst, 0755, true);
+                $items = @scandir($src) ?: [];
+                foreach ($items as $item) {
+                    if ($item === '.' || $item === '..') continue;
+                    $s = $src . '/' . $item;
+                    $d = $dst . '/' . $item;
+                    if (is_dir($s)) {
+                        $syncStorage($s, $d);
+                    } else {
+                        if (!file_exists($d) || filesize($d) !== filesize($s)) {
+                            if (@copy($s, $d)) $copiedCount++;
+                        }
+                    }
+                }
+            };
+            $syncStorage($srcBase, $dstBase);
+            $linkOut = "Storage sync complete: {$copiedCount} media file(s) synchronized to public/storage for direct web serving.";
         } catch (\Throwable $stEx) {
-            $linkOut = 'Symlink notice: ' . $stEx->getMessage() . ' (Built-in /storage/{path} streaming is active).';
+            $linkOut = 'Storage sync notice: ' . $stEx->getMessage();
         }
 
         $cacheOut = '';
