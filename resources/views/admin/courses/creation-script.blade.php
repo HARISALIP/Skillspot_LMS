@@ -1,4 +1,5 @@
 <script>
+(() => {
   const courseCreateMenu = document.getElementById('courseCreateMenu');
   const courseCreateMenuButton = document.getElementById('courseCreateMenuButton');
   const courseCreateMenuItems = document.getElementById('courseCreateMenuItems');
@@ -207,4 +208,5 @@
     document.getElementById('courseDescription').value = editor.getHTML();
     event.currentTarget.querySelector('button[type="submit"]').disabled = true;
   });
+})();
 </script>
