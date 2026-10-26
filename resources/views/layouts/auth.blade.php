@@ -4,9 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>@yield('title', 'Skillspot.in LMS')</title>
+  <meta name="description" content="Sign in or register for Skillspot.in LMS to access your courses, lessons, and certificates.">
+  <link rel="canonical" href="{{ url()->current() }}">
+
+  {{-- Open Graph / Social Sharing --}}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Skillspot LMS">
+  <meta property="og:url" content="{{ url()->current() }}">
+  <meta property="og:title" content="@yield('title', 'Skillspot.in LMS')">
+  <meta property="og:description" content="Sign in or register for Skillspot.in LMS to access your courses, lessons, and certificates.">
+  <meta property="og:image" content="{{ asset('images/og-share-banner.jpg') }}">
+  <meta property="og:image:secure_url" content="{{ asset('images/og-share-banner.jpg') }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
+
+  {{-- Twitter Card --}}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="@yield('title', 'Skillspot.in LMS')">
+  <meta name="twitter:description" content="Sign in or register for Skillspot.in LMS to access your courses, lessons, and certificates.">
+  <meta name="twitter:image" content="{{ asset('images/og-share-banner.jpg') }}">
+
+  {{-- Favicon & App Icons --}}
   <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-  <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('favicon-192.png') }}">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('favicon-512.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
   <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+  <meta name="theme-color" content="#0f172a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">

@@ -3,11 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Skillspot.in — Professional IT & Programming courses. Learn. Build. Grow.">
-  <title>@yield('title', 'Skillspot.in')</title>
+  <title>@yield('title', 'Skillspot.in LMS — Master In-Demand Tech Skills')</title>
+  <meta name="description" content="@yield('meta_description', 'Practical, mentor-crafted online courses in web development, programming, AI, and digital skills. Learn at your own pace with hands-on projects and verified certificates.')">
+  <meta name="keywords" content="@yield('meta_keywords', 'Skillspot, LMS, online courses, web development, programming, AI, python, robotics, certificates, tech skills')">
+  <meta name="author" content="Skillspot.in">
+  <link rel="canonical" href="@yield('canonical_url', url()->current())">
+
+  {{-- Open Graph / Facebook / WhatsApp / Instagram --}}
+  <meta property="og:type" content="@yield('og_type', 'website')">
+  <meta property="og:site_name" content="Skillspot LMS">
+  <meta property="og:url" content="@yield('canonical_url', url()->current())">
+  <meta property="og:title" content="@yield('title', 'Skillspot.in LMS — Master In-Demand Tech Skills')">
+  <meta property="og:description" content="@yield('meta_description', 'Practical, mentor-crafted online courses in web development, programming, AI, and digital skills. Learn at your own pace with hands-on projects and verified certificates.')">
+  <meta property="og:image" content="@yield('og_image', asset('images/og-share-banner.jpg'))">
+  <meta property="og:image:secure_url" content="@yield('og_image', asset('images/og-share-banner.jpg'))">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:alt" content="Skillspot.in LMS — Master In-Demand Tech Skills">
+
+  {{-- Twitter / X Card --}}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@skillspot">
+  <meta name="twitter:title" content="@yield('title', 'Skillspot.in LMS — Master In-Demand Tech Skills')">
+  <meta name="twitter:description" content="@yield('meta_description', 'Practical, mentor-crafted online courses in web development, programming, AI, and digital skills. Learn at your own pace with hands-on projects and verified certificates.')">
+  <meta name="twitter:image" content="@yield('og_image', asset('images/og-share-banner.jpg'))">
+
+  {{-- Favicon & Mobile App Icons --}}
   <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-  <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('favicon-192.png') }}">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('favicon-512.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
   <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+  <meta name="theme-color" content="#0f172a">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">

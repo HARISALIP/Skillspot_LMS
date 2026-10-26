@@ -2,6 +2,13 @@
 @section('title', $course->title.' — Skillspot.in')
 @section('page-title', $course->title)
 @section('page-sub', $course->category.' · '.ucfirst($course->level))
+@php
+  $ogCourseImage = $course->thumbnail ? (str_starts_with($course->thumbnail, 'http') ? $course->thumbnail : asset(ltrim($course->thumbnail, '/'))) : asset('images/og-share-banner.jpg');
+  $ogCourseDesc  = Str::limit(strip_tags($course->short_introduction ?: $course->description), 160) ?: 'Learn ' . $course->title . ' on Skillspot.in LMS. Practical online learning with verified certificates.';
+@endphp
+@section('meta_description', $ogCourseDesc)
+@section('og_image', $ogCourseImage)
+@section('og_type', 'article')
 
 @section('student-content')
 

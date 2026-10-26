@@ -4,9 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>@yield('title', 'My Learning — Skillspot.in LMS')</title>
+  <meta name="description" content="@yield('meta_description', 'Skillspot.in LMS — Practical, mentor-crafted online courses with hands-on projects and verified certificates.')">
+  <link rel="canonical" href="@yield('canonical_url', url()->current())">
+
+  {{-- Open Graph / Social Sharing --}}
+  <meta property="og:type" content="@yield('og_type', 'website')">
+  <meta property="og:site_name" content="Skillspot LMS">
+  <meta property="og:url" content="@yield('canonical_url', url()->current())">
+  <meta property="og:title" content="@yield('title', 'Skillspot.in LMS — Master In-Demand Tech Skills')">
+  <meta property="og:description" content="@yield('meta_description', 'Skillspot.in LMS — Practical, mentor-crafted online courses with hands-on projects and verified certificates.')">
+  <meta property="og:image" content="@yield('og_image', asset('images/og-share-banner.jpg'))">
+  <meta property="og:image:secure_url" content="@yield('og_image', asset('images/og-share-banner.jpg'))">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="675">
+
+  {{-- Twitter Card --}}
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="@yield('title', 'Skillspot.in LMS — Master In-Demand Tech Skills')">
+  <meta name="twitter:description" content="@yield('meta_description', 'Skillspot.in LMS — Practical, mentor-crafted online courses with hands-on projects and verified certificates.')">
+  <meta name="twitter:image" content="@yield('og_image', asset('images/og-share-banner.jpg'))">
+
+  {{-- Favicon & App Icons --}}
   <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
-  <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('favicon-32.png') }}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('favicon-192.png') }}">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ asset('favicon-512.png') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
   <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+  <meta name="theme-color" content="#0f172a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ asset('assets/fontawesome/css/all.min.css') }}">
