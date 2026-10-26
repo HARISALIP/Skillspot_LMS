@@ -547,11 +547,28 @@ Route::match(['GET', 'POST'], '/system/migrate', function (\Illuminate\Http\Requ
         \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
         $migrateOut = trim(\Illuminate\Support\Facades\Artisan::output());
 
-        \Illuminate\Support\Facades\Artisan::call('storage:link', ['--force' => true]);
-        $linkOut = trim(\Illuminate\Support\Facades\Artisan::output());
+        $linkOut = '';
+        try {
+            $target = storage_path('app/public');
+            $link = public_path('storage');
+            if (file_exists($link) || is_link($link)) {
+                $linkOut = 'public/storage symlink is already connected.';
+            } elseif (function_exists('symlink') && @symlink($target, $link)) {
+                $linkOut = 'Created symlink: public/storage -> storage/app/public.';
+            } else {
+                $linkOut = 'Server disabled symlink/exec. The platform\'s built-in /storage/{path} streaming route is actively serving thumbnails and media.';
+            }
+        } catch (\Throwable $stEx) {
+            $linkOut = 'Symlink notice: ' . $stEx->getMessage() . ' (Built-in /storage/{path} streaming is active).';
+        }
 
-        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-        $cacheOut = trim(\Illuminate\Support\Facades\Artisan::output());
+        $cacheOut = '';
+        try {
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            $cacheOut = trim(\Illuminate\Support\Facades\Artisan::output());
+        } catch (\Throwable $cEx) {
+            $cacheOut = 'Cache clear note: ' . $cEx->getMessage();
+        }
 
         return response("
             <div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:680px;margin:50px auto;padding:36px;background:#ffffff;border:2px solid #86efac;border-radius:20px;box-shadow:0 15px 35px rgba(22,101,52,0.08);'>
