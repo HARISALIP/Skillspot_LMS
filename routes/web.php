@@ -774,4 +774,48 @@ Route::match(['GET', 'POST'], '/system/delete-all-courses', function (\Illuminat
     }
 })->name('system.delete-all-courses');
 
+// ── Web Runner: Storage Debug Diagnostic ────────────────────────────────────
+Route::get('/system/debug-storage', function (\Illuminate\Http\Request $request) {
+    if ($request->query('secret') !== 'skillspot2026' && !(auth()->check() && auth()->user()->hasRole(['super-admin', 'admin']))) {
+        abort(403);
+    }
+
+    $findFile = function ($dir, $filename, $maxDepth = 4, $currentDepth = 0) use (&$findFile) {
+        if (!is_dir($dir) || $currentDepth >= $maxDepth) return [];
+        $found = [];
+        $files = @scandir($dir) ?: [];
+        foreach ($files as $f) {
+            if ($f === '.' || $f === '..') continue;
+            $path = $dir . '/' . $f;
+            if (is_dir($path)) {
+                $found = array_merge($found, $findFile($path, $filename, $maxDepth, $currentDepth + 1));
+            } elseif (str_contains($f, $filename)) {
+                $found[] = $path;
+            }
+        }
+        return $found;
+    };
+
+    $allThumbnails = $findFile(base_path('storage'), '7ebChJwnjlk');
+    if (empty($allThumbnails)) {
+        $allThumbnails = $findFile(public_path(), '7ebChJwnjlk');
+    }
+
+    $courses = \App\Models\Course::select('id', 'title', 'thumbnail')->latest()->take(5)->get();
+
+    return response()->json([
+        'base_path' => base_path(),
+        'public_path' => public_path(),
+        'storage_path' => storage_path(),
+        'storage_app_public_exists' => file_exists(storage_path('app/public')),
+        'public_storage_exists' => file_exists(public_path('storage')),
+        'is_public_storage_link' => is_link(public_path('storage')),
+        'storage_app_public_files' => is_dir(storage_path('app/public')) ? scandir(storage_path('app/public')) : [],
+        'course_thumbnails_files' => is_dir(storage_path('app/public/course-thumbnails')) ? scandir(storage_path('app/public/course-thumbnails')) : 'NOT_FOUND',
+        'public_storage_thumbnails' => is_dir(public_path('storage/course-thumbnails')) ? scandir(public_path('storage/course-thumbnails')) : 'NOT_FOUND',
+        'found_7eb' => $allThumbnails,
+        'recent_courses' => $courses,
+    ]);
+});
+
 
