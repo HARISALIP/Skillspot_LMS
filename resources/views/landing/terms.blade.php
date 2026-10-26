@@ -42,14 +42,12 @@
           </ul>'
         ],
         [
-          'title' => '4. Payments & Refunds',
+          'title' => '4. Payments & Purchase Policy',
           'content' => '<ul class="list-disc list-inside space-y-1 mt-2">
             <li>All prices are in Indian Rupees (INR) and exclusive of applicable GST</li>
             <li>Payments are processed securely via Razorpay</li>
-            <li>We offer a <strong>7-day money-back guarantee</strong> on all purchases</li>
-            <li>Refund requests must be submitted within 7 days of purchase via email to info@Skillspot.in</li>
-            <li>Refunds will be processed within 5-7 business days to the original payment method</li>
-            <li>Certificates already downloaded are not eligible for refund</li>
+            <li>Due to immediate access to course videos, quizzes, and downloadable resources upon enrollment, all purchases are final and non-refundable</li>
+            <li>If you experience technical issues accessing your purchased courses, please contact our support team at info@skillspot.in for prompt resolution</li>
           </ul>'
         ],
         [

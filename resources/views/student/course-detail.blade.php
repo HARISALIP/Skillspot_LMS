@@ -249,7 +249,6 @@
             ['♾️','Lifetime access'],
             ['📜','Certificate on completion'],
             ['📱','Access on any device'],
-            $course->is_free ? null : ['🛡️','7-day money-back guarantee'],
           ]) as [$icon,$text])
           <div class="flex items-center gap-2"><span>{{ $icon }}</span>{{ $text }}</div>
           @endforeach

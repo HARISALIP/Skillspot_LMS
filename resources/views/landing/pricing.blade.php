@@ -152,12 +152,14 @@
       @endforeach
     </div>
 
-    <!-- Guarantee -->
-    <div class="bg-green-50 border border-green-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-      <span class="text-5xl flex-shrink-0">🛡️</span>
+    <!-- Student Support Banner -->
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+      <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center text-xl flex-shrink-0">
+        <i class="fa-solid fa-headset"></i>
+      </div>
       <div>
-        <div class="font-black text-gray-900 text-lg">7-Day Money-Back Guarantee</div>
-        <div class="text-sm text-gray-500 mt-1">Not satisfied within 7 days of purchase? Email us at <a href="mailto:info@Skillspot.in" class="text-brand-600 font-semibold hover:underline">info@Skillspot.in</a> for a full refund — no questions asked.</div>
+        <div class="font-bold text-gray-900 text-lg">Dedicated Learner &amp; Technical Support</div>
+        <div class="text-sm text-gray-600 mt-1">Have questions or need help with any course materials? Reach out to our academic team anytime at <a href="mailto:info@skillspot.in" class="text-blue-600 font-semibold hover:underline">info@skillspot.in</a>.</div>
       </div>
     </div>
   </div>
@@ -184,8 +186,8 @@
        'a'=>'Prices shown on course pages are exclusive of GST. Applicable taxes (18% GST) are added at checkout.'],
       ['q'=>'How do I get my certificate?',
        'a'=>'Complete all lessons and pass the final quiz. Your certificate is auto-generated and available in your dashboard to download instantly.'],
-      ['q'=>'Can I get a refund?',
-       'a'=>'Yes. We offer a 7-day money-back guarantee. Contact info@Skillspot.in within 7 days of purchase. Courses with certificates already downloaded are not eligible.'],
+      ['q'=>'Can I preview courses before purchasing?',
+       'a'=>'Yes! You can register a free account to browse the full course catalog, syllabus outline, and lesson details prior to enrolling.'],
     ]; @endphp
     <div class="space-y-3">
       @foreach($faqs as $i => $faq)
