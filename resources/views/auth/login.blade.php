@@ -95,14 +95,40 @@
     <!-- Form container -->
     <div class="px-6 py-5 lg:px-7 lg:py-5">
 
-      @if(session('error'))
+      @if(session('pending_approval'))
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 text-amber-900 rounded-2xl p-4 text-xs mb-4 shadow-sm">
+          <div class="flex items-start gap-2.5 mb-2.5">
+            <div class="w-7 h-7 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center text-sm flex-shrink-0 mt-0.5">
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div class="font-extrabold text-sm text-amber-950">Account Pending Admin Approval</div>
+              <p class="text-[11px] sm:text-xs text-amber-800 mt-1 leading-relaxed">
+                Thank you for registering with Skillspot LMS! Your account is currently pending admin review. You will be able to log in once approved. Our team will contact you, or you can message us directly on WhatsApp for immediate assistance.
+              </p>
+            </div>
+          </div>
+          @php
+            $waMsg = "Hello Skillspot Team! I have registered on Skillspot LMS"
+                   . (session('pending_name') ? " as " . session('pending_name') : "")
+                   . (session('pending_login') ? " (" . session('pending_login') . ")" : "")
+                   . " and am waiting for account approval. Please approve my account.";
+            $waUrl = "https://wa.me/919074854599?text=" . urlencode($waMsg);
+          @endphp
+          <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer"
+             class="w-full inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold px-4 py-2.5 rounded-xl transition text-xs shadow-md shadow-emerald-500/20 active:scale-[0.99]">
+            <i class="fa-brands fa-whatsapp text-sm"></i>
+            <span>Chat on WhatsApp (+91 9074854599)</span>
+          </a>
+        </div>
+      @elseif(session('error'))
         <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-3.5 py-2 text-xs mb-3 flex items-start gap-2">
           <i class="fa-solid fa-circle-exclamation text-red-600 mt-0.5"></i>
           <span>{{ session('error') }}</span>
         </div>
       @endif
 
-      @if($errors->any())
+      @if($errors->any() && !session('pending_approval'))
         <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-3.5 py-2 text-xs mb-3">
           @foreach($errors->all() as $e)<div class="flex items-center gap-1.5">• {{ $e }}</div>@endforeach
         </div>

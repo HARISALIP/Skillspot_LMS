@@ -572,6 +572,29 @@ $tabs = [
             </div>
           </div>
 
+          {{-- Require Admin Approval --}}
+          @php $apprOn = ($settings['require_user_approval'] ?? '1') === '1'; @endphp
+          <div class="rounded-2xl border-2 p-5 mb-3 {{ $apprOn ? 'border-amber-200 bg-amber-50' : 'border-gray-200 bg-gray-50' }}">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+              <div class="flex items-start gap-3 flex-1 min-w-0">
+                <span class="text-2xl flex-shrink-0">{{ $apprOn ? '⏳' : '⚡' }}</span>
+                <div>
+                  <div class="font-bold text-gray-900 text-sm">Require Admin Approval for Registrations</div>
+                  <div class="text-xs mt-1 leading-relaxed">
+                    @if($apprOn)
+                      <span class="text-amber-800 font-semibold">Enabled — Newly registered students cannot log in until approved by admin. A pending message and WhatsApp contact button (+91 9074854599) are shown.</span>
+                    @else
+                      <span class="text-gray-600 font-semibold">Disabled — Newly registered students are auto-approved and can log in immediately.</span>
+                    @endif
+                  </div>
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <x-settings-field field="require_user_approval" :meta="$schema['security']['require_user_approval']" :value="$settings['require_user_approval'] ?? '1'"/>
+              </div>
+            </div>
+          </div>
+
           {{-- Maintenance Mode --}}
           @php $maintOn = ($settings['maintenance_mode'] ?? '0') === '1'; @endphp
           <div class="rounded-2xl border-2 p-5 mb-3 {{ $maintOn ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-gray-50' }}">

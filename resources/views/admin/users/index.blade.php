@@ -19,26 +19,34 @@
 @endif
 
 <!-- Stats row -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
   @php $uStats = [
-    ['label'=>'Total Users',   'value'=>$totalUsers,   'icon'=>'👥','bg'=>'bg-blue-50',  'text'=>'text-blue-700'],
-    ['label'=>'Students',      'value'=>$totalStudents,'icon'=>'🎓','bg'=>'bg-green-50', 'text'=>'text-green-700'],
-    ['label'=>'Admins',        'value'=>$totalAdmins,  'icon'=>'🛡️','bg'=>'bg-red-50',   'text'=>'text-red-700'],
-    ['label'=>'This Month',    'value'=>$thisMonth,    'icon'=>'📅','bg'=>'bg-purple-50','text'=>'text-purple-700'],
+    ['label'=>'Total Users',   'value'=>$totalUsers,   'icon'=>'👥','bg'=>'bg-blue-50',  'text'=>'text-blue-700', 'border'=>'border-transparent'],
+    ['label'=>'Pending Approval','value'=>$totalPending,'icon'=>'⏳','bg'=>'bg-amber-50', 'text'=>'text-amber-800', 'border'=>$totalPending > 0 ? 'border-amber-300 ring-2 ring-amber-200' : 'border-transparent', 'link'=>route('admin.users', ['status'=>'pending'])],
+    ['label'=>'Students',      'value'=>$totalStudents,'icon'=>'🎓','bg'=>'bg-green-50', 'text'=>'text-green-700', 'border'=>'border-transparent'],
+    ['label'=>'Admins',        'value'=>$totalAdmins,  'icon'=>'🛡️','bg'=>'bg-red-50',   'text'=>'text-red-700', 'border'=>'border-transparent'],
+    ['label'=>'This Month',    'value'=>$thisMonth,    'icon'=>'📅','bg'=>'bg-purple-50','text'=>'text-purple-700', 'border'=>'border-transparent'],
   ]; @endphp
   @foreach($uStats as $s)
-  <div class="{{ $s['bg'] }} rounded-2xl p-4 border border-transparent">
+  <a @if(isset($s['link'])) href="{{ $s['link'] }}" @endif class="{{ $s['bg'] }} {{ $s['border'] }} rounded-2xl p-4 border transition block @if(isset($s['link'])) hover:shadow-md cursor-pointer @endif">
     <div class="text-2xl mb-1">{{ $s['icon'] }}</div>
     <div class="text-2xl font-black {{ $s['text'] }}">{{ $s['value'] }}</div>
     <div class="text-xs font-semibold text-gray-600">{{ $s['label'] }}</div>
-  </div>
+  </a>
   @endforeach
 </div>
 
 <!-- Filters + Actions bar -->
 <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-6">
   <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
-    <h3 class="font-black text-gray-900 text-sm">All Users</h3>
+    <div class="flex items-center gap-2">
+      <h3 class="font-black text-gray-900 text-sm">All Users</h3>
+      @if($totalPending > 0)
+        <a href="{{ route('admin.users', ['status' => 'pending']) }}" class="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 border border-amber-200 hover:bg-amber-200 transition">
+          ⏳ {{ $totalPending }} Pending Approval
+        </a>
+      @endif
+    </div>
     <div class="flex items-center gap-2 flex-wrap">
       <a href="{{ route('admin.users.create') }}"
          class="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-sm">
@@ -48,14 +56,22 @@
   </div>
 
   <!-- Search & filter -->
-  <form method="GET" action="{{ route('admin.users') }}" class="flex flex-col sm:flex-row gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50/50">
-    <div class="relative flex-1">
+  <form method="GET" action="{{ route('admin.users') }}" class="flex flex-col sm:flex-row gap-3 px-5 py-3 border-b border-gray-100 bg-gray-50/50 flex-wrap">
+    <div class="relative flex-1 min-w-[200px]">
       <label for="users-search" class="sr-only">Search users</label>
       <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
       <input id="users-search" type="search" name="search" value="{{ request('search') }}"
              placeholder="Search name, email or phone…"
              class="w-full pl-8 pr-4 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white">
     </div>
+    <label for="users-status" class="sr-only">Filter by status</label>
+    <select id="users-status" name="status" onchange="this.form.submit()"
+            class="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white cursor-pointer font-medium">
+      <option value="">All Statuses</option>
+      <option value="pending"  {{ request('status') === 'pending'  ? 'selected' : '' }}>⏳ Pending ({{ $totalPending }})</option>
+      <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>✅ Approved</option>
+      <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>❌ Rejected</option>
+    </select>
     <label for="users-role" class="sr-only">Filter by role</label>
     <select id="users-role" name="role" onchange="this.form.submit()"
             class="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white cursor-pointer">
@@ -75,7 +91,7 @@
       @endforeach
     </select>
     <button type="submit" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-semibold transition">Search</button>
-    @if(request()->hasAny(['search','role','country']))
+    @if(request()->hasAny(['search','status','role','country']))
     <a href="{{ route('admin.users') }}" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-semibold transition">Clear</a>
     @endif
   </form>
@@ -86,6 +102,7 @@
       <thead class="bg-gray-50 border-b border-gray-100">
         <tr>
           <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">User</th>
+          <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Status</th>
           <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Phone</th>
           <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide hidden md:table-cell">Country</th>
           <th class="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wide">Role</th>
@@ -96,7 +113,7 @@
       </thead>
       <tbody class="divide-y divide-gray-50">
         @forelse($users as $user)
-        <tr class="hover:bg-gray-50 transition group">
+        <tr class="hover:bg-gray-50 transition group @if(($user->status ?? 'approved') === 'pending') bg-amber-50/30 @endif">
           <!-- User -->
           <td class="px-5 py-3.5">
             <div class="flex items-center gap-3">
@@ -108,6 +125,24 @@
                 <div class="text-gray-400 text-xs truncate">{{ $user->email }}</div>
               </div>
             </div>
+          </td>
+          <!-- Status -->
+          <td class="px-5 py-3.5">
+            @php $uStatus = $user->status ?? 'approved'; @endphp
+            @if($uStatus === 'pending')
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                Pending Approval
+              </span>
+            @elseif($uStatus === 'rejected')
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700">
+                ❌ Rejected
+              </span>
+            @else
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800">
+                ✅ Active
+              </span>
+            @endif
           </td>
           <!-- Phone -->
           <td class="px-5 py-3.5 text-gray-600 text-xs hidden sm:table-cell">
@@ -156,7 +191,15 @@
           </td>
           <!-- Actions -->
           <td class="px-5 py-3.5">
-            <div class="flex items-center gap-1.5">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              @if(($user->status ?? 'approved') === 'pending')
+              <form method="POST" action="{{ route('admin.users.approve', $user->id) }}" class="inline">
+                @csrf
+                <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm flex items-center gap-1" title="Approve user registration">
+                  ✓ Approve
+                </button>
+              </form>
+              @endif
               @if(!$user->hasRole('super-admin') || auth()->user()->hasRole('super-admin'))
               <a href="{{ route('admin.users.edit', $user->id) }}"
                  class="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition" title="Edit" aria-label="Edit {{ $user->name }}">
@@ -181,7 +224,7 @@
         </tr>
         @empty
         <tr>
-          <td colspan="6" class="px-5 py-14 text-center">
+          <td colspan="8" class="px-5 py-14 text-center">
             <div class="text-4xl mb-2">👥</div>
             <p class="text-gray-500 font-medium">No users found</p>
             <p class="text-gray-400 text-xs mt-1">

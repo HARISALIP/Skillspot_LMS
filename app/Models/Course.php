@@ -64,6 +64,48 @@ class Course extends Model
         return $count ? "{$slug}-{$count}" : $slug;
     }
 
+    public function getThumbnailAttribute($value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        // If stored with full host URL (e.g. http://localhost/storage/... or http://lms.skillspot.in/storage/...)
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            if (preg_match('#^https?://[^/]+(/storage/.*)$#', $value, $matches)) {
+                return $matches[1];
+            }
+            return $value;
+        }
+
+        // If stored as relative path without /storage/ (e.g. 'course-thumbnails/xxx.jpg')
+        if (!str_starts_with($value, '/storage/') && !str_starts_with($value, '/')) {
+            return '/storage/' . ltrim($value, '/');
+        }
+
+        return $value;
+    }
+
+    public function getIntroVideoAttribute($value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            if (preg_match('#^https?://[^/]+(/storage/.*)$#', $value, $matches)) {
+                return $matches[1];
+            }
+            return $value;
+        }
+
+        if (!str_starts_with($value, '/storage/') && !str_starts_with($value, '/')) {
+            return '/storage/' . ltrim($value, '/');
+        }
+
+        return $value;
+    }
+
     public function vendor()       { return $this->belongsTo(Vendor::class); }
     public function primaryInstructor() { return $this->belongsTo(User::class, 'primary_instructor_id'); }
     public function reviewer() { return $this->belongsTo(User::class, 'reviewed_by'); }

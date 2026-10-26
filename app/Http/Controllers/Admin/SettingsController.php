@@ -116,6 +116,7 @@ class SettingsController extends Controller
             'human_verify_login'      => ['label' => 'Human Verify on Login',                        'type' => 'boolean', 'default' => '1'],
             'human_verify_register'   => ['label' => 'Human Verify on Register',                     'type' => 'boolean', 'default' => '1'],
             'allow_registration'      => ['label' => 'Allow Public Registration',                   'type' => 'boolean', 'default' => '1'],
+            'require_user_approval'   => ['label' => 'Require Admin Approval for Registrations',      'type' => 'boolean', 'default' => '1'],
             'maintenance_mode'        => ['label' => 'Maintenance Mode',                            'type' => 'boolean', 'default' => '0'],
             'fast2sms_api_key'         => ['label' => 'Fast2SMS API Key',                           'type' => 'password','default' => ''],
             'otp_email_enabled'       => ['label' => 'Email OTP on Register (requires SMTP)',       'type' => 'boolean', 'default' => '0'],
@@ -295,7 +296,7 @@ class SettingsController extends Controller
     /** Toggle a single boolean setting */
     public function toggle(Request $request, string $key)
     {
-        $allowed = ['human_verify_login','human_verify_register','allow_registration','maintenance_mode','otp_email_enabled','otp_phone_enabled','enable_free_courses'];
+        $allowed = ['human_verify_login','human_verify_register','allow_registration','require_user_approval','maintenance_mode','otp_email_enabled','otp_phone_enabled','enable_free_courses'];
         if (!in_array($key, $allowed)) {
             return back()->with('error', 'Invalid setting key.');
         }

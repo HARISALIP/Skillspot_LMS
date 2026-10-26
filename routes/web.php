@@ -127,6 +127,7 @@ Route::middleware('guest')->group(function () {
     Route::post('/login',    [AuthController::class, 'login']);
     Route::get('/register',  [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+    Route::get('/register/pending', [AuthController::class, 'showRegisterPending'])->name('register.pending');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'sendResetLink'])->name('password.email');
     Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
@@ -265,6 +266,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','admin.only'])->group
     Route::get('/users/{user}/edit', [UsersController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}',      [UsersController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}',   [UsersController::class, 'destroy'])->name('users.destroy');
+    Route::post('/users/{user}/approve', [UsersController::class, 'approve'])->name('users.approve');
+    Route::post('/users/{user}/reject',  [UsersController::class, 'reject'])->name('users.reject');
     // Impersonate (super-admin only)
     Route::post('/users/{user}/impersonate',  [UsersController::class, 'impersonate'])->name('users.impersonate');
     Route::get('/users/impersonate/stop',     [UsersController::class, 'stopImpersonate'])->name('users.impersonate.stop');
@@ -479,3 +482,42 @@ Route::prefix('v/{slug}')->name('vendor.portal.')->group(function () {
         Route::post('/batch/{course}/login',                 [VendorPortal::class,'batchLogin'])->name('batch.login');
     });
 });
+
+// ── Public Storage Route Fallback ──────────────────────────────────────────
+// Ensures uploaded files (course thumbnails, previews, uploads) are served
+// seamlessly even if the storage symlink (public/storage) is missing on Hostinger/cPanel.
+Route::get('/storage/{path}', function (string $path) {
+    $cleanPath = str_replace(['..', "\0"], '', $path);
+    
+    $candidates = [
+        storage_path('app/public/' . $cleanPath),
+        public_path('storage/' . $cleanPath),
+        base_path('storage/app/public/' . $cleanPath),
+        base_path('../storage/app/public/' . $cleanPath),
+    ];
+
+    $fullPath = null;
+    foreach ($candidates as $candidate) {
+        if (file_exists($candidate) && !is_dir($candidate)) {
+            $fullPath = $candidate;
+            break;
+        }
+    }
+
+    if (!$fullPath) {
+        abort(404);
+    }
+
+    // Try creating the symlink in the background if it's missing
+    $linkTarget = public_path('storage');
+    if (!file_exists($linkTarget) && !is_link($linkTarget)) {
+        @symlink(storage_path('app/public'), $linkTarget);
+    }
+
+    $mime = mime_content_type($fullPath) ?: 'application/octet-stream';
+    return response()->file($fullPath, [
+        'Content-Type'  => $mime,
+        'Cache-Control' => 'public, max-age=31536000, immutable',
+    ]);
+})->where('path', '.*')->name('storage.fallback');
+

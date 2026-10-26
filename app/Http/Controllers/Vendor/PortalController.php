@@ -82,8 +82,32 @@ class PortalController extends Controller
         }
 
         if (Auth::attempt([$field => $value, 'password' => $request->password], $request->boolean('remember'))) {
-            $request->session()->regenerate();
             $user = Auth::user();
+
+            // Check approval status (admins bypass approval)
+            if (!$user->hasRole(['super-admin', 'admin'])) {
+                if ($user->status === 'pending') {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    return back()->with('pending_approval', true)
+                                 ->with('pending_name', $user->name)
+                                 ->with('pending_login', $login)
+                                 ->withErrors([
+                                     'login' => 'Your account is pending admin approval. You will be able to log in once approved. Our team will contact you, or you can reach out on WhatsApp: +919074854599.'
+                                 ])
+                                 ->withInput($request->only('login'));
+                }
+
+                if ($user->status === 'rejected') {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    return back()->withErrors([
+                        'login' => 'Your account has been deactivated or rejected. Please contact support.'
+                    ])->withInput($request->only('login'));
+                }
+            }
+
+            $request->session()->regenerate();
 
             // Single device: kill all other sessions for students
             if ($user->hasRole('student')) {
@@ -175,6 +199,9 @@ class PortalController extends Controller
             }
         }
 
+        $requireApproval = Setting::get('require_user_approval', '1') === '1';
+        $status = $requireApproval ? 'pending' : 'approved';
+
         $user = User::create([
             'name'           => $request->name,
             'email'          => $request->email,
@@ -182,8 +209,10 @@ class PortalController extends Controller
             'country'        => 'IN',
             'country_name'   => 'India',
             'password'       => Hash::make($request->password),
-            'registered_via'     => 'vendor_portal',
-            'portal_access'      => 'vendor_only',
+            'registered_via' => 'vendor_portal',
+            'portal_access'  => 'vendor_only',
+            'status'         => $status,
+            'approved_at'    => $status === 'approved' ? now() : null,
         ]);
 
         $user->assignRole('student');
@@ -209,6 +238,13 @@ class PortalController extends Controller
                     'access_type' => 'lifetime',
                 ]
             );
+        }
+
+        if ($status === 'pending') {
+            return redirect()->route('register.pending')
+                ->with('registered_name', $user->name)
+                ->with('registered_email', $user->email)
+                ->with('registered_phone', $user->phone);
         }
 
         Auth::login($user, true);
@@ -262,6 +298,9 @@ class PortalController extends Controller
             }
         }
 
+        $requireApproval = Setting::get('require_user_approval', '1') === '1';
+        $status = $requireApproval ? 'pending' : 'approved';
+
         $user = User::create([
             'name'           => $request->name,
             'email'          => $request->email,
@@ -269,8 +308,10 @@ class PortalController extends Controller
             'country'        => 'IN',
             'country_name'   => 'India',
             'password'       => Hash::make($request->password),
-            'registered_via'     => 'vendor_portal',
-            'portal_access'      => 'vendor_only',
+            'registered_via' => 'vendor_portal',
+            'portal_access'  => 'vendor_only',
+            'status'         => $status,
+            'approved_at'    => $status === 'approved' ? now() : null,
         ]);
 
         $user->assignRole('student');
@@ -297,6 +338,13 @@ class PortalController extends Controller
                 'granted_by'     => null,
             ]
         );
+
+        if ($status === 'pending') {
+            return redirect()->route('register.pending')
+                ->with('registered_name', $user->name)
+                ->with('registered_email', $user->email)
+                ->with('registered_phone', $user->phone);
+        }
 
         Auth::login($user, true);
         $request->session()->regenerate();

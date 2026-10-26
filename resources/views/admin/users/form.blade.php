@@ -139,6 +139,28 @@
           @error('role')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
         </div>
 
+        {{-- Account Status --}}
+        <div>
+          <label for="user-status" class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Account Status</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">⚡</span>
+            <select id="user-status" name="status"
+                    class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 transition appearance-none cursor-pointer">
+              <option value="approved" {{ old('status', $isEdit ? ($user->status ?? 'approved') : 'approved') === 'approved' ? 'selected' : '' }}>
+                ✅ Approved / Active (Allowed to sign in)
+              </option>
+              <option value="pending" {{ old('status', $isEdit ? ($user->status ?? 'approved') : 'approved') === 'pending' ? 'selected' : '' }}>
+                ⏳ Pending Approval (Blocked from signing in until approved)
+              </option>
+              <option value="rejected" {{ old('status', $isEdit ? ($user->status ?? 'approved') : 'approved') === 'rejected' ? 'selected' : '' }}>
+                ❌ Rejected / Suspended (Blocked from signing in)
+              </option>
+            </select>
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">▾</span>
+          </div>
+          @error('status')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+        </div>
+
         @if($isEdit)
         {{-- Password for existing users only --}}
         <div>
@@ -211,6 +233,17 @@
             <div class="text-xs text-gray-400">Email Verified</div>
             <div class="font-semibold {{ $user->email_verified_at ? 'text-green-600' : 'text-gray-400' }}">
               {{ $user->email_verified_at ? $user->email_verified_at->format('d M Y') : 'Not verified' }}
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="w-8 h-8 {{ ($user->status ?? 'approved') === 'pending' ? 'bg-amber-50' : 'bg-emerald-50' }} rounded-lg flex items-center justify-center text-base flex-shrink-0">
+            {{ ($user->status ?? 'approved') === 'pending' ? '⏳' : (($user->status ?? 'approved') === 'rejected' ? '❌' : '⚡') }}
+          </span>
+          <div>
+            <div class="text-xs text-gray-400">Account Status</div>
+            <div class="font-semibold {{ ($user->status ?? 'approved') === 'pending' ? 'text-amber-700' : (($user->status ?? 'approved') === 'rejected' ? 'text-red-600' : 'text-emerald-700') }}">
+              {{ ($user->status ?? 'approved') === 'pending' ? 'Pending Approval' : ucfirst($user->status ?? 'approved') }}
             </div>
           </div>
         </div>

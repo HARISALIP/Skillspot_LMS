@@ -58,10 +58,15 @@ class UsersController extends Controller
             }
         }
 
+        if ($status = $request->status) {
+            $query->where('status', $status);
+        }
+
         $users         = $query->paginate(20);
         $totalUsers    = User::count();
         $totalStudents = User::role('student')->count();
         $totalAdmins   = User::role(['admin', 'super-admin'])->count();
+        $totalPending  = User::where('status', 'pending')->count();
         $thisMonth     = User::whereMonth('created_at', now()->month)
                              ->whereYear('created_at',  now()->year)->count();
 
@@ -73,7 +78,7 @@ class UsersController extends Controller
             : $this->countries;
 
         return view('admin.users.index', compact(
-            'users', 'totalUsers', 'totalStudents', 'totalAdmins', 'thisMonth', 'countries'
+            'users', 'totalUsers', 'totalStudents', 'totalAdmins', 'totalPending', 'thisMonth', 'countries'
         ));
     }
 
@@ -107,6 +112,7 @@ class UsersController extends Controller
             'phone'         => ['nullable', 'string', 'max:20', 'unique:users,phone'],
             'country'       => ['required', 'string', 'max:5'],
             'role'          => ['required', 'string', 'in:' . implode(',', $allRoles)],
+            'status'        => ['nullable', 'in:approved,pending,rejected'],
             'portal_access' => ['nullable', 'in:Skillspot_only,vendor_only,both'],
         ]);
 
@@ -116,6 +122,8 @@ class UsersController extends Controller
             ]);
         }
 
+        $userStatus = $request->input('status', 'approved');
+
         $user = User::create([
             'name'           => $request->name,
             'email'          => $request->email,
@@ -124,6 +132,9 @@ class UsersController extends Controller
             'country_name'   => $this->countries[$request->country] ?? $request->country,
             'password'       => Hash::make(Str::random(64)),
             'registered_via' => 'admin',
+            'status'         => $userStatus,
+            'approved_at'    => $userStatus === 'approved' ? now() : null,
+            'approved_by'    => $userStatus === 'approved' ? auth()->id() : null,
             'portal_access'  => $request->input('role') === 'vendor'
                 ? 'vendor_only'
                 : ($request->input('role') === 'student'
@@ -199,6 +210,7 @@ class UsersController extends Controller
             'phone'         => ['nullable', 'string', 'max:20', 'unique:users,phone,' . $user->id],
             'country'       => ['required', 'string', 'max:5'],
             'role'          => ['required', 'string', 'in:' . implode(',', $allRoles)],
+            'status'        => ['nullable', 'in:approved,pending,rejected'],
             'portal_access' => ['nullable', 'in:Skillspot_only,vendor_only,both'],
             'password'      => ['nullable', Password::min(8)],
         ]);
@@ -216,6 +228,14 @@ class UsersController extends Controller
                     : 'Skillspot_only'),
         ];
 
+        if ($request->filled('status')) {
+            $data['status'] = $request->status;
+            if ($request->status === 'approved' && $user->status !== 'approved') {
+                $data['approved_at'] = now();
+                $data['approved_by'] = auth()->id();
+            }
+        }
+
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
@@ -225,6 +245,30 @@ class UsersController extends Controller
 
         return redirect()->route('admin.users')
             ->with('success', "User \"{$user->name}\" updated successfully ✅");
+    }
+
+    // ── Approve User ───────────────────────────────────────────────────
+    public function approve(User $user)
+    {
+        $this->assertCanManage($user);
+        $user->update([
+            'status'      => 'approved',
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+        ]);
+
+        return back()->with('success', "User \"{$user->name}\" has been approved! They can now log in. ✅");
+    }
+
+    // ── Reject User ────────────────────────────────────────────────────
+    public function reject(User $user)
+    {
+        $this->assertCanManage($user);
+        $user->update([
+            'status' => 'rejected',
+        ]);
+
+        return back()->with('success', "User \"{$user->name}\" marked as rejected.");
     }
 
     // ── Delete ─────────────────────────────────────────────────────────

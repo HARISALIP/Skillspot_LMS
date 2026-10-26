@@ -119,8 +119,32 @@ class AuthController extends Controller
             }
 
             if (Auth::attempt([$field => $value, 'password' => $password], true)) {
-                $request->session()->regenerate();
                 $user = Auth::user();
+
+                // Check approval status (admins bypass approval)
+                if (!$user->hasRole(['super-admin', 'admin'])) {
+                    if ($user->status === 'pending') {
+                        Auth::logout();
+                        $request->session()->invalidate();
+                        return back()->with('pending_approval', true)
+                                     ->with('pending_name', $user->name)
+                                     ->with('pending_login', $login)
+                                     ->withErrors([
+                                         'login' => 'Your account is pending admin approval. You can only login after our team reviews and approves your account.'
+                                     ])
+                                     ->withInput($request->only('login'));
+                    }
+
+                    if ($user->status === 'rejected') {
+                        Auth::logout();
+                        $request->session()->invalidate();
+                        return back()->withErrors([
+                            'login' => 'Your account has been deactivated or rejected. Please contact support.'
+                        ])->withInput($request->only('login'));
+                    }
+                }
+
+                $request->session()->regenerate();
 
                 // During maintenance, only admins can login
                 if (Setting::get('maintenance_mode', '0') === '1'
@@ -172,6 +196,12 @@ class AuthController extends Controller
             report($e);
             abort(500);
         }
+    }
+
+    // ── Show Register Pending ──────────────────────────────────────────
+    public function showRegisterPending()
+    {
+        return view('auth.register-pending');
     }
 
     // ── Process Register ───────────────────────────────────────────────
@@ -391,6 +421,9 @@ class AuthController extends Controller
 
     private function createUser(array $data)
     {
+        $requireApproval = Setting::get('require_user_approval', '1') === '1';
+        $status = $requireApproval ? 'pending' : 'approved';
+
         $user = User::create([
             'name'               => $data['name'],
             'email'              => $data['email'],
@@ -400,9 +433,19 @@ class AuthController extends Controller
             'password'           => $data['password'],
             'email_verified_at'  => $data['email_verified_at'] ?? null,
             'registered_via'     => 'direct',
+            'status'             => $status,
+            'approved_at'        => $status === 'approved' ? now() : null,
         ]);
 
         $user->assignRole('student');
+
+        if ($status === 'pending') {
+            return redirect()->route('register.pending')
+                ->with('registered_name', $user->name)
+                ->with('registered_email', $user->email)
+                ->with('registered_phone', $user->phone);
+        }
+
         Auth::login($user, true);
 
         return redirect()->route('student.dashboard')

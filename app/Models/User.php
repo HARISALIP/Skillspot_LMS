@@ -13,8 +13,32 @@ class User extends Authenticatable
         hasRole as traitHasRole;
     }
 
-    protected $fillable = ['name', 'email', 'phone', 'country', 'country_name', 'registered_via', 'portal_access', 'password', 'email_verified_at', 'phone_verified_at'];
+    protected $fillable = [
+        'name', 'email', 'phone', 'country', 'country_name', 'registered_via',
+        'portal_access', 'password', 'email_verified_at', 'phone_verified_at',
+        'status', 'approved_at', 'approved_by',
+    ];
     protected $hidden   = ['password', 'remember_token'];
+
+    public function isApproved(): bool
+    {
+        return ($this->status ?? 'approved') === 'approved';
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
+
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
 
     /** Safe HasRole wrapper */
     public function hasRole($roles, string $guard = null): bool
@@ -61,6 +85,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'approved_at'       => 'datetime',
             'password'          => 'hashed',
         ];
     }
