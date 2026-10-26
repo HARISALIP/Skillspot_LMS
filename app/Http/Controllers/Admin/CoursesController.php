@@ -483,14 +483,6 @@ class CoursesController extends Controller
     {
         $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id, 404);
-        if (request()->boolean('embed')) {
-            return view('admin.courses.lesson-frappe', [
-                'course' => $course,
-                'section' => $section,
-                'lesson' => new Lesson(),
-                'isEdit' => false,
-            ]);
-        }
         return view('admin.courses.lesson', [
             'course'  => $course,
             'section' => $section,
@@ -526,9 +518,6 @@ class CoursesController extends Controller
     {
         $this->authorizeCourseOwner($course);
         abort_unless($section->course_id === $course->id && $lesson->section_id === $section->id, 404);
-        if (request()->boolean('embed')) {
-            return view('admin.courses.lesson-frappe', compact('course', 'section', 'lesson') + ['isEdit' => true]);
-        }
         $lesson->load('quiz.questions');
         $materialUploads = Upload::whereIn('id', collect($lesson->resources ?? [])
             ->flatMap(fn($r) => [$r['upload_id'] ?? null, $r['preview_upload_id'] ?? null])

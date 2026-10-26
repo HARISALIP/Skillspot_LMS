@@ -16,16 +16,46 @@
 
   {{-- ── Main form ──────────────────────────────────────────────────── --}}
   <div class="lg:col-span-2">
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-      <div class="flex items-center gap-3 px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-        <div class="w-9 h-9 bg-green-100 text-green-700 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-film" aria-hidden="true"></i></div>
-        <div>
-          <h3 class="font-black text-gray-900">{{ $isEdit ? 'Edit Lesson' : 'New Lesson' }}</h3>
-          <p class="text-xs text-gray-400">{{ $course->title }} → {{ $section->title }}</p>
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      {{-- Sticky Top Header with prominent Save Button and Auto-Save Status --}}
+      <div class="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-200 bg-white/95 backdrop-blur-md shadow-xs">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-xs">
+            <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="font-bold text-gray-900 text-base flex items-center gap-2">
+              <span>{{ $isEdit ? 'Edit Lesson' : 'New Lesson' }}</span>
+              <span id="autoSaveBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                <i class="fa-solid fa-shield-halved text-emerald-600 text-[10px]"></i>
+                <span id="autoSaveText">Auto-save ready</span>
+              </span>
+            </h3>
+            <p class="text-xs text-gray-500 truncate">{{ $course->title }} → {{ $section->title }}</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button type="submit" form="lessonMainForm" id="topSaveBtn"
+                  class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-lg transition text-sm cursor-pointer">
+            <i class="fa-solid fa-floppy-disk text-sm"></i>
+            <span>{{ $isEdit ? 'Save Changes' : 'Save Lesson' }}</span>
+          </button>
         </div>
       </div>
 
-      <form method="POST"
+      {{-- Unsaved Draft Restored Alert Banner --}}
+      <div id="draftRestoredBanner" class="hidden mx-6 mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-amber-600 text-base"></i>
+          <span><strong>Unsaved draft restored</strong> from browser storage.</span>
+        </div>
+        <button type="button" id="discardDraftBtn" class="px-2.5 py-1 text-xs font-semibold text-amber-700 hover:text-amber-900 underline cursor-pointer">
+          Discard draft
+        </button>
+      </div>
+
+      <form id="lessonMainForm" method="POST"
             action="{{ $isEdit
               ? route('admin.courses.lessons.update', [$course->id,$section->id,$lesson->id])
               : route('admin.courses.lessons.store',  [$course->id,$section->id]) }}"
@@ -461,13 +491,20 @@
           </div>
         </div>
 
-        {{-- Actions --}}
-        <div class="flex items-center justify-between pt-3 border-t border-gray-100">
-          <a href="{{ route('admin.courses.edit', $course->id) }}" class="text-sm text-gray-500 hover:text-gray-700 transition">← Back to Course</a>
+        {{-- Sticky Bottom Actions --}}
+        <div class="sticky bottom-0 z-30 -mx-6 -mb-6 p-4 border-t border-gray-200 bg-white/95 backdrop-blur-md rounded-b-2xl shadow-lg flex items-center justify-between gap-4">
+          <a href="{{ route('admin.courses.edit', $course->id) }}" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-arrow-left text-xs"></i>
+            <span>Back to Course</span>
+          </a>
+          <div class="hidden sm:flex items-center gap-2 text-xs text-gray-500">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+            <span>Draft kept safe automatically</span>
+          </div>
           <button type="submit" id="saveBtn"
-                  class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 active:scale-[0.98] text-white font-black px-7 py-2.5 rounded-xl transition shadow-md text-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-            {{ $isEdit ? 'Update Lesson' : 'Add Lesson' }}
+                  class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold px-7 py-3 rounded-xl transition shadow-md hover:shadow-lg text-sm cursor-pointer">
+            <i class="fa-solid fa-floppy-disk text-sm"></i>
+            <span>{{ $isEdit ? 'Save Changes' : 'Save Lesson' }}</span>
           </button>
         </div>
       </form>
@@ -727,6 +764,7 @@ function initQuill() {
   quill.on('text-change', function() {
     const html = quill.root.innerHTML;
     document.getElementById('contentInput').value = html === '<p><br></p>' ? '' : html;
+    if (typeof scheduleAutoSave === 'function') scheduleAutoSave();
   });
 }
 
@@ -865,5 +903,164 @@ window.addEventListener('DOMContentLoaded', () => {
     updatePdfPreview(pdfInput.value);
   }
 });
+
+// ── Local Auto-Save Draft System ─────────────────────────────────────
+const DRAFT_KEY = `skillspot_lesson_draft_{{ $course->id }}_{{ $section->id }}_{{ $isEdit ? $lesson->id : 'new' }}`;
+const autoSaveBadge = document.getElementById('autoSaveBadge');
+const autoSaveText  = document.getElementById('autoSaveText');
+const draftBanner   = document.getElementById('draftRestoredBanner');
+const discardBtn    = document.getElementById('discardDraftBtn');
+
+let autoSaveTimeout = null;
+
+function updateAutoSaveStatus(status, text) {
+  if (!autoSaveBadge || !autoSaveText) return;
+  autoSaveText.textContent = text;
+  if (status === 'saving') {
+    autoSaveBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200';
+    autoSaveBadge.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-blue-600 text-[10px]"></i><span>' + text + '</span>';
+  } else if (status === 'saved') {
+    autoSaveBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200';
+    autoSaveBadge.innerHTML = '<i class="fa-solid fa-check text-emerald-600 text-[10px]"></i><span>' + text + '</span>';
+  } else {
+    autoSaveBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600 border border-gray-200';
+    autoSaveBadge.innerHTML = '<i class="fa-solid fa-shield-halved text-emerald-600 text-[10px]"></i><span>' + text + '</span>';
+  }
+}
+
+function saveDraftToStorage() {
+  try {
+    const form = document.getElementById('lessonMainForm');
+    if (!form) return;
+    const title = form.querySelector('input[name="title"]')?.value || '';
+    const description = form.querySelector('textarea[name="description"]')?.value || '';
+    const type = form.querySelector('input[name="type"]:checked')?.value || 'video';
+    const notes = form.querySelector('textarea[name="notes"]')?.value || '';
+    const duration = form.querySelector('input[name="duration"]')?.value || '';
+    const isPreview = form.querySelector('input[name="is_preview"]')?.checked || false;
+    const videoUrl = form.querySelector('input[name="video_url"]')?.value || '';
+    const videoStorage = document.getElementById('videoStorageInput')?.value || '';
+    const videoR2Path = document.getElementById('videoR2PathInput')?.value || '';
+    const liveUrl = form.querySelector('input[name="live_url"]')?.value || '';
+    const content = quill ? quill.root.innerHTML : (document.getElementById('contentInput')?.value || '');
+
+    // Only save if there is actually some content entered
+    if (!title && !description && !notes && (!content || content === '<p><br></p>')) {
+      return;
+    }
+
+    const draftData = {
+      title, description, type, notes, duration, isPreview,
+      videoUrl, videoStorage, videoR2Path, liveUrl, content,
+      timestamp: Date.now()
+    };
+
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draftData));
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    updateAutoSaveStatus('saved', `Draft auto-saved (${timeStr})`);
+  } catch (e) {
+    console.warn('Auto-save storage failed:', e);
+  }
+}
+
+function scheduleAutoSave() {
+  updateAutoSaveStatus('saving', 'Saving draft…');
+  clearTimeout(autoSaveTimeout);
+  autoSaveTimeout = setTimeout(saveDraftToStorage, 800);
+}
+
+// Restore draft on load if present
+function checkAndRestoreDraft() {
+  try {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (!saved) return;
+    const draft = JSON.parse(saved);
+    if (!draft || !draft.timestamp) return;
+
+    // Show restore banner
+    if (draftBanner) draftBanner.classList.remove('hidden');
+
+    const form = document.getElementById('lessonMainForm');
+    if (!form) return;
+
+    // Restore fields if user hasn't already modified or if form was blank
+    if (draft.title) {
+      const input = form.querySelector('input[name="title"]');
+      if (input && !input.value) input.value = draft.title;
+    }
+    if (draft.description) {
+      const input = form.querySelector('textarea[name="description"]');
+      if (input && !input.value) input.value = draft.description;
+    }
+    if (draft.notes) {
+      const input = form.querySelector('textarea[name="notes"]');
+      if (input && !input.value) input.value = draft.notes;
+    }
+    if (draft.duration) {
+      const input = form.querySelector('input[name="duration"]');
+      if (input && !input.value) input.value = draft.duration;
+    }
+    if (draft.type) {
+      const radio = form.querySelector(`input[name="type"][value="${draft.type}"]`);
+      if (radio && !radio.checked) {
+        radio.checked = true;
+        onTypeChange(draft.type);
+      }
+    }
+    if (draft.videoUrl) {
+      const input = form.querySelector('input[name="video_url"]');
+      if (input && !input.value) input.value = draft.videoUrl;
+    }
+    if (draft.liveUrl) {
+      const input = form.querySelector('input[name="live_url"]');
+      if (input && !input.value) input.value = draft.liveUrl;
+    }
+    if (draft.content) {
+      const contentInput = document.getElementById('contentInput');
+      if (contentInput && !contentInput.value) {
+        contentInput.value = draft.content;
+      }
+      if (quill) {
+        const cur = quill.root.innerHTML;
+        if (!cur || cur === '<p><br></p>') {
+          quill.clipboard.dangerouslyPasteHTML(draft.content);
+        }
+      }
+    }
+
+    updateAutoSaveStatus('saved', 'Draft restored');
+  } catch (e) {
+    console.warn('Draft restore error:', e);
+  }
+}
+
+// Attach listeners to trigger auto-save
+function initAutoSave() {
+  const form = document.getElementById('lessonMainForm');
+  if (!form) return;
+
+  form.querySelectorAll('input, textarea, select').forEach(el => {
+    el.addEventListener('input', scheduleAutoSave);
+    el.addEventListener('change', scheduleAutoSave);
+  });
+
+  if (discardBtn) {
+    discardBtn.addEventListener('click', () => {
+      localStorage.removeItem(DRAFT_KEY);
+      if (draftBanner) draftBanner.classList.add('hidden');
+      updateAutoSaveStatus('idle', 'Draft discarded');
+    });
+  }
+
+  // Clear draft upon successful form submit
+  form.addEventListener('submit', () => {
+    localStorage.removeItem(DRAFT_KEY);
+  });
+
+  checkAndRestoreDraft();
+}
+
+window.addEventListener('DOMContentLoaded', initAutoSave);
 </script>
 @endpush
