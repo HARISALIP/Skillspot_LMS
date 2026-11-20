@@ -92,17 +92,19 @@ class Course extends Model
             return $value;
         }
 
-        // Fix double-encoded UTF-8 / Mojibake characters often introduced by rich text pastes or migrations
-        $replacements = [
-            'Ã¢ÂÂ' => '–',
-            'Ã¢Â'  => '’',
-            'ÃÂ·'   => '·',
-            'Ã‚Â·'  => '·',
-            'Ã‚'    => '',
-            'Ã'     => '',
-        ];
+        return static::cleanMojibakeText($value);
+    }
 
-        return strtr($value, $replacements);
+    public static function cleanMojibakeText(string $text): string
+    {
+        // 1. Normalize UTF-8 multi-byte mojibake sequences
+        // Matches corruptions like Ã¢ÂÂ, Ã¢Â...Â..., ÃÂ·, Â·, Ã‚Â·, etc.
+        $text = preg_replace('/Ã[\x80-\xBF]*\s*Â·|Â·/u', '·', $text);
+        $text = preg_replace('/Ã¢Â[\x80-\xBF]*Â?[\x80-\xBF]*/u', '–', $text);
+        $text = preg_replace('/Ã[\x80-\xBF]+/u', '', $text);
+        $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
+
+        return $text;
     }
 
     public function getIntroVideoAttribute($value): ?string
