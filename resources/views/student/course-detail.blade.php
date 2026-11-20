@@ -52,7 +52,7 @@
         </div>
         <h1 class="text-xl md:text-2xl font-black text-gray-900 mb-3">{{ $course->title }}</h1>
         @if($course->description)
-        <p class="text-gray-600 text-sm leading-relaxed">{{ $course->description }}</p>
+        <div class="course-description text-gray-600 text-sm leading-relaxed prose prose-sm max-w-none">{!! $course->description !!}</div>
         @endif
       </div>
     </div>
