@@ -8,7 +8,7 @@ class RichTextSanitizer
     {
         $document = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
-        $document->loadHTML('<div id="rich-text">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $document->loadHTML('<?xml encoding="utf-8" ?>' . '<div id="rich-text">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 

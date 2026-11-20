@@ -86,6 +86,25 @@ class Course extends Model
         return $value;
     }
 
+    public function getDescriptionAttribute($value): ?string
+    {
+        if (blank($value)) {
+            return $value;
+        }
+
+        // Fix double-encoded UTF-8 / Mojibake characters often introduced by rich text pastes or migrations
+        $replacements = [
+            'Ã¢ÂÂ' => '–',
+            'Ã¢Â'  => '’',
+            'ÃÂ·'   => '·',
+            'Ã‚Â·'  => '·',
+            'Ã‚'    => '',
+            'Ã'     => '',
+        ];
+
+        return strtr($value, $replacements);
+    }
+
     public function getIntroVideoAttribute($value): ?string
     {
         if (blank($value)) {

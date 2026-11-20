@@ -660,7 +660,7 @@ class CoursesController extends Controller
     {
         $document = new \DOMDocument();
         $previous = libxml_use_internal_errors(true);
-        $document->loadHTML('<div id="course-description">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $document->loadHTML('<?xml encoding="utf-8" ?>' . '<div id="course-description">'.$html.'</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
         libxml_clear_errors();
         libxml_use_internal_errors($previous);
 
