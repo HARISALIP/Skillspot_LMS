@@ -14,8 +14,8 @@ class CreatorAccess
         $user = $request->user();
         $status = $user?->instructorProfile()->value('status');
         abort_if($status === 'suspended' && !$user->hasRole(['admin', 'super-admin']), 403);
-        $legacyTeacher = $user?->hasRole('teacher') && Course::where('primary_instructor_id', $user->id)->exists();
-        abort_unless($user?->hasRole(['admin', 'super-admin']) || in_array($status, ['pending', 'approved', 'rejected'], true) || $legacyTeacher, 403);
+        $isTeacher = $user?->hasRole(['teacher', 'admin', 'super-admin']);
+        abort_unless($isTeacher || in_array($status, ['pending', 'approved', 'rejected'], true), 403);
 
         return $next($request);
     }

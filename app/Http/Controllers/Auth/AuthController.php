@@ -465,17 +465,15 @@ class AuthController extends Controller
         if ($user->hasRole('teacher')) {
             $teacherVendors = \App\Models\Vendor::whereHas('teachers', fn($q) => $q->where('user_id', $user->id))
                 ->where('status','active')->get();
-            if ($teacherVendors->isEmpty()) {
-                Auth::logout();
-                request()->session()->invalidate();
-                return redirect('/login')->withErrors([
-                    'login' => 'Your teacher account is not assigned to any active vendor. Contact admin.'
-                ]);
+            if ($teacherVendors->isNotEmpty()) {
+                if ($teacherVendors->count() === 1) {
+                    session(['active_vendor_id' => $teacherVendors->first()->id]);
+                }
+                return redirect()->route('vendor.dashboard');
             }
-            if ($teacherVendors->count() === 1) {
-                session(['active_vendor_id' => $teacherVendors->first()->id]);
-            }
-            return redirect()->route('vendor.dashboard');
+            // Teacher without a vendor organization: direct to Creator Studio / Teacher Portal
+            return redirect()->route('studio.dashboard')
+                ->with('success', 'Welcome back, ' . $user->name . '! Access your courses, lessons, and live classes below.');
         }
 
         if ($user->hasRole('vendor')) {

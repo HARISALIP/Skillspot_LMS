@@ -225,8 +225,7 @@ class CourseWorkspaceController extends Controller
     {
         if ($user->hasRole(['admin', 'super-admin'])) return;
         $query->where(fn ($q) => $q->where('primary_instructor_id', $user->id)
-            ->orWhere(fn ($vendorCourses) => $vendorCourses->whereNotNull('vendor_id')
-                ->whereHas('teachers', fn ($teachers) => $teachers->whereKey($user->id))));
+            ->orWhereHas('teachers', fn ($teachers) => $teachers->whereKey($user->id)));
     }
 
     private function authorizeCourse(Course $course): void

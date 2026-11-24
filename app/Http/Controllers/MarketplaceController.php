@@ -70,7 +70,9 @@ class MarketplaceController extends Controller
         $user = auth()->user();
         MarketplaceService::releaseAvailableEarnings();
         $profile = $user->instructorProfile;
-        $courses = Course::where('primary_instructor_id', $user->id)->latest()->get();
+        $courses = Course::where('primary_instructor_id', $user->id)
+            ->orWhereHas('teachers', fn ($teachers) => $teachers->whereKey($user->id))
+            ->latest()->get();
         $sales = MarketplaceSale::where('seller_user_id', $user->id)->with('course')->latest()->get();
         $balances = [
             'pending' => $sales->where('status', 'pending')->sum('seller_share'),

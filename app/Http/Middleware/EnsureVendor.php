@@ -23,11 +23,8 @@ class EnsureVendor
             $vendor = Vendor::whereHas('teachers', fn($q) => $q->where('user_id', $user->id))
                 ->where('status','active')->first();
             if (!$vendor) {
-                Auth::logout();
-                $request->session()->invalidate();
-                return redirect('/login')->withErrors([
-                    'login' => 'Your teacher account is not assigned to any active vendor. Contact admin.'
-                ]);
+                return redirect()->route('studio.dashboard')
+                    ->with('info', 'You do not have an active vendor organization assigned. You are in Creator Studio.');
             }
             // Set session vendor if not already set
             if (!session('active_vendor_id')) {
