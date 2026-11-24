@@ -223,6 +223,112 @@
   </div>
 </section>
 
+<!-- ── SPECIAL VACATION CAMPS, LIVE WORKSHOPS & COURSE GALLERY ──────────────── -->
+@if(!empty($posters) && count($posters) > 0)
+<section id="camps-gallery" class="py-16 sm:py-20 bg-slate-900 text-white scroll-mt-16 relative overflow-hidden">
+  {{-- Glow Accents --}}
+  <div class="absolute -top-32 -left-32 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+    {{-- Section Header --}}
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-amber-300 border border-white/10 mb-3">
+          <span>🚀 Featured Camps &amp; Workshops</span>
+        </div>
+        <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
+          Special Camps &amp; Upcoming Programs
+        </h2>
+        <p class="text-slate-400 text-sm mt-1.5 max-w-2xl leading-relaxed">
+          Interactive hands-on holiday camps, AI workshops, creative arts, robotics &amp; skill-building courses for students and young creators.
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button id="toggleGalleryBtn" type="button" onclick="toggleAllGalleryPosters()"
+                class="text-xs bg-brand-600 hover:bg-brand-500 text-white font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-images"></i>
+          <span id="galleryBtnText">View All ({{ count($posters) }})</span>
+        </button>
+      </div>
+    </div>
+
+    {{-- Posters Grid --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="postersGrid">
+      @foreach($posters as $idx => $poster)
+      <div class="poster-card group relative bg-slate-800 rounded-2xl overflow-hidden border border-slate-700/80 shadow-lg hover:shadow-2xl hover:border-brand-500/60 transition-all duration-300 flex flex-col {{ $idx >= 8 ? 'poster-overflow-item hidden' : '' }}">
+        {{-- Poster Image Frame --}}
+        <div class="relative aspect-[3/4] bg-slate-950 overflow-hidden cursor-pointer" onclick="openPosterModal('{{ $poster['url'] }}', '{{ addslashes($poster['title']) }}')">
+          <img src="{{ $poster['url'] }}" alt="{{ $poster['title'] }}"
+               loading="lazy"
+               class="w-full h-full object-cover object-top transition duration-500 group-hover:scale-105">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center p-4">
+            <span class="bg-white/90 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-1.5 shadow">
+              <i class="fa-solid fa-up-right-and-down-left-from-center text-[10px]"></i> Click to Preview
+            </span>
+          </div>
+          {{-- Badge --}}
+          <span class="absolute top-3 left-3 bg-brand-600/90 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow">
+            {{ $poster['category'] }}
+          </span>
+        </div>
+
+        {{-- Poster Info --}}
+        <div class="p-4 flex flex-col flex-1 justify-between bg-slate-800/90">
+          <div>
+            <h3 class="font-bold text-white text-sm leading-snug line-clamp-2 group-hover:text-brand-300 transition">
+              {{ $poster['title'] }}
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Live Interactive Sessions · Certificate</p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between gap-2">
+            <a href="/register" class="text-xs text-brand-400 hover:text-brand-300 font-semibold flex items-center gap-1">
+              Enroll Free <i class="fa-solid fa-arrow-right text-[9px]"></i>
+            </a>
+            <button type="button" onclick="openPosterModal('{{ $poster['url'] }}', '{{ addslashes($poster['title']) }}')"
+                    class="text-xs bg-white/10 hover:bg-white/20 text-white font-medium px-3 py-1.5 rounded-lg transition">
+              Preview
+            </button>
+          </div>
+        </div>
+      </div>
+      @endforeach
+    </div>
+
+    {{-- Bottom "Load More / View All" Bar --}}
+    @if(count($posters) > 8)
+    <div class="mt-10 text-center" id="viewMorePosterContainer">
+      <button type="button" onclick="toggleAllGalleryPosters()"
+              class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-sm px-6 py-3 rounded-xl shadow transition">
+        <i class="fa-solid fa-chevron-down text-xs" id="viewMoreIcon"></i>
+        <span id="viewMoreLabel">View {{ count($posters) - 8 }} More Programs</span>
+      </button>
+    </div>
+    @endif
+
+  </div>
+</section>
+
+{{-- Poster Fullscreen Lightbox Modal --}}
+<div id="posterLightbox" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md p-4 flex items-center justify-center" onclick="closePosterModal(event)">
+  <div class="relative max-w-2xl max-h-[92vh] flex flex-col items-center">
+    <button type="button" onclick="closePosterModal()" class="absolute -top-10 right-0 text-white/80 hover:text-white text-2xl font-bold transition">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="lightboxImage" src="" alt="Poster" class="max-w-full max-h-[82vh] rounded-xl shadow-2xl object-contain border border-white/20">
+    <div class="mt-3 flex items-center justify-between w-full text-white px-2">
+      <p id="lightboxTitle" class="text-sm font-bold truncate"></p>
+      <a href="/register" class="text-xs bg-brand-600 hover:bg-brand-500 font-bold px-4 py-1.5 rounded-lg transition ml-4 whitespace-nowrap">
+        Register Now →
+      </a>
+    </div>
+  </div>
+</div>
+@endif
+
 <!-- ── 3. THE SKILLSPOT LEARNING ADVANTAGE (HUMBLE & INSPIRING) ──────────────── -->
 <section class="py-16 sm:py-20 bg-white border-y border-slate-200/70">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -391,6 +497,63 @@ function searchCourses(query) {
     }
   });
 }
+
+// ── GALLERY MODAL & TOGGLE FUNCTIONS ──────────────────────────────────────
+window.galleryExpanded = false;
+
+function toggleAllGalleryPosters() {
+  window.galleryExpanded = !window.galleryExpanded;
+  var items = document.querySelectorAll('.poster-overflow-item');
+  items.forEach(function(item) {
+    if (window.galleryExpanded) {
+      item.classList.remove('hidden');
+    } else {
+      item.classList.add('hidden');
+    }
+  });
+
+  var btnText = document.getElementById('galleryBtnText');
+  var viewMoreLabel = document.getElementById('viewMoreLabel');
+  var viewMoreIcon = document.getElementById('viewMoreIcon');
+
+  if (window.galleryExpanded) {
+    if (btnText) btnText.textContent = 'Show Less';
+    if (viewMoreLabel) viewMoreLabel.textContent = 'Show Fewer Programs';
+    if (viewMoreIcon) viewMoreIcon.className = 'fa-solid fa-chevron-up text-xs';
+  } else {
+    var totalCount = document.querySelectorAll('.poster-card').length;
+    if (btnText) btnText.textContent = 'View All (' + totalCount + ')';
+    if (viewMoreLabel) viewMoreLabel.textContent = 'View ' + (totalCount - 8) + ' More Programs';
+    if (viewMoreIcon) viewMoreIcon.className = 'fa-solid fa-chevron-down text-xs';
+  }
+}
+
+function openPosterModal(imageUrl, title) {
+  var modal = document.getElementById('posterLightbox');
+  var img = document.getElementById('lightboxImage');
+  var titleEl = document.getElementById('lightboxTitle');
+  if (modal && img) {
+    img.src = imageUrl;
+    if (titleEl) titleEl.textContent = title;
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closePosterModal(e) {
+  if (e && e.target && e.target.id !== 'posterLightbox' && !e.target.closest('button')) {
+    return;
+  }
+  var modal = document.getElementById('posterLightbox');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePosterModal();
+});
 </script>
 
 @endsection

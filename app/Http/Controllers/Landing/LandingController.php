@@ -42,6 +42,39 @@ class LandingController extends Controller
             'students' => \DB::table('enrollments')->distinct('user_id')->count(),
         ];
 
-        return view('landing.index', compact('featuredCourses', 'stats'));
+        // Load promotional course posters and seasonal camp flyers from public/uploads
+        $uploadsDir = public_path('uploads');
+        $posters = [];
+        if (is_dir($uploadsDir)) {
+            $files = glob($uploadsDir . DIRECTORY_SEPARATOR . '*.png');
+            foreach ($files as $filePath) {
+                $filename = basename($filePath);
+                if (str_contains($filename, '(1)')) continue; // Skip duplicate copy
+
+                $cleanTitle = preg_replace('/\.png$/i', '', $filename);
+                $cleanTitle = preg_replace('/^(Skillspot|Winter|Colorful|Festive)\s+/i', '', $cleanTitle);
+                $cleanTitle = preg_replace('/\s+(Poster|Ad|Advertisement)$/i', '', $cleanTitle);
+
+                $category = 'Special Camp';
+                if (preg_match('/(Python|Coding|Programming|Tech Camp)/i', $filename)) {
+                    $category = 'Coding & CS';
+                } elseif (preg_match('/(AI|Robotics)/i', $filename)) {
+                    $category = 'AI & Robotics';
+                } elseif (preg_match('/(Drawing|Painting|Poster Making)/i', $filename)) {
+                    $category = 'Creative Arts';
+                } elseif (preg_match('/(Maths|English|Yoga|Internship)/i', $filename)) {
+                    $category = 'Skills & Career';
+                }
+
+                $posters[] = [
+                    'filename' => $filename,
+                    'title'    => trim($cleanTitle),
+                    'category' => $category,
+                    'url'      => asset('uploads/' . $filename),
+                ];
+            }
+        }
+
+        return view('landing.index', compact('featuredCourses', 'stats', 'posters'));
     }
 }
