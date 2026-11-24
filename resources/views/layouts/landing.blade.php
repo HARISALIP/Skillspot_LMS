@@ -51,6 +51,54 @@
     #mobile-menu      { display: none; }
     #mobile-menu.open { display: block !important; }
     html { scroll-behavior: smooth; }
+
+    /* Premium, ultra-sleek low-opacity scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.28);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.45);
+    }
+    ::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    /* Subtle custom horizontal scrollbar for filter pills */
+    .premium-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+      -webkit-overflow-scrolling: touch;
+    }
+    .premium-scrollbar::-webkit-scrollbar {
+      height: 3px;
+    }
+    .premium-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+      margin: 0 4px;
+    }
+    .premium-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+      transition: background 0.2s ease;
+    }
+    .premium-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.45);
+    }
+    .premium-scrollbar::-webkit-scrollbar-button {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
   </style>
   @stack('styles')
 

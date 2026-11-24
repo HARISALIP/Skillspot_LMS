@@ -88,7 +88,7 @@
       </div>
 
       {{-- Fast Category pills --}}
-      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none text-xs" id="courseFilters">
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1.5 md:pb-0 premium-scrollbar text-xs" id="courseFilters">
         <button type="button" onclick="filterCourses('all', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-bold bg-slate-900 text-white shadow-xs transition whitespace-nowrap">All</button>
         <button type="button" onclick="filterCourses('web-development', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">Web Dev</button>
         <button type="button" onclick="filterCourses('ai-machine-learning', this)" class="course-filter-btn px-3.5 py-2 rounded-xl font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition whitespace-nowrap">AI &amp; Python</button>
