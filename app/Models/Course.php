@@ -97,14 +97,22 @@ class Course extends Model
 
     public static function cleanMojibakeText(string $text): string
     {
-        // 1. Normalize UTF-8 multi-byte mojibake sequences
-        // Matches corruptions like Ã¢ÂÂ, Ã¢Â...Â..., ÃÂ·, Â·, Ã‚Â·, etc.
-        $text = preg_replace('/Ã[\x80-\xBF]*\s*Â·|Â·/u', '·', $text);
-        $text = preg_replace('/Ã¢Â[\x80-\xBF]*Â?[\x80-\xBF]*/u', '–', $text);
-        $text = preg_replace('/Ã[\x80-\xBF]+/u', '', $text);
+        // 1. Normalize UTF-8 multi-byte mojibake bullet / dot sequences (e.g. ÃÂ·, Â·, Ã‚Â·, Ã Â·)
+        $text = preg_replace('/Ã[\x80-\xBF]*\s*Â·|Â·/u', ' · ', $text);
+
+        // 2. Normalize en-dash / em-dash corruptions (e.g. Ã¢Â€Â“, Ã¢ÂÂ, etc.)
+        $text = preg_replace('/Ã¢Â[\x80-\xBF]*\s*Â?[\x80-\xBF]*/u', ' – ', $text);
+
+        // 3. Remove leftover dangling high-byte mojibake prefixes (Ã, Â, etc. with continuation bytes)
+        $text = preg_replace('/[ÃÂ][\x80-\xBF]*/u', '', $text);
+
+        // 4. Strip invisible control characters (preserve tabs, newlines and standard text)
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
 
-        return $text;
+        // 5. Clean up duplicate spaces around punctuation
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+
+        return trim($text);
     }
 
     public function getIntroVideoAttribute($value): ?string

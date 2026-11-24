@@ -48,8 +48,8 @@
     .card-hover:hover { transform: translateY(-4px); box-shadow: 0 16px 32px -8px rgba(15,23,42,.08); }
     .glass          { backdrop-filter: blur(16px); background: rgba(255,255,255,.92); border-bottom: 1px solid rgba(226,232,240,.9); }
     .text-balance   { text-wrap: balance; }
-    #mobile-menu    { display: none; }
-    #mobile-menu.open { display: block; }
+    #mobile-menu      { display: none; }
+    #mobile-menu.open { display: block !important; }
     html { scroll-behavior: smooth; }
   </style>
   @stack('styles')
@@ -103,10 +103,25 @@
         @endauth
       </div>
 
-      <button id="hamburger" class="md:hidden text-slate-700 hover:text-slate-900 p-2 rounded-xl focus:outline-none" aria-label="Open menu">
-        <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-        <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-      </button>
+      {{-- Mobile Quick Actions & Menu Toggle --}}
+      <div class="flex items-center gap-2 md:hidden">
+        @auth
+          <a href="{{ auth()->user()->hasRole('student') ? route('student.dashboard') : (auth()->user()->hasRole('teacher') ? route('vendor.teacher.dashboard') : route('admin.dashboard')) }}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-xs hover:bg-slate-800 transition" title="Dashboard">
+            <i class="fa-solid fa-gauge-high text-xs"></i>
+            <span>Dashboard</span>
+          </a>
+        @else
+          <a href="/login" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 text-xs font-bold transition" title="Log in">
+            <i class="fa-solid fa-arrow-right-to-bracket text-xs text-blue-600"></i>
+            <span>Log in</span>
+          </a>
+        @endauth
+
+        <button id="hamburger" type="button" class="text-slate-700 hover:text-slate-900 p-2 rounded-xl focus:outline-none hover:bg-slate-100 active:bg-slate-200 transition" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu">
+          <svg id="icon-open" class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg id="icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -228,27 +243,55 @@
 
 @include('partials.ui-icon-normalizer')
 <script>
-  const hamburger = document.getElementById('hamburger');
-  const mobileMenu = document.getElementById('mobile-menu');
-  const iconOpen = document.getElementById('icon-open');
-  const iconClose = document.getElementById('icon-close');
-  
+  function initMobileMenu() {
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+    
+    if (!hamburger || !mobileMenu) return;
+
+    // Remove old listeners by cloning or checking flag
+    if (hamburger.dataset.menuBound === 'true') return;
+    hamburger.dataset.menuBound = 'true';
+
+    function toggleMenu(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const isOpen = mobileMenu.classList.toggle('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (iconOpen) iconOpen.classList.toggle('hidden', isOpen);
+      if (iconClose) iconClose.classList.toggle('hidden', !isOpen);
+    }
+
+    hamburger.addEventListener('click', toggleMenu);
+  }
+
   function closeMobileMenu() {
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const iconOpen = document.getElementById('icon-open');
+    const iconClose = document.getElementById('icon-close');
+    
     if (mobileMenu && mobileMenu.classList.contains('open')) {
       mobileMenu.classList.remove('open');
+      hamburger?.setAttribute('aria-expanded', 'false');
       iconOpen?.classList.remove('hidden');
       iconClose?.classList.add('hidden');
     }
   }
   window.closeMobileMenu = closeMobileMenu;
 
-  if (hamburger && mobileMenu) {
-    hamburger.addEventListener('click', () => {
-      const isOpen = mobileMenu.classList.toggle('open');
-      iconOpen?.classList.toggle('hidden', isOpen);
-      iconClose?.classList.toggle('hidden', !isOpen);
-    });
+  // Initialize on direct load and Turbo navigations
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMobileMenu);
+  } else {
+    initMobileMenu();
   }
+  document.addEventListener('turbo:load', initMobileMenu);
+  document.addEventListener('turbo:render', initMobileMenu);
 </script>
 @stack('scripts')
 </body>
