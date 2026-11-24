@@ -66,13 +66,10 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
 
-      <a href="/" class="flex items-center gap-3 flex-shrink-0 group">
-        <div class="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm group-hover:bg-blue-600 transition">
-          S
-        </div>
+      <a href="/" class="flex items-center flex-shrink-0 group">
         <div class="leading-tight">
-          <span class="text-slate-900 font-extrabold text-base block leading-none tracking-tight">Skillspot.in</span>
-          <span class="text-slate-500 text-[10px] font-semibold tracking-wider uppercase">Academy LMS</span>
+          <span class="text-slate-900 font-extrabold text-lg sm:text-xl block leading-none tracking-tight group-hover:text-blue-600 transition">Skillspot.in</span>
+          <span class="text-slate-500 text-[10px] font-semibold tracking-wider uppercase mt-0.5 block">Academy LMS</span>
         </div>
       </a>
 
